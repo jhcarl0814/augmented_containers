@@ -1,1 +1,23 @@
-# augmented_containers
+# Augmented Containers
+
+This library provides a stronger version of `sequence containers` (let containers (and its subranges) always have several accompanying results of algorithms/views), `<algorithm>` and `<ranges>` (when the input sequence changes, refresh output values/ranges in logarithmic time complexity).
+
+## Status
+
+- Under Development
+  - augmented deque
+- Design Completed, Scheduled for Development
+  - augmented \*\*\*\*\*
+  - augmented \*\*\*\*\*\*\*\*
+  - augmented \*\*\*/\*\*\*/\*\*\*\*\*\*\*\*/\*\*\*\*\*\*\*\*
+- Under Conception
+  - augmented \*\*\*\*\*
+
+## Requirements
+
+- This library depends on C++23. Support of legacy versions (C++11, 14, 17, 20) is possible but takes extra efforts.
+- (Each component in this library is a single header file.)
+
+## Doc
+
+- augmented deque [https://jhcarl0814.github.io/augmented_containers_doc/augmented_deque.html](https://jhcarl0814.github.io/augmented_containers_doc/augmented_deque.html)
