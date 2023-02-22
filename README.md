@@ -25,9 +25,5 @@ This library provides a stronger version of `sequence containers` (let container
 ## Todo
 
 - augmented deque
-  - [ ] the 5 special member functions
-  - [ ] conventional constructors and `assign`s
-  - [ ] use allocator
-  - [ ] non-essential member functions
   - [ ] formalize `projector` and `accumulator` concepts
   - [ ] add the api section to doc
