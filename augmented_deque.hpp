@@ -8,28 +8,47 @@
 #include <iterator>
 #include <algorithm>
 #include <cstddef>
+#include <memory>
 #include <concepts>
 
 namespace augmented_containers
 {
     namespace detail
     {
-        namespace tagged_ptr_ns
+        namespace language
         {
-            template<typename scalar_t>
-            bool tagged_ptr_bit0_is_set(scalar_t p) { return (reinterpret_cast<uintptr_t>(p) & 0b1) != 0; };
-            template<typename scalar_t>
-            scalar_t tagged_ptr_bit0_unsetted_relaxed(scalar_t p) { return reinterpret_cast<scalar_t>(reinterpret_cast<uintptr_t>(p) & ~0b1); }
-            template<typename scalar_t>
-            scalar_t tagged_ptr_bit0_unsetted(scalar_t p) { return assert(tagged_ptr_bit0_is_set(p)), tagged_ptr_bit0_unsetted_relaxed(p); }
-            template<typename scalar_t>
-            scalar_t tagged_ptr_bit0_setted_relaxed(scalar_t p) { return reinterpret_cast<scalar_t>(reinterpret_cast<uintptr_t>(p) | 0b1); }
-            template<typename scalar_t>
-            scalar_t tagged_ptr_bit0_setted(scalar_t p) { return assert(!tagged_ptr_bit0_is_set(p)), tagged_ptr_bit0_setted_relaxed(p); }
-        } // namespace tagged_ptr_ns
+            template<typename target_pointer_t, typename source_pointer_t>
+            target_pointer_t pointer_traits_static_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*static_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
 
-        namespace mp
+            template<typename target_pointer_t, typename source_pointer_t>
+            target_pointer_t pointer_traits_reinterpret_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
+
+            template<typename pointer_t>
+            bool tagged_ptr_bit0_is_set(pointer_t p) { return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b1) != 0; };
+            template<typename pointer_t>
+            pointer_t tagged_ptr_bit0_unsetted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b1)); }
+            template<typename pointer_t>
+            pointer_t tagged_ptr_bit0_unsetted(pointer_t p) { return assert(tagged_ptr_bit0_is_set(p)), tagged_ptr_bit0_unsetted_relaxed(p); }
+            template<typename pointer_t>
+            pointer_t tagged_ptr_bit0_setted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) | 0b1)); }
+            template<typename pointer_t>
+            pointer_t tagged_ptr_bit0_setted(pointer_t p) { return assert(!tagged_ptr_bit0_is_set(p)), tagged_ptr_bit0_setted_relaxed(p); }
+
+            constexpr std::size_t zu(std::size_t v) { return v; }
+            constexpr std::ptrdiff_t z(std::ptrdiff_t v) { return v; }
+        } // namespace language
+
+        namespace concepts
         {
+            template<class F, typename Ret, class... Args>
+            concept invocable_r = std::invocable<F, Args...> && std::same_as<Ret, std::invoke_result_t<F, Args...>>; // https://stackoverflow.com/questions/61932900/c-template-function-specify-argument-type-of-callback-functor-lambda-while-st#comment109544863_61933163
+        }
+
+        namespace utility
+        {
+            template<class T>
+            constexpr T &unmove(T &&t) { return static_cast<T &>(t); } //https://stackoverflow.com/a/67059296/8343353
+
             template<bool is_const = true, typename T = void>
             using conditional_const_t = std::conditional_t<is_const, const T, T>;
 
@@ -37,9 +56,6 @@ namespace augmented_containers
             constexpr conditional_const_t<is_const, T> &conditional_as_const(T &_Val) noexcept { return _Val; }
             template<bool is_const = true, typename T = void>
             void conditional_as_const(T const &&) = delete;
-
-            template<class F, typename Ret, class... Args>
-            concept invocable_r = std::invocable<F, Args...> && std::same_as<Ret, std::invoke_result_t<F, Args...>>; // https://stackoverflow.com/questions/61932900/c-template-function-specify-argument-type-of-callback-functor-lambda-while-st#comment109544863_61933163
 
             template<typename list_t, typename element_t>
             struct list_find_first_index
@@ -80,6 +96,9 @@ namespace augmented_containers
             {};
             template<typename tuple_t, typename T>
             constexpr bool type_is_in_tuple_v = type_is_in_tuple<tuple_t, T>::value;
+
+            template<typename... tuples_t>
+            using tuple_cat_t = decltype(std::tuple_cat(std::declval<tuples_t>()...));
 
             template<typename map_t>
             struct is_unique_map
@@ -166,51 +185,80 @@ namespace augmented_containers
             };
             template<typename map_t, template<std::size_t index, typename item_t> typename transformer_t>
             using map_transform_t = typename map_transform<map_t, transformer_t>::type;
-        } // namespace mp
+        } // namespace utility
+
+        namespace memory
+        {
+            template<typename target_t, typename allocator_element_t, typename... args_t>
+            typename std::allocator_traits<typename std::allocator_traits<allocator_element_t>::template rebind_alloc<target_t>>::pointer new_expression(allocator_element_t const &allocator_element, args_t &&...args)
+            {
+                using allocator_target_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<target_t>;
+                allocator_target_t allocator_target(allocator_element);
+                typename std::allocator_traits<allocator_target_t>::pointer p_target = std::allocator_traits<allocator_target_t>::allocate(allocator_target, 1);
+                std::allocator_traits<allocator_target_t>::construct(allocator_target, std::to_address(p_target), std::forward<args_t>(args)...);
+                return p_target;
+            }
+
+            template<typename target_t, typename allocator_element_t>
+            void delete_expression(allocator_element_t const &allocator_element, typename std::allocator_traits<typename std::allocator_traits<allocator_element_t>::template rebind_alloc<target_t>>::pointer p_target)
+            {
+                using allocator_target_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<target_t>;
+                allocator_target_t allocator_target(allocator_element);
+                std::allocator_traits<allocator_target_t>::destroy(allocator_target, std::to_address(p_target));
+                std::allocator_traits<allocator_target_t>::deallocate(allocator_target, p_target, 1);
+            }
+        } // namespace memory
 
         namespace augmented_deque
         {
-            using namespace tagged_ptr_ns;
-            using namespace mp;
+            using namespace language;
+            using namespace concepts;
+            using namespace utility;
+            using namespace memory;
 
-            template<typename projected_storage_t>
+            template<typename pointer_element_t, typename projected_storage_t>
             struct add_projected_storage_member_t
             {
                 alignas(projected_storage_t) std::byte projected_storage_buffer[sizeof(projected_storage_t)]; // projected_storage_t projected_storage;
-                projected_storage_t *p_projected_storage() { return reinterpret_cast<projected_storage_t *>(&projected_storage_buffer); }
+                typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_t> p_projected_storage() { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_t>>::pointer_to(*reinterpret_cast<projected_storage_t *>(&projected_storage_buffer)); }
             };
-            template<>
-            struct add_projected_storage_member_t<void>
+            template<typename pointer_element_t>
+            struct add_projected_storage_member_t<pointer_element_t, void>
             {
             };
 
-            template<typename accumulated_storage_t, typename derived_t>
+            template<typename pointer_element_t, typename accumulated_storage_t, typename derived_t>
             struct add_accumulated_storage_member_t
             {
                 alignas(accumulated_storage_t) std::byte accumulated_storage_buffer[sizeof(accumulated_storage_t)]; // accumulated_storage_t accumulated_storage;
-                accumulated_storage_t *p_accumulated_storage() { return reinterpret_cast<accumulated_storage_t *>(&accumulated_storage_buffer); }
+                typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> p_accumulated_storage() { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t>>::pointer_to(*reinterpret_cast<accumulated_storage_t *>(&accumulated_storage_buffer)); }
 
-                static derived_t const *from_accumulated_storage_address(accumulated_storage_t const *address) { return reinterpret_cast<derived_t *>(const_cast<std::byte *>(reinterpret_cast<std::byte const *>(address) - offsetof(derived_t, accumulated_storage_buffer))); }
-                static derived_t *from_accumulated_storage_address(accumulated_storage_t *address) { return reinterpret_cast<derived_t *>(reinterpret_cast<std::byte *>(address) - offsetof(derived_t, accumulated_storage_buffer)); }
+                static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t const> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t const> pointer) { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t const>>::pointer_to(*reinterpret_cast<derived_t const *>(reinterpret_cast<std::byte const *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer))); }
+                static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> pointer) { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t>>::pointer_to(*reinterpret_cast<derived_t *>(reinterpret_cast<std::byte *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer))); }
             };
-            template<typename derived_t>
-            struct add_accumulated_storage_member_t<void, derived_t>
+            template<typename pointer_element_t, typename derived_t>
+            struct add_accumulated_storage_member_t<pointer_element_t, void, derived_t>
             {
             };
 
-            template<typename accumulated_storage_t>
-            struct tree_node_t: add_accumulated_storage_member_t<accumulated_storage_t, tree_node_t<accumulated_storage_t>>
+            template<typename sequence_config_t>
+            struct tree_node_t: add_accumulated_storage_member_t<typename sequence_config_t::pointer_element_t, typename sequence_config_t::accumulated_storage_t, tree_node_t<sequence_config_t>>
             {
-                tree_node_t *parent = nullptr, *child_left = nullptr, *child_right = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t> parent = nullptr, child_left = nullptr, child_right = nullptr;
+                tree_node_t(typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t> parent)
+                    : parent(parent)
+                {}
             };
 
+            template<typename allocator_element_t>
             struct circular_doubly_linked_list_node_navigator_t
             {
-                circular_doubly_linked_list_node_navigator_t *prev, *next;
+                using pointer_navigator_t = typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<circular_doubly_linked_list_node_navigator_t>;
+                pointer_navigator_t prev, next;
 
                 circular_doubly_linked_list_node_navigator_t() // initialize to node_end
-                    : prev(tagged_ptr_bit0_setted(this)),
-                      next(tagged_ptr_bit0_setted(this))
+                    : prev(tagged_ptr_bit0_setted(std::pointer_traits<pointer_navigator_t>::pointer_to(*this))),
+                      next(tagged_ptr_bit0_setted(std::pointer_traits<pointer_navigator_t>::pointer_to(*this)))
                 {}
 
                 circular_doubly_linked_list_node_navigator_t(std::nullptr_t) // not initialized
@@ -218,7 +266,7 @@ namespace augmented_containers
                       next(nullptr)
                 {}
 
-                static void push_impl(circular_doubly_linked_list_node_navigator_t *tagged_end, circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*prev), circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*next), circular_doubly_linked_list_node_navigator_t *node_new)
+                static void push_impl(pointer_navigator_t tagged_end, pointer_navigator_t(circular_doubly_linked_list_node_navigator_t::*prev), pointer_navigator_t(circular_doubly_linked_list_node_navigator_t::*next), pointer_navigator_t node_new)
                 {
                     if(tagged_ptr_bit0_unsetted(tagged_end)->*prev == tagged_end && tagged_ptr_bit0_unsetted(tagged_end)->*next == tagged_end)
                     {
@@ -234,7 +282,7 @@ namespace augmented_containers
                     }
                     else std::unreachable();
                 }
-                static void extract_impl(circular_doubly_linked_list_node_navigator_t *node, circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*prev), circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*next))
+                static void extract_impl(pointer_navigator_t node, pointer_navigator_t(circular_doubly_linked_list_node_navigator_t::*prev), pointer_navigator_t(circular_doubly_linked_list_node_navigator_t::*next))
                 {
                     if(tagged_ptr_bit0_is_set(node->*prev))
                         tagged_ptr_bit0_unsetted(node->*prev)->*next = tagged_ptr_bit0_setted_relaxed(node->*next);
@@ -246,17 +294,17 @@ namespace augmented_containers
                         node->*next->*prev = node->*prev;
                 }
 
-                static circular_doubly_linked_list_node_navigator_t *untagged_prev_or_tagged_end(circular_doubly_linked_list_node_navigator_t *tagged_end)
+                static pointer_navigator_t untagged_prev_or_tagged_end(pointer_navigator_t tagged_end)
                 {
-                    if(circular_doubly_linked_list_node_navigator_t *prev = tagged_ptr_bit0_unsetted(tagged_end)->prev; prev == tagged_end)
+                    if(pointer_navigator_t prev = tagged_ptr_bit0_unsetted(tagged_end)->prev; prev == tagged_end)
                         return prev;
                     else
                         return tagged_ptr_bit0_unsetted(prev);
                 }
 
-                static circular_doubly_linked_list_node_navigator_t *untagged_next_or_tagged_end(circular_doubly_linked_list_node_navigator_t *tagged_end)
+                static pointer_navigator_t untagged_next_or_tagged_end(pointer_navigator_t tagged_end)
                 {
-                    if(circular_doubly_linked_list_node_navigator_t *next = tagged_ptr_bit0_unsetted(tagged_end)->next; next == tagged_end)
+                    if(pointer_navigator_t next = tagged_ptr_bit0_unsetted(tagged_end)->next; next == tagged_end)
                         return next;
                     else
                         return tagged_ptr_bit0_unsetted(next);
@@ -265,14 +313,16 @@ namespace augmented_containers
                 template<typename node_end_t>
                 struct node_end_functions_t
                 {
-                    static node_end_t *create_tagged_end() { return tagged_ptr_bit0_setted(new node_end_t()); }
+                    using pointer_node_end_t = typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<node_end_t>;
+                    static pointer_node_end_t create_tagged_end(allocator_element_t const &allocator_element) { return tagged_ptr_bit0_setted(new_expression<node_end_t>(allocator_element)); }
                 };
 
                 template<typename node_t>
                 struct node_functions_t
                 {
-                    static node_t *untagged_prev(circular_doubly_linked_list_node_navigator_t *tagged_end) { return static_cast<node_t *>(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(tagged_end)->prev)); }
-                    static node_t *untagged_next(circular_doubly_linked_list_node_navigator_t *tagged_end) { return static_cast<node_t *>(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(tagged_end)->next)); }
+                    using pointer_node_t = typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<node_t>;
+                    static pointer_node_t untagged_prev(pointer_navigator_t tagged_end) { return pointer_traits_static_cast<pointer_node_t>(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(tagged_end)->prev)); }
+                    static pointer_node_t untagged_next(pointer_navigator_t tagged_end) { return pointer_traits_static_cast<pointer_node_t>(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(tagged_end)->next)); }
                 };
             };
 
@@ -280,50 +330,62 @@ namespace augmented_containers
             struct list_node_end_t;
 
             template<typename sequence_config_t>
-            struct digit_node_end_t: circular_doubly_linked_list_node_navigator_t, circular_doubly_linked_list_node_navigator_t::node_end_functions_t<digit_node_end_t<sequence_config_t>>, add_accumulated_storage_member_t<typename sequence_config_t::accumulated_storage_t, digit_node_end_t<sequence_config_t>>
+            struct digit_node_end_t: circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>, circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>::template node_end_functions_t<digit_node_end_t<sequence_config_t>>, add_accumulated_storage_member_t<typename sequence_config_t::pointer_element_t, typename sequence_config_t::accumulated_storage_t, digit_node_end_t<sequence_config_t>>
             {
                 std::size_t node_count = 0;
-                list_node_end_t<sequence_config_t> *list_node_end = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_end_t<sequence_config_t>> list_node_end = nullptr;
 
-                circular_doubly_linked_list_node_navigator_t *middle = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>> middle = nullptr;
                 typename sequence_config_t::projector_and_accumulator_t projector_and_accumulator;
             };
             template<typename sequence_config_t>
-            struct digit_node_t: circular_doubly_linked_list_node_navigator_t, circular_doubly_linked_list_node_navigator_t::node_functions_t<digit_node_t<sequence_config_t>>, add_accumulated_storage_member_t<typename sequence_config_t::accumulated_storage_t, digit_node_t<sequence_config_t>>
+            struct digit_node_t: circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>, circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>::template node_functions_t<digit_node_t<sequence_config_t>>, add_accumulated_storage_member_t<typename std::allocator_traits<typename sequence_config_t::allocator_element_t>::pointer, typename sequence_config_t::accumulated_storage_t, digit_node_t<sequence_config_t>>
             {
-                tree_node_t<typename sequence_config_t::accumulated_storage_t> *tree_left = nullptr, *tree_right = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t<sequence_config_t>> tree_left = nullptr, tree_right = nullptr;
                 std::size_t digit_position;
 
                 digit_node_t(std::size_t digit_position)
-                    : circular_doubly_linked_list_node_navigator_t(nullptr),
+                    : circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>(nullptr),
                       digit_position(digit_position)
                 {}
             };
 
             template<typename sequence_config_t>
-            struct list_node_end_t: circular_doubly_linked_list_node_navigator_t, circular_doubly_linked_list_node_navigator_t::node_end_functions_t<list_node_end_t<sequence_config_t>>
+            struct list_node_end_t: circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>, circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>::template node_end_functions_t<list_node_end_t<sequence_config_t>>
             {
                 std::size_t node_count = 0, front_element_count = 0, back_element_count = 0;
-                digit_node_end_t<sequence_config_t> *digit_node_end = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t<sequence_config_t>> digit_node_end = nullptr;
 
                 typename sequence_config_t::actual_projected_storage_end_t actual_projected_storage_end;
             };
             template<typename sequence_config_t>
                 requires(sequence_config_t::requested_stride == 1)
-            struct list_node_end_t<sequence_config_t>: circular_doubly_linked_list_node_navigator_t, circular_doubly_linked_list_node_navigator_t::node_end_functions_t<list_node_end_t<sequence_config_t>>
+            struct list_node_end_t<sequence_config_t>: circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>, circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>::template node_end_functions_t<list_node_end_t<sequence_config_t>>
             {
                 std::size_t node_count = 0;
-                digit_node_end_t<sequence_config_t> *digit_node_end = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t<sequence_config_t>> digit_node_end = nullptr;
 
                 typename sequence_config_t::actual_projected_storage_end_t actual_projected_storage_end;
             };
             template<typename sequence_config_t>
-            struct list_node_t: circular_doubly_linked_list_node_navigator_t, circular_doubly_linked_list_node_navigator_t::node_functions_t<list_node_t<sequence_config_t>>
+            struct list_node_t: circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>, circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>::template node_functions_t<list_node_t<sequence_config_t>>
             {
-                tree_node_t<typename sequence_config_t::accumulated_storage_t> *parent = nullptr;
+                typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t<sequence_config_t>> parent = nullptr;
                 typename sequence_config_t::actual_projected_storage_t actual_projected_storage;
 
                 using actual_projected_storage_t = typename sequence_config_t::actual_projected_storage_t;
+
+                list_node_t(typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t<sequence_config_t>> parent)
+                    : parent(parent)
+                {}
+                template<typename sequence_config_t_ = sequence_config_t>
+                    requires(sequence_config_t_::sequence_index != 0)
+                list_node_t(typename std::pointer_traits<typename sequence_config_t_::pointer_element_t>::template rebind<tree_node_t<sequence_config_t_>> parent, typename std::pointer_traits<typename sequence_config_t_::pointer_element_t>::template rebind<typename sequence_config_t_::stride1_sequence_t::list_node_t> p_stride1_sequence_list_node)
+                    : parent(parent),
+                      actual_projected_storage{
+                          .child = p_stride1_sequence_list_node,
+                      }
+                {}
             };
 
             template<typename iterator_t> // https://stackoverflow.com/questions/6006614/c-static-polymorphism-crtp-and-using-typedefs-from-derived-classes
@@ -343,19 +405,27 @@ namespace augmented_containers
             template<bool is_const_template_parameter, typename sequence_config_t, typename derived_t>
             struct iterator_list_node_t
             {
+                using navigator_t = circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>;
                 using list_node_t = list_node_t<sequence_config_t>;
                 using list_node_end_t = list_node_end_t<sequence_config_t>;
-                using tree_node_t = tree_node_t<typename sequence_config_t::accumulated_storage_t>;
+                using tree_node_t = tree_node_t<sequence_config_t>;
                 using digit_node_t = digit_node_t<sequence_config_t>;
                 using digit_node_end_t = digit_node_end_t<sequence_config_t>;
 
-                static list_node_t *p_tree_node_to_p_list_node(tree_node_t *p) { return reinterpret_cast<list_node_t *>(tagged_ptr_bit0_unsetted(p)); }
-                static tree_node_t *p_list_node_to_p_tree_node(list_node_t *p) { return reinterpret_cast<tree_node_t *>(tagged_ptr_bit0_setted(p)); }
-                static tree_node_t *p_digit_node_to_p_tree_node(digit_node_t *p) { return reinterpret_cast<tree_node_t *>(tagged_ptr_bit0_setted(p)); }
-                static digit_node_t *p_tree_node_to_p_digit_node(tree_node_t *p) { return reinterpret_cast<digit_node_t *>(tagged_ptr_bit0_unsetted(p)); }
+                using pointer_navigator_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<navigator_t>;
+                using pointer_list_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_t>;
+                using pointer_list_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_end_t>;
+                using pointer_tree_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t>;
+                using pointer_digit_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_t>;
+                using pointer_digit_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t>;
 
-                circular_doubly_linked_list_node_navigator_t *current_list_node = nullptr;
-                iterator_list_node_t(circular_doubly_linked_list_node_navigator_t *current_list_node)
+                static pointer_list_node_t p_tree_node_to_p_list_node(pointer_tree_node_t p) { return pointer_traits_reinterpret_cast<pointer_list_node_t>(tagged_ptr_bit0_unsetted(p)); }
+                static pointer_tree_node_t p_list_node_to_p_tree_node(pointer_list_node_t p) { return pointer_traits_reinterpret_cast<pointer_tree_node_t>(tagged_ptr_bit0_setted(p)); }
+                static pointer_tree_node_t p_digit_node_to_p_tree_node(pointer_digit_node_t p) { return pointer_traits_reinterpret_cast<pointer_tree_node_t>(tagged_ptr_bit0_setted(p)); }
+                static pointer_digit_node_t p_tree_node_to_p_digit_node(pointer_tree_node_t p) { return pointer_traits_reinterpret_cast<pointer_digit_node_t>(tagged_ptr_bit0_unsetted(p)); }
+
+                pointer_navigator_t current_list_node = nullptr;
+                iterator_list_node_t(pointer_navigator_t current_list_node)
                     : current_list_node(current_list_node)
                 {}
                 bool is_end() const
@@ -388,7 +458,7 @@ namespace augmented_containers
                 {
                     assert(current_list_node != nullptr);
                     if(tagged_ptr_bit0_is_set(current_list_node))
-                        current_list_node = circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(current_list_node);
+                        current_list_node = navigator_t::untagged_next_or_tagged_end(current_list_node);
                     else
                         current_list_node = current_list_node->next;
                     return static_cast<derived_t &>(*this);
@@ -406,15 +476,20 @@ namespace augmented_containers
                 {
                     // std::input_iterator / std::indirectly_readable
                     using value_type = typename sequence_config_t::actual_projected_storage_t;
-                    conditional_const_t<is_const, value_type> &operator*() const &
+                    using pointer = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<conditional_const_t<is_const, value_type>>;
+                    using reference = conditional_const_t<is_const, value_type> &;
+                    reference operator*() const &
                     {
                         assert(this->current_list_node != nullptr);
                         assert(!tagged_ptr_bit0_is_set(this->current_list_node));
-                        return conditional_as_const<is_const>(static_cast<list_node_t *>(this->current_list_node)->actual_projected_storage);
+                        return conditional_as_const<is_const>(static_cast<list_node_t *>(std::to_address(this->current_list_node))->actual_projected_storage);
                     }
-                    conditional_const_t<is_const, value_type> *to_address() const & { return &operator*(); }
-                    conditional_const_t<is_const, value_type> *operator->() const & { return &operator*(); }
-                    static iterator_list_node_t from_actual_projected_storage_address(conditional_const_t<is_const, value_type> *address) { return {reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(address) - offsetof(list_node_t, actual_projected_storage)))}; }
+                    pointer to_pointer() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                    pointer operator->() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                    static iterator_list_node_t from_actual_projected_storage_pointer(pointer ptr)
+                    {
+                        return {std::pointer_traits<pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage)))};
+                    }
                 };
 
                 // std::forward_iterator / std::sentinel_for / __WeaklyEqualityComparableWith, std::forward_iterator / std::incrementable / std::regular
@@ -454,7 +529,7 @@ namespace augmented_containers
                 {
                     assert(current_list_node != nullptr);
                     if(tagged_ptr_bit0_is_set(current_list_node))
-                        current_list_node = circular_doubly_linked_list_node_navigator_t::untagged_prev_or_tagged_end(current_list_node);
+                        current_list_node = navigator_t::untagged_prev_or_tagged_end(current_list_node);
                     else
                         current_list_node = current_list_node->prev;
                     return static_cast<derived_t &>(*this);
@@ -479,13 +554,13 @@ namespace augmented_containers
                     if(tagged_ptr_bit0_is_set(rhs.current_list_node))
                         return std::strong_ordering::less;
 
-                    tree_node_t *tree_node_lhs = reinterpret_cast<tree_node_t *>(lhs.current_list_node);
-                    tree_node_t *tree_node_rhs = reinterpret_cast<tree_node_t *>(rhs.current_list_node);
-                    tree_node_t *tree_node_lhs_parent = static_cast<list_node_t *>(lhs.current_list_node)->parent;
-                    tree_node_t *tree_node_rhs_parent = static_cast<list_node_t *>(rhs.current_list_node)->parent;
+                    pointer_tree_node_t tree_node_lhs = pointer_traits_reinterpret_cast<pointer_tree_node_t>(lhs.current_list_node);
+                    pointer_tree_node_t tree_node_rhs = pointer_traits_reinterpret_cast<pointer_tree_node_t>(rhs.current_list_node);
+                    pointer_tree_node_t tree_node_lhs_parent = pointer_traits_static_cast<pointer_list_node_t>(lhs.current_list_node)->parent;
+                    pointer_tree_node_t tree_node_rhs_parent = pointer_traits_static_cast<pointer_list_node_t>(rhs.current_list_node)->parent;
                     auto same_digit_node_reached = [&tree_node_lhs, &tree_node_rhs, &tree_node_lhs_parent]()
                     {
-                        if(digit_node_t *digit_node_parent = p_tree_node_to_p_digit_node(tree_node_lhs_parent);
+                        if(pointer_digit_node_t digit_node_parent = p_tree_node_to_p_digit_node(tree_node_lhs_parent);
                             tagged_ptr_bit0_unsetted_relaxed(digit_node_parent->tree_left) == tree_node_lhs && tagged_ptr_bit0_unsetted_relaxed(digit_node_parent->tree_right) == tree_node_rhs)
                             return std::strong_ordering::less;
                         else if(tagged_ptr_bit0_unsetted_relaxed(digit_node_parent->tree_left) == tree_node_rhs && tagged_ptr_bit0_unsetted_relaxed(digit_node_parent->tree_right) == tree_node_lhs)
@@ -496,7 +571,7 @@ namespace augmented_containers
                     {
                         if(tree_node_lhs_parent == tree_node_rhs_parent)
                         {
-                            if(tree_node_t *tree_node_parent = tree_node_lhs_parent; tagged_ptr_bit0_is_set(tree_node_parent))
+                            if(pointer_tree_node_t tree_node_parent = tree_node_lhs_parent; tagged_ptr_bit0_is_set(tree_node_parent))
                                 return same_digit_node_reached();
                             else
                             {
@@ -525,18 +600,18 @@ namespace augmented_containers
                         return same_digit_node_reached();
                     else
                     {
-                        if(digit_node_t *digit_node_lhs = p_tree_node_to_p_digit_node(tree_node_lhs_parent),
-                            *digit_node_rhs = p_tree_node_to_p_digit_node(tree_node_rhs_parent);
-                            tagged_ptr_bit0_is_set(digit_node_lhs->next) || static_cast<digit_node_t *>(digit_node_lhs->next)->digit_position < digit_node_lhs->digit_position)
+                        if(pointer_digit_node_t digit_node_lhs = p_tree_node_to_p_digit_node(tree_node_lhs_parent),
+                            digit_node_rhs = p_tree_node_to_p_digit_node(tree_node_rhs_parent);
+                            tagged_ptr_bit0_is_set(digit_node_lhs->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node_lhs->next)->digit_position < digit_node_lhs->digit_position)
                         {
-                            if(tagged_ptr_bit0_is_set(digit_node_rhs->next) || static_cast<digit_node_t *>(digit_node_rhs->next)->digit_position < digit_node_rhs->digit_position)
+                            if(tagged_ptr_bit0_is_set(digit_node_rhs->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node_rhs->next)->digit_position < digit_node_rhs->digit_position)
                                 return digit_node_rhs->digit_position <=> digit_node_lhs->digit_position;
                             else
                                 return std::strong_ordering::greater;
                         }
                         else
                         {
-                            if(tagged_ptr_bit0_is_set(digit_node_rhs->next) || static_cast<digit_node_t *>(digit_node_rhs->next)->digit_position < digit_node_rhs->digit_position)
+                            if(tagged_ptr_bit0_is_set(digit_node_rhs->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node_rhs->next)->digit_position < digit_node_rhs->digit_position)
                                 return std::strong_ordering::less;
                             else
                                 return digit_node_lhs->digit_position <=> digit_node_rhs->digit_position;
@@ -572,17 +647,17 @@ namespace augmented_containers
 
                 // std::random_access_iterator
                 void move_impl(std::size_t distance,
-                    list_node_t *(*p_untagged_prev)(circular_doubly_linked_list_node_navigator_t *tagged_end),
-                    list_node_t *(*p_untagged_next)(circular_doubly_linked_list_node_navigator_t *tagged_end),
-                    circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_prev),
-                    circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_next),
-                    tree_node_t *(digit_node_t::*p_tree_left),
-                    tree_node_t *(digit_node_t::*p_tree_right),
-                    tree_node_t *(tree_node_t::*p_child_left),
-                    tree_node_t *(tree_node_t::*p_child_right)) &
+                    pointer_list_node_t (*p_untagged_prev)(pointer_navigator_t tagged_end),
+                    pointer_list_node_t (*p_untagged_next)(pointer_navigator_t tagged_end),
+                    pointer_navigator_t(navigator_t::*p_prev),
+                    pointer_navigator_t(navigator_t::*p_next),
+                    pointer_tree_node_t(digit_node_t::*p_tree_left),
+                    pointer_tree_node_t(digit_node_t::*p_tree_right),
+                    pointer_tree_node_t(tree_node_t::*p_child_left),
+                    pointer_tree_node_t(tree_node_t::*p_child_right)) &
                 {
                     assert(distance != 0);
-                    tree_node_t *tree_node = reinterpret_cast<tree_node_t *>(current_list_node);
+                    pointer_tree_node_t tree_node = pointer_traits_reinterpret_cast<pointer_tree_node_t>(current_list_node);
                     std::size_t index_in_tree_node = 0, tree_node_range_size = 1;
                     index_in_tree_node += distance;
                     auto find_inside_tree_node = [&]()
@@ -596,7 +671,7 @@ namespace augmented_containers
                         }
                         return p_tree_node_to_p_list_node(tree_node);
                     };
-                    tree_node_t *tree_node_parent = static_cast<list_node_t *>(current_list_node)->parent;
+                    pointer_tree_node_t tree_node_parent = pointer_traits_static_cast<pointer_list_node_t>(current_list_node)->parent;
                     while(!tagged_ptr_bit0_is_set(tree_node_parent))
                     {
                         if(tree_node == tagged_ptr_bit0_unsetted_relaxed(tree_node_parent->*p_child_left))
@@ -612,7 +687,7 @@ namespace augmented_containers
                             std::tie(index_in_tree_node, tree_node_range_size, tree_node) = std::forward_as_tuple(index_in_tree_node + tree_node_range_size, tree_node_range_size * 2, std::exchange(tree_node_parent, tree_node_parent->parent));
                         else std::unreachable();
                     }
-                    digit_node_t *digit_node = p_tree_node_to_p_digit_node(tree_node_parent);
+                    pointer_digit_node_t digit_node = p_tree_node_to_p_digit_node(tree_node_parent);
                     while(true)
                     {
                         // advance to next tree, return if found
@@ -629,7 +704,7 @@ namespace augmented_containers
                         {
                             if(tagged_ptr_bit0_is_set(digit_node->*p_next))
                             {
-                                list_node_end_t *list_node_end = static_cast<digit_node_end_t *>(tagged_ptr_bit0_unsetted(digit_node->*p_next))->list_node_end;
+                                pointer_list_node_end_t list_node_end = pointer_traits_static_cast<pointer_digit_node_end_t>(tagged_ptr_bit0_unsetted(digit_node->*p_next))->list_node_end;
                                 std::tie(index_in_tree_node, current_list_node) = std::forward_as_tuple(index_in_tree_node - tree_node_range_size, list_node_end);
                                 index_in_tree_node %= static_cast<std::ptrdiff_t>(tagged_ptr_bit0_unsetted(list_node_end)->node_count) + 1;
                                 if(index_in_tree_node != 0)
@@ -642,7 +717,7 @@ namespace augmented_containers
                             }
                             else
                             {
-                                digit_node = static_cast<digit_node_t *>(digit_node->*p_next);
+                                digit_node = pointer_traits_static_cast<pointer_digit_node_t>(digit_node->*p_next);
                                 if(digit_node->*p_tree_left != nullptr)
                                     std::tie(index_in_tree_node, tree_node_range_size, tree_node) = std::forward_as_tuple(index_in_tree_node - tree_node_range_size, 1 << digit_node->digit_position, tagged_ptr_bit0_unsetted_relaxed(digit_node->*p_tree_left));
                                 else if(digit_node->*p_tree_right != nullptr)
@@ -650,7 +725,7 @@ namespace augmented_containers
                                 else std::unreachable();
                                 if(index_in_tree_node < tree_node_range_size)
                                 {
-                                    current_list_node = tree_node_range_size == 1 ? reinterpret_cast<list_node_t *>(tree_node) : find_inside_tree_node();
+                                    current_list_node = tree_node_range_size == 1 ? pointer_traits_reinterpret_cast<pointer_list_node_t>(tree_node) : find_inside_tree_node();
                                     return;
                                 }
                             }
@@ -664,7 +739,7 @@ namespace augmented_containers
                     if(offset == 0) return static_cast<derived_t &>(*this);
                     if(tagged_ptr_bit0_is_set(current_list_node))
                     {
-                        offset %= static_cast<std::ptrdiff_t>(static_cast<list_node_end_t *>(tagged_ptr_bit0_unsetted(current_list_node))->node_count) + 1;
+                        offset %= static_cast<std::ptrdiff_t>(pointer_traits_static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(current_list_node))->node_count) + 1;
                         if(offset == 0) return static_cast<derived_t &>(*this);
                         else if(offset > 0)
                         {
@@ -682,11 +757,11 @@ namespace augmented_containers
                     else if(offset > 0)
                         move_impl(offset,
                             &list_node_t::untagged_prev, &list_node_t::untagged_next,
-                            &circular_doubly_linked_list_node_navigator_t::prev, &circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right);
+                            &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right);
                     else if(offset < 0)
                         move_impl(-offset,
                             &list_node_t::untagged_next, &list_node_t::untagged_prev,
-                            &circular_doubly_linked_list_node_navigator_t::next, &circular_doubly_linked_list_node_navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left);
+                            &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left);
                     else std::unreachable();
                     return static_cast<derived_t &>(*this);
                 }
@@ -713,16 +788,16 @@ namespace augmented_containers
                     conditional_const_t<is_const, typename demonstration_only_input_iterator_t::value_type> &operator[](std::ptrdiff_t offset) const & { return *(*this + offset); }
                 };
 
-                std::tuple<std::size_t, list_node_end_t *> index_impl() const &
+                std::tuple<std::size_t, pointer_list_node_end_t> index_impl() const &
                 {
                     if(tagged_ptr_bit0_is_set(current_list_node))
-                        return {static_cast<list_node_end_t *>(tagged_ptr_bit0_unsetted(current_list_node))->node_count, static_cast<list_node_end_t *>(current_list_node)};
+                        return {static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(current_list_node))->node_count, static_cast<pointer_list_node_end_t>(current_list_node)};
                     else
                     {
                         std::size_t index_in_tree_node = 0, tree_node_range_size = 1;
 
-                        tree_node_t *tree_node = reinterpret_cast<tree_node_t *>(current_list_node);
-                        tree_node_t *tree_node_parent = static_cast<list_node_t *>(current_list_node)->parent;
+                        pointer_tree_node_t tree_node = pointer_traits_reinterpret_cast<pointer_tree_node_t>(current_list_node);
+                        pointer_tree_node_t tree_node_parent = pointer_traits_static_cast<pointer_list_node_t>(current_list_node)->parent;
                         while(!tagged_ptr_bit0_is_set(tree_node_parent))
                         {
                             if(tree_node == tagged_ptr_bit0_unsetted_relaxed(tree_node_parent->child_left))
@@ -731,36 +806,36 @@ namespace augmented_containers
                                 std::tie(index_in_tree_node, tree_node_range_size, tree_node) = std::forward_as_tuple(index_in_tree_node + tree_node_range_size, tree_node_range_size * 2, std::exchange(tree_node_parent, tree_node_parent->parent));
                             else std::unreachable();
                         }
-                        if(digit_node_t *digit_node = p_tree_node_to_p_digit_node(tree_node_parent);
-                            tagged_ptr_bit0_is_set(digit_node->next) || static_cast<digit_node_t *>(digit_node->next)->digit_position < digit_node->digit_position)
+                        if(pointer_digit_node_t digit_node = p_tree_node_to_p_digit_node(tree_node_parent);
+                            tagged_ptr_bit0_is_set(digit_node->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node->next)->digit_position < digit_node->digit_position)
                         {
                             if(tree_node == tagged_ptr_bit0_unsetted_relaxed(digit_node->tree_left) && digit_node->tree_right != nullptr)
                                 std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node, tree_node_range_size + tree_node_range_size);
-                            circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node->next;
+                            pointer_navigator_t digit_node_navigator = digit_node->next;
                             for(; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->next)
                             {
-                                digit_node = static_cast<digit_node_t *>(digit_node_navigator);
+                                digit_node = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                 if(digit_node->tree_left != nullptr)
-                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node, tree_node_range_size + (1 << digit_node->digit_position));
+                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node, tree_node_range_size + (zu(1) << digit_node->digit_position));
                                 if(digit_node->tree_right != nullptr)
-                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node, tree_node_range_size + (1 << digit_node->digit_position));
+                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node, tree_node_range_size + (zu(1) << digit_node->digit_position));
                             }
-                            return {tagged_ptr_bit0_unsetted(static_cast<digit_node_end_t *>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end)->node_count - (tree_node_range_size - index_in_tree_node), static_cast<digit_node_end_t *>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end};
+                            return {tagged_ptr_bit0_unsetted(pointer_traits_static_cast<pointer_digit_node_end_t>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end)->node_count - (tree_node_range_size - index_in_tree_node), pointer_traits_static_cast<pointer_digit_node_end_t>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end};
                         }
                         else
                         {
                             if(digit_node->tree_left != nullptr && tree_node == tagged_ptr_bit0_unsetted_relaxed(digit_node->tree_right))
                                 std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(tree_node_range_size + index_in_tree_node, tree_node_range_size + tree_node_range_size);
-                            circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node->prev;
+                            pointer_navigator_t digit_node_navigator = digit_node->prev;
                             for(; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->prev)
                             {
-                                digit_node = static_cast<digit_node_t *>(digit_node_navigator);
+                                digit_node = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                 if(digit_node->tree_right != nullptr)
-                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node + (1 << digit_node->digit_position), tree_node_range_size + (1 << digit_node->digit_position));
+                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node + (zu(1) << digit_node->digit_position), tree_node_range_size + (zu(1) << digit_node->digit_position));
                                 if(digit_node->tree_left != nullptr)
-                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node + (1 << digit_node->digit_position), tree_node_range_size + (1 << digit_node->digit_position));
+                                    std::tie(index_in_tree_node, tree_node_range_size) = std::forward_as_tuple(index_in_tree_node + (zu(1) << digit_node->digit_position), tree_node_range_size + (zu(1) << digit_node->digit_position));
                             }
-                            return {index_in_tree_node, static_cast<digit_node_end_t *>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end};
+                            return {index_in_tree_node, pointer_traits_static_cast<pointer_digit_node_end_t>(tagged_ptr_bit0_unsetted(digit_node_navigator))->list_node_end};
                         }
                     }
                 }
@@ -817,15 +892,20 @@ namespace augmented_containers
 
                 // std::input_iterator / std::indirectly_readable
                 using value_type = typename sequence_config_t::element_t;
-                conditional_const_t<is_const, value_type> &operator*() const &
+                using pointer = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<conditional_const_t<is_const, value_type>>;
+                using reference = conditional_const_t<is_const, value_type> &;
+                reference operator*() const &
                 {
                     assert(this->current_list_node != nullptr);
                     assert(!tagged_ptr_bit0_is_set(this->current_list_node));
-                    return conditional_as_const<is_const>(*static_cast<list_node_t *>(this->current_list_node)->actual_projected_storage.p_element());
+                    return conditional_as_const<is_const>(*static_cast<list_node_t *>(std::to_address(this->current_list_node))->actual_projected_storage.p_element());
                 }
-                conditional_const_t<is_const, value_type> *to_address() const & { return &operator*(); }
-                conditional_const_t<is_const, value_type> *operator->() const & { return &operator*(); }
-                static iterator_element_t from_element_address(conditional_const_t<is_const, value_type> *address) { return {reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(address)) - offsetof(list_node_t, actual_projected_storage.element_buffer))}; }
+                pointer to_pointer() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                pointer operator->() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                static iterator_element_t from_element_pointer(pointer ptr)
+                {
+                    return {std::pointer_traits<typename base_t::pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage.element_buffer)))};
+                }
 
                 // std::random_access_iterator
                 conditional_const_t<is_const, value_type> &operator[](std::ptrdiff_t offset) const & { return *(*this + offset); }
@@ -850,7 +930,9 @@ namespace augmented_containers
 
                 // std::input_iterator / std::indirectly_readable
                 using value_type = std::conditional_t<std::is_same_v<typename sequence_config_t::projected_storage_t, void>, std::ranges::dangling, typename sequence_config_t::projected_storage_t>;
-                conditional_const_t<is_const, value_type> &operator*() const &
+                using pointer = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<conditional_const_t<is_const, value_type>>;
+                using reference = conditional_const_t<is_const, value_type> &;
+                reference operator*() const &
                 {
                     assert(this->current_list_node != nullptr);
                     assert(!tagged_ptr_bit0_is_set(this->current_list_node));
@@ -860,16 +942,16 @@ namespace augmented_containers
                         return s;
                     }
                     else
-                        return conditional_as_const<is_const>(*static_cast<list_node_t *>(this->current_list_node)->actual_projected_storage.p_projected_storage());
+                        return conditional_as_const<is_const>(*static_cast<list_node_t *>(std::to_address(this->current_list_node))->actual_projected_storage.p_projected_storage());
                 }
-                conditional_const_t<is_const, value_type> *to_address() const & { return &operator*(); }
-                conditional_const_t<is_const, value_type> *operator->() const & { return &operator*(); }
-                static iterator_projected_storage_t from_projected_storage_address(conditional_const_t<is_const, value_type> *address)
+                pointer to_pointer() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                pointer operator->() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
+                static iterator_projected_storage_t from_projected_storage_pointer(pointer ptr)
                 {
                     if constexpr(std::is_same_v<typename sequence_config_t::projected_storage_t, void>)
                         return {};
                     else
-                        return {reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(address)) - offsetof(list_node_t, actual_projected_storage.projected_storage_buffer))};
+                        return {std::pointer_traits<typename base_t::pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage.projected_storage_buffer)))};
                 }
 
                 // std::random_access_iterator
@@ -899,47 +981,57 @@ namespace augmented_containers
                 }
             } tuple_reversed;
 
-            template<typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
+            template<typename allocator_element_t, typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
             struct sequence_push_or_pop_impl_t
             {
-                sequence_possibly_const_t *sequence;
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void);
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void);
-                circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_prev);
-                circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_next);
-                typename sequence_t::tree_node_t *(sequence_t::digit_node_t::*p_tree_left);
-                typename sequence_t::tree_node_t *(sequence_t::digit_node_t::*p_tree_right);
-                typename sequence_t::tree_node_t *(sequence_t::tree_node_t::*p_child_left);
-                typename sequence_t::tree_node_t *(sequence_t::tree_node_t::*p_child_right);
-                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed;
-
+                using navigator_t = circular_doubly_linked_list_node_navigator_t<typename sequence_t::sequence_config_t::allocator_element_t>;
                 using digit_node_t = typename sequence_t::digit_node_t;
+                using digit_node_end_t = typename sequence_t::digit_node_end_t;
                 using tree_node_t = typename sequence_t::tree_node_t;
                 using list_node_t = typename sequence_t::list_node_t;
                 using list_node_end_t = typename sequence_t::list_node_end_t;
                 using projected_storage_t = typename sequence_t::projected_storage_t;
                 using accumulated_storage_t = typename sequence_t::accumulated_storage_t;
 
-                static list_node_t *p_tree_node_to_p_list_node(tree_node_t *p) { return reinterpret_cast<list_node_t *>(tagged_ptr_bit0_unsetted(p)); }
-                static tree_node_t *p_list_node_to_p_tree_node(list_node_t *p) { return reinterpret_cast<tree_node_t *>(tagged_ptr_bit0_setted(p)); }
-                static tree_node_t *p_digit_node_to_p_tree_node(digit_node_t *p) { return reinterpret_cast<tree_node_t *>(tagged_ptr_bit0_setted(p)); }
-                static digit_node_t *p_tree_node_to_p_digit_node(tree_node_t *p) { return reinterpret_cast<digit_node_t *>(tagged_ptr_bit0_unsetted(p)); }
+                using pointer_navigator_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<navigator_t>;
+                using pointer_list_node_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<list_node_t>;
+                using pointer_list_node_end_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<list_node_end_t>;
+                using pointer_tree_node_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<tree_node_t>;
+                using pointer_digit_node_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<digit_node_t>;
+                using pointer_digit_node_end_t = typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t>;
+
+                static pointer_list_node_t p_tree_node_to_p_list_node(pointer_tree_node_t p) { return pointer_traits_reinterpret_cast<pointer_list_node_t>(tagged_ptr_bit0_unsetted(p)); }
+                static pointer_tree_node_t p_list_node_to_p_tree_node(pointer_list_node_t p) { return pointer_traits_reinterpret_cast<pointer_tree_node_t>(tagged_ptr_bit0_setted(p)); }
+                static pointer_tree_node_t p_digit_node_to_p_tree_node(pointer_digit_node_t p) { return pointer_traits_reinterpret_cast<pointer_tree_node_t>(tagged_ptr_bit0_setted(p)); }
+                static pointer_digit_node_t p_tree_node_to_p_digit_node(pointer_tree_node_t p) { return pointer_traits_reinterpret_cast<pointer_digit_node_t>(tagged_ptr_bit0_unsetted(p)); }
+
+                allocator_element_t const &allocator_element;
+                sequence_possibly_const_t *sequence;
+                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void);
+                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void);
+                pointer_navigator_t(navigator_t::*p_prev);
+                pointer_navigator_t(navigator_t::*p_next);
+                pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_left);
+                pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_right);
+                pointer_tree_node_t(sequence_t::tree_node_t::*p_child_left);
+                pointer_tree_node_t(sequence_t::tree_node_t::*p_child_right);
+                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed;
 
                 struct next_or_prev_impl_t
                 {
-                    circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_next);
-                    friend digit_node_t *operator->*(digit_node_t *digit_node, next_or_prev_impl_t const &next)
+                    pointer_navigator_t(navigator_t::*p_next);
+                    friend pointer_digit_node_t operator->*(pointer_digit_node_t digit_node, next_or_prev_impl_t const &next)
                     {
-                        return static_cast<digit_node_t *>(digit_node->*next.p_next);
+                        return pointer_traits_static_cast<pointer_digit_node_t>(digit_node->*next.p_next);
                     }
                 };
 
-                void construct_list_node_projected_storage_if_exists(list_node_t *list_node) const
+                void construct_list_node_projected_storage_if_exists(pointer_list_node_t list_node) const
                 {
                     if constexpr(sequence_t::requested_stride == 1)
                     {
                         if constexpr(!std::is_same_v<projected_storage_t, void>)
-                            sequence->projector_and_accumulator().construct_projected_storage(list_node->actual_projected_storage.p_projected_storage(), typename sequence_t::iterator_projected_storage_t{list_node}, typename sequence_t::iterator_element_t{list_node});
+                            sequence->projector_and_accumulator().construct_projected_storage(allocator_element, list_node->actual_projected_storage.p_projected_storage(), typename sequence_t::iterator_projected_storage_t{list_node}, typename sequence_t::iterator_element_t{list_node});
                     }
                     else
                     {
@@ -952,13 +1044,13 @@ namespace augmented_containers
 #endif
                             (it_list_node);
                         typename sequence_t::stride1_sequence_t::iterator_element_t it_chunk_begin{list_node->actual_projected_storage.child},
-                            it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? static_cast<circular_doubly_linked_list_node_navigator_t *>(static_cast<list_node_end_t *>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : static_cast<circular_doubly_linked_list_node_navigator_t *>(static_cast<list_node_t *>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
+                            it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_t>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
                         std::size_t chunk_size = 1;
-                        assert(it_chunk_end - it_chunk_begin == chunk_size);
-                        sequence->projector_and_accumulator().construct_projected_storage(list_node->actual_projected_storage.p_projected_storage(), it_list_node, it_chunk_begin, it_chunk_end, chunk_size);
+                        assert(it_chunk_end - it_chunk_begin == static_cast<std::ptrdiff_t>(chunk_size));
+                        sequence->projector_and_accumulator().construct_projected_storage(allocator_element, list_node->actual_projected_storage.p_projected_storage(), it_list_node, it_chunk_begin, it_chunk_end, chunk_size);
                     }
                 }
-                void update_list_node_projected_storage_if_exists(list_node_t *list_node) const
+                void update_list_node_projected_storage_if_exists(pointer_list_node_t list_node) const
                 {
                     if constexpr(sequence_t::requested_stride == 1)
                     {
@@ -976,7 +1068,7 @@ namespace augmented_containers
 #endif
                             (it_list_node);
                         typename sequence_t::stride1_sequence_t::iterator_element_t it_chunk_begin{list_node->actual_projected_storage.child},
-                            it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? static_cast<circular_doubly_linked_list_node_navigator_t *>(static_cast<list_node_end_t *>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : static_cast<circular_doubly_linked_list_node_navigator_t *>(static_cast<list_node_t *>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
+                            it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_t>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
                         std::size_t chunk_size;
                         if(it_list_node == sequence->begin_projected_storage())
                             chunk_size = sequence->list_front_element_count();
@@ -988,7 +1080,7 @@ namespace augmented_containers
                         sequence->projector_and_accumulator().update_projected_storage(*list_node->actual_projected_storage.p_projected_storage(), it_list_node, it_chunk_begin, it_chunk_end, chunk_size);
                     }
                 }
-                auto p_element_or_p_projected_storage_from_list_node(list_node_t *list_node) const
+                auto p_element_or_p_projected_storage_from_list_node(pointer_list_node_t list_node) const
                 {
                     if constexpr(sequence_t::requested_stride == 1)
                     {
@@ -1003,7 +1095,7 @@ namespace augmented_containers
                         return list_node->actual_projected_storage.p_projected_storage();
                     }
                 }
-                void update_or_construct_tree_node_accumulated_storage_if_exists(tree_node_t *tree_node, bool construct = false) const
+                void update_or_construct_tree_node_accumulated_storage_if_exists(pointer_tree_node_t tree_node, bool construct = false) const
                 {
                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
                     {
@@ -1026,14 +1118,14 @@ namespace augmented_containers
                         auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far)
                         {
                             if(construct)
-                                sequence->projector_and_accumulator().construct_accumulated_storage(tree_node->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
+                                sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, tree_node->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
                             else
                                 sequence->projector_and_accumulator().update_accumulated_storage(*tree_node->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
                         };
                         get_left_operand(get_right_operand(return_accumulated_tuple))(std::make_tuple());
                     }
                 }
-                void update_digit_node_end_accumulated_storage_if_exists(digit_node_t *digit_front, digit_node_t *digit_back) const
+                void update_digit_node_end_accumulated_storage_if_exists(pointer_digit_node_t digit_front, pointer_digit_node_t digit_back) const
                 {
                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
                     {
@@ -1083,7 +1175,7 @@ namespace augmented_containers
                         }
                     }
                 }
-                void update_or_construct_digit_node_right_accumulated_storage_if_exists(digit_node_t *digit_node_right, bool construct = false) const
+                void update_or_construct_digit_node_right_accumulated_storage_if_exists(pointer_digit_node_t digit_node_right, bool construct = false) const
                 {
                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
                     {
@@ -1130,14 +1222,14 @@ namespace augmented_containers
                         auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far)
                         {
                             if(construct)
-                                sequence->projector_and_accumulator().construct_accumulated_storage(digit_node_right->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
+                                sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, digit_node_right->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
                             else
                                 sequence->projector_and_accumulator().update_accumulated_storage(*digit_node_right->p_accumulated_storage(), tuple_identity_or_reversed(accumulated_tuple_so_far));
                         };
                         get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                     }
                 }
-                void update_digit_node_left_accumulated_storage_if_exists(digit_node_t *digit_node_left) const
+                void update_digit_node_left_accumulated_storage_if_exists(pointer_digit_node_t digit_node_left) const
                 {
                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
                     {
@@ -1186,22 +1278,22 @@ namespace augmented_containers
                         get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                     }
                 }
-                void push_impl(invocable_r<typename sequence_t::list_node_t *, typename sequence_t::tree_node_t * /*parent*/> auto push_back_and_get_p_list_node) const
+                void push_impl(invocable_r<pointer_list_node_t, pointer_tree_node_t /*parent*/> auto push_back_and_get_p_list_node) const
                 {
                     next_or_prev_impl_t next{p_next}, prev{p_prev};
-                    digit_node_t *digit_back = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_back)()));
-                    digit_node_t *digit_front = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_front)()));
+                    pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)()));
+                    pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
                     {
-                        if(sequence->empty()) // 0 -> 1
+                        if(sequence->list_node_count() == 0) // 0 -> 1
                         {
-                            assert(digit_front == static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->digit_node_end)));
+                            assert(digit_front == pointer_traits_static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->digit_node_end)));
                             assert(sequence->digit_middle() == tagged_ptr_bit0_unsetted(sequence->digit_node_end));
-                            assert(digit_back == static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->digit_node_end)));
+                            assert(digit_back == pointer_traits_static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->digit_node_end)));
 
-                            sequence->digit_middle() = digit_front = digit_back = new digit_node_t(0);
-                            circular_doubly_linked_list_node_navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
+                            sequence->digit_middle() = digit_front = digit_back = new_expression<digit_node_t>(allocator_element, 0);
+                            navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
 
-                            list_node_t *list_node_back;
+                            pointer_list_node_t list_node_back;
                             digit_back->*p_tree_left = p_list_node_to_p_tree_node(list_node_back = push_back_and_get_p_list_node(p_digit_node_to_p_tree_node(digit_back)));
 
                             construct_list_node_projected_storage_if_exists(list_node_back);
@@ -1212,10 +1304,10 @@ namespace augmented_containers
                         {
                             if(digit_back->digit_position != 0) // .+0 -> .+1
                             {
-                                digit_back = new digit_node_t(0);
-                                circular_doubly_linked_list_node_navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
+                                digit_back = new_expression<digit_node_t>(allocator_element, 0);
+                                navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
 
-                                list_node_t *list_node_back;
+                                pointer_list_node_t list_node_back;
                                 digit_back->*p_tree_left = p_list_node_to_p_tree_node(list_node_back = push_back_and_get_p_list_node(p_digit_node_to_p_tree_node(digit_back)));
 
                                 construct_list_node_projected_storage_if_exists(list_node_back);
@@ -1226,7 +1318,7 @@ namespace augmented_containers
                             {
                                 if(digit_back->*p_tree_right == nullptr) // .*1 -> .*2
                                 {
-                                    list_node_t *list_node_back;
+                                    pointer_list_node_t list_node_back;
                                     digit_back->*p_tree_right = p_list_node_to_p_tree_node(list_node_back = push_back_and_get_p_list_node(p_digit_node_to_p_tree_node(digit_back)));
 
                                     construct_list_node_projected_storage_if_exists(list_node_back);
@@ -1236,7 +1328,7 @@ namespace augmented_containers
                                 }
                                 else if(digit_back->*p_tree_left == nullptr) // .*1 -> .*2
                                 {
-                                    list_node_t *list_node_back;
+                                    pointer_list_node_t list_node_back;
                                     digit_back->*p_tree_left = std::exchange(digit_back->*p_tree_right, p_list_node_to_p_tree_node(list_node_back = push_back_and_get_p_list_node(p_digit_node_to_p_tree_node(digit_back))));
 
                                     construct_list_node_projected_storage_if_exists(list_node_back);
@@ -1246,17 +1338,17 @@ namespace augmented_containers
                                 }
                                 else // .*[01]2+ -> .*[12]1+
                                 {
-                                    digit_back = new digit_node_t(0);
-                                    circular_doubly_linked_list_node_navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
+                                    digit_back = new_expression<digit_node_t>(allocator_element, 0);
+                                    navigator_t::push_impl(sequence->digit_node_end, p_prev, p_next, digit_back);
 
-                                    list_node_t *list_node_back;
+                                    pointer_list_node_t list_node_back;
                                     digit_back->*p_tree_left = p_list_node_to_p_tree_node(list_node_back = push_back_and_get_p_list_node(p_digit_node_to_p_tree_node(digit_back)));
                                     construct_list_node_projected_storage_if_exists(list_node_back);
-                                    digit_node_t *p_digit_node_whose_digit_position_is_to_be_raised = digit_back->*prev;
+                                    pointer_digit_node_t p_digit_node_whose_digit_position_is_to_be_raised = digit_back->*prev;
                                     bool should_update_left_accumulated_storage, should_update_self_accumulated_storage, should_update_right_accumulated_storage;
                                     while(true)
                                     {
-                                        tree_node_t *tree_root = new tree_node_t{.parent = p_digit_node_to_p_tree_node(p_digit_node_whose_digit_position_is_to_be_raised)};
+                                        pointer_tree_node_t tree_root = new_expression<tree_node_t>(allocator_element, p_digit_node_to_p_tree_node(p_digit_node_whose_digit_position_is_to_be_raised));
                                         tree_root->*p_child_left = p_digit_node_whose_digit_position_is_to_be_raised->*p_tree_left;
                                         tree_root->*p_child_right = p_digit_node_whose_digit_position_is_to_be_raised->*p_tree_right;
                                         if(p_digit_node_whose_digit_position_is_to_be_raised->digit_position == 0)
@@ -1295,8 +1387,8 @@ namespace augmented_containers
                                             }
                                             else std::unreachable();
                                             tree_root->parent = p_digit_node_to_p_tree_node(p_digit_node_whose_digit_position_is_to_be_raised->*prev);
-                                            circular_doubly_linked_list_node_navigator_t::extract_impl(p_digit_node_whose_digit_position_is_to_be_raised, p_prev, p_next);
-                                            delete std::exchange(p_digit_node_whose_digit_position_is_to_be_raised, p_digit_node_whose_digit_position_is_to_be_raised->*prev);
+                                            navigator_t::extract_impl(p_digit_node_whose_digit_position_is_to_be_raised, p_prev, p_next);
+                                            delete_expression<digit_node_t>(allocator_element, std::exchange(p_digit_node_whose_digit_position_is_to_be_raised, p_digit_node_whose_digit_position_is_to_be_raised->*prev));
                                             break;
                                         }
                                         else std::unreachable();
@@ -1305,17 +1397,17 @@ namespace augmented_containers
                                         update_or_construct_digit_node_right_accumulated_storage_if_exists(p_digit_node_whose_digit_position_is_to_be_raised);
                                     if(should_update_left_accumulated_storage)
                                     {
-                                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = p_digit_node_whose_digit_position_is_to_be_raised->*p_prev; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_prev)
+                                        for(pointer_navigator_t digit_node_navigator = p_digit_node_whose_digit_position_is_to_be_raised->*p_prev; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_prev)
                                         {
-                                            digit_node_t *digit_node_left = static_cast<digit_node_t *>(digit_node_navigator);
+                                            pointer_digit_node_t digit_node_left = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                             update_digit_node_left_accumulated_storage_if_exists(digit_node_left);
                                         }
                                     }
                                     if(should_update_right_accumulated_storage)
                                     {
-                                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = p_digit_node_whose_digit_position_is_to_be_raised->*p_next; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_next)
+                                        for(pointer_navigator_t digit_node_navigator = p_digit_node_whose_digit_position_is_to_be_raised->*p_next; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_next)
                                         {
-                                            digit_node_t *digit_node_right = static_cast<digit_node_t *>(digit_node_navigator);
+                                            pointer_digit_node_t digit_node_right = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                             update_or_construct_digit_node_right_accumulated_storage_if_exists(digit_node_right, digit_back == digit_node_right);
                                         }
                                     }
@@ -1330,10 +1422,10 @@ namespace augmented_containers
                 void pop_impl(std::invocable<> auto pop_list_node) const
                 {
                     next_or_prev_impl_t next{p_next}, prev{p_prev};
-                    assert(!sequence->empty()); // 0
+                    assert(sequence->list_node_count() != 0); // 0
                     pop_list_node();
-                    digit_node_t * const digit_back_const = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_back)()));
-                    digit_node_t * const digit_front_const = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_front)()));
+                    pointer_digit_node_t const digit_back_const = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)()));
+                    pointer_digit_node_t const digit_front_const = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
                     if(digit_back_const->digit_position == 0) // .*[12] -> .*[01]
                     {
                         auto delete_digit_position0 = [&]()
@@ -1345,15 +1437,15 @@ namespace augmented_containers
                                 assert(digit_back_const->*p_next == sequence->digit_node_end);
                                 assert(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(sequence->digit_node_end)->*p_prev) == digit_back_const);
                                 assert(tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(sequence->digit_node_end)->*p_next) == digit_back_const);
-                                circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back_const, p_prev, p_next);
-                                delete digit_back_const;
+                                navigator_t::extract_impl(digit_back_const, p_prev, p_next);
+                                delete_expression<digit_node_t>(allocator_element, digit_back_const);
                                 sequence->digit_middle() = (sequence->*p_digit_front)() = (sequence->*p_digit_back)() = tagged_ptr_bit0_unsetted(sequence->digit_node_end);
                             }
                             else
                             {
                                 (sequence->*p_digit_back)() = digit_back_const->*prev;
-                                circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back_const, p_prev, p_next);
-                                delete digit_back_const;
+                                navigator_t::extract_impl(digit_back_const, p_prev, p_next);
+                                delete_expression<digit_node_t>(allocator_element, digit_back_const);
                             }
                         };
                         if(digit_back_const->*p_tree_right == nullptr || digit_back_const->*p_tree_left == nullptr)
@@ -1364,13 +1456,13 @@ namespace augmented_containers
                             if(sequence->digit_middle() != digit_back_const)
                                 update_or_construct_digit_node_right_accumulated_storage_if_exists(digit_back_const);
                         }
-                        update_digit_node_end_accumulated_storage_if_exists(static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_front)())), static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_back)())));
+                        update_digit_node_end_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)())), pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)())));
                     }
                     else // .*[12]0+ -> .*[01]1+
                     {
-                        digit_node_t *digit_back = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_back)()));
-                        digit_node_t *digit_front = static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_front)()));
-                        tree_node_t *p_tree_to_be_broken_down;
+                        pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)()));
+                        pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
+                        pointer_tree_node_t p_tree_to_be_broken_down;
                         bool will_delete_digit_back;
                         if(digit_back->*p_tree_right == nullptr)
                             std::tie(will_delete_digit_back, p_tree_to_be_broken_down) = std::forward_as_tuple(true, digit_back->*p_tree_left);
@@ -1378,10 +1470,10 @@ namespace augmented_containers
                             std::tie(will_delete_digit_back, p_tree_to_be_broken_down) = std::forward_as_tuple(true, digit_back->*p_tree_right);
                         else
                             std::tie(will_delete_digit_back, p_tree_to_be_broken_down) = std::forward_as_tuple(false, std::exchange(digit_back->*p_tree_right, nullptr));
-                        digit_node_t *current_digit_back = digit_back;
+                        pointer_digit_node_t current_digit_back = digit_back;
                         for(std::ptrdiff_t current_digit_position = digit_back->digit_position - 1; current_digit_position != -1; --current_digit_position)
                         {
-                            current_digit_back->*p_next = new digit_node_t(static_cast<std::size_t>(current_digit_position));
+                            current_digit_back->*p_next = new_expression<digit_node_t>(allocator_element, static_cast<std::size_t>(current_digit_position));
                             current_digit_back->*p_next->*p_prev = current_digit_back;
                             current_digit_back->*next->*p_tree_left = p_tree_to_be_broken_down->*p_child_left;
                             current_digit_back->*next->*p_tree_right = nullptr;
@@ -1391,28 +1483,28 @@ namespace augmented_containers
                             else
                                 (current_digit_back->*p_tree_left)->parent = p_digit_node_to_p_tree_node(current_digit_back);
                             if constexpr(!std::is_same_v<accumulated_storage_t, void>)
-                                sequence->projector_and_accumulator().destroy_accumulated_storage(p_tree_to_be_broken_down->p_accumulated_storage());
-                            delete std::exchange(p_tree_to_be_broken_down, p_tree_to_be_broken_down->*p_child_right);
+                                sequence->projector_and_accumulator().destroy_accumulated_storage(allocator_element, p_tree_to_be_broken_down->p_accumulated_storage());
+                            delete_expression<tree_node_t>(allocator_element, std::exchange(p_tree_to_be_broken_down, p_tree_to_be_broken_down->*p_child_right));
                         }
                         current_digit_back->*p_next = sequence->digit_node_end;
                         tagged_ptr_bit0_unsetted(sequence->digit_node_end)->*p_prev = tagged_ptr_bit0_setted(current_digit_back);
-                        auto update_accumulated_storage = [this](digit_node_t *digit_node, bool should_update_left_accumulated_storage, bool should_update_self_accumulated_storage, bool should_update_right_accumulated_storage)
+                        auto update_accumulated_storage = [this](pointer_digit_node_t digit_node, bool should_update_left_accumulated_storage, bool should_update_self_accumulated_storage, bool should_update_right_accumulated_storage)
                         {
                             if(should_update_self_accumulated_storage)
                                 update_or_construct_digit_node_right_accumulated_storage_if_exists(digit_node);
                             if(should_update_left_accumulated_storage)
                             {
-                                for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node->*p_prev; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_prev)
+                                for(pointer_navigator_t digit_node_navigator = digit_node->*p_prev; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_prev)
                                 {
-                                    digit_node_t *digit_node_left = static_cast<digit_node_t *>(digit_node_navigator);
+                                    pointer_digit_node_t digit_node_left = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                     update_digit_node_left_accumulated_storage_if_exists(digit_node_left);
                                 }
                             }
                             if(should_update_right_accumulated_storage)
                             {
-                                for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node->*p_next; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_next)
+                                for(pointer_navigator_t digit_node_navigator = digit_node->*p_next; digit_node_navigator != sequence->digit_node_end; digit_node_navigator = digit_node_navigator->*p_next)
                                 {
-                                    digit_node_t *digit_node_right = static_cast<digit_node_t *>(digit_node_navigator);
+                                    pointer_digit_node_t digit_node_right = pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator);
                                     update_or_construct_digit_node_right_accumulated_storage_if_exists(digit_node_right, true);
                                 }
                             }
@@ -1426,11 +1518,11 @@ namespace augmented_containers
                         {
                             if(digit_back != sequence->digit_middle())
                             {
-                                circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back, p_prev, p_next);
+                                navigator_t::extract_impl(digit_back, p_prev, p_next);
                                 update_accumulated_storage(digit_back, false, false, true);
                                 if constexpr(!std::is_same_v<accumulated_storage_t, void>)
-                                    sequence->projector_and_accumulator().destroy_accumulated_storage(digit_back->p_accumulated_storage());
-                                delete std::exchange(digit_back, current_digit_back);
+                                    sequence->projector_and_accumulator().destroy_accumulated_storage(allocator_element, digit_back->p_accumulated_storage());
+                                delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, current_digit_back));
                             }
                             else
                             {
@@ -1439,16 +1531,16 @@ namespace augmented_containers
                                     assert(digit_front == digit_back);
                                     assert(sequence->digit_middle() == digit_back);
                                     sequence->digit_middle() = digit_front = digit_back->*next;
-                                    circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back, p_prev, p_next);
-                                    update_accumulated_storage(static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle())), false, false, true);
-                                    delete std::exchange(digit_back, current_digit_back);
+                                    navigator_t::extract_impl(digit_back, p_prev, p_next);
+                                    update_accumulated_storage(pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_middle())), false, false, true);
+                                    delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, current_digit_back));
                                 }
                                 else if((digit_back->*prev)->digit_position + 1 != digit_back->digit_position)
                                 {
                                     sequence->digit_middle() = digit_back->*next;
-                                    circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back, p_prev, p_next);
-                                    update_accumulated_storage(static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle())), true, false, true);
-                                    delete std::exchange(digit_back, current_digit_back);
+                                    navigator_t::extract_impl(digit_back, p_prev, p_next);
+                                    update_accumulated_storage(pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_middle())), true, false, true);
+                                    delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, current_digit_back));
                                 }
                                 else if(int digit = (digit_back->*prev->*p_tree_left != nullptr) + (digit_back->*prev->*p_tree_right != nullptr); digit == 1)
                                 {
@@ -1463,24 +1555,24 @@ namespace augmented_containers
 
                                     bool current_digit_back_is_p_digit_back_p_next = digit_back->*p_next->*p_next == sequence->digit_node_end;
 
-                                    digit_node_t *p_digit_back_p_next = digit_back->*next;
-                                    circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back->*p_next, p_prev, p_next);
-                                    delete(p_digit_back_p_next);
+                                    pointer_digit_node_t p_digit_back_p_next = digit_back->*next;
+                                    navigator_t::extract_impl(digit_back->*p_next, p_prev, p_next);
+                                    delete_expression<digit_node_t>(allocator_element, p_digit_back_p_next);
 
-                                    circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back, p_prev, p_next);
+                                    navigator_t::extract_impl(digit_back, p_prev, p_next);
 
                                     sequence->digit_middle() = digit_back->*prev;
                                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
-                                        sequence->projector_and_accumulator().destroy_accumulated_storage((digit_back->*prev)->p_accumulated_storage());
+                                        sequence->projector_and_accumulator().destroy_accumulated_storage(allocator_element, (digit_back->*prev)->p_accumulated_storage());
                                     update_accumulated_storage(digit_back->*prev, true, false, true);
                                     if(current_digit_back_is_p_digit_back_p_next)
-                                        delete std::exchange(digit_back, static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle())));
+                                        delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_middle()))));
                                     else
-                                        delete std::exchange(digit_back, current_digit_back);
+                                        delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, current_digit_back));
                                 }
                                 else if(digit == 2)
                                 {
-                                    tree_node_t *tree_root = new tree_node_t{.parent = p_digit_node_to_p_tree_node(digit_back->*prev)};
+                                    pointer_tree_node_t tree_root = std::pointer_traits<pointer_tree_node_t>::pointer_to(*new_expression<tree_node_t>(allocator_element, p_digit_node_to_p_tree_node(digit_back->*prev)));
                                     tree_root->*p_child_left = digit_back->*prev->*p_tree_left;
                                     tree_root->*p_child_right = digit_back->*prev->*p_tree_right;
                                     if((digit_back->*prev)->digit_position == 0)
@@ -1492,12 +1584,12 @@ namespace augmented_containers
                                     digit_back->*prev->*p_tree_right = nullptr;
                                     ++(digit_back->*prev)->digit_position;
 
-                                    circular_doubly_linked_list_node_navigator_t::extract_impl(digit_back, p_prev, p_next);
+                                    navigator_t::extract_impl(digit_back, p_prev, p_next);
                                     sequence->digit_middle() = digit_back->*prev;
                                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
-                                        sequence->projector_and_accumulator().destroy_accumulated_storage((digit_back->*prev)->p_accumulated_storage());
+                                        sequence->projector_and_accumulator().destroy_accumulated_storage(allocator_element, (digit_back->*prev)->p_accumulated_storage());
                                     update_accumulated_storage(digit_back->*prev, true, false, true);
-                                    delete std::exchange(digit_back, current_digit_back);
+                                    delete_expression<digit_node_t>(allocator_element, std::exchange(digit_back, current_digit_back));
                                 }
                                 else
                                     std::unreachable();
@@ -1509,16 +1601,16 @@ namespace augmented_containers
                     }
                 }
 
-                void update_range_impl(list_node_t *list_node_range_front, list_node_t *list_node_range_back) const
+                void update_range_impl(pointer_list_node_t list_node_range_front, pointer_list_node_t list_node_range_back) const
                 {
                     assert(!tagged_ptr_bit0_is_set(list_node_range_front));
-                    assert(static_cast<circular_doubly_linked_list_node_navigator_t *>(list_node_range_front) != static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
+                    assert(pointer_traits_static_cast<pointer_navigator_t>(list_node_range_front) != pointer_traits_static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
                     assert(!tagged_ptr_bit0_is_set(list_node_range_back));
-                    assert(static_cast<circular_doubly_linked_list_node_navigator_t *>(list_node_range_back) != static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
-                    next_or_prev_impl_t next{&circular_doubly_linked_list_node_navigator_t::next}, prev{&circular_doubly_linked_list_node_navigator_t::prev};
-                    auto descend = [&](tree_node_t *tree_node)
+                    assert(pointer_traits_static_cast<pointer_navigator_t>(list_node_range_back) != pointer_traits_static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
+                    next_or_prev_impl_t next{&navigator_t::next}, prev{&navigator_t::prev};
+                    auto descend = [&](pointer_tree_node_t tree_node)
                     {
-                        auto descend_impl = [this, &list_node_range_back](auto &this_, tree_node_t *tree_node)
+                        auto descend_impl = [this, &list_node_range_back](auto &this_, pointer_tree_node_t tree_node)
                         {
                             if(tagged_ptr_bit0_is_set(tree_node))
                             {
@@ -1534,8 +1626,8 @@ namespace augmented_containers
                         };
                         return descend_impl(descend_impl, tree_node);
                     };
-                    tree_node_t *tree_node = p_list_node_to_p_tree_node(list_node_range_front);
-                    tree_node_t *tree_node_parent = list_node_range_front->parent;
+                    pointer_tree_node_t tree_node = p_list_node_to_p_tree_node(list_node_range_front);
+                    pointer_tree_node_t tree_node_parent = list_node_range_front->parent;
                     bool list_node_range_back_is_inside_tree_node = false;
                     list_node_range_back_is_inside_tree_node = list_node_range_back_is_inside_tree_node || descend(tree_node);
                     while(!tagged_ptr_bit0_is_set(tree_node_parent))
@@ -1545,13 +1637,13 @@ namespace augmented_containers
                         update_or_construct_tree_node_accumulated_storage_if_exists(tree_node_parent);
                         tree_node = std::exchange(tree_node_parent, tree_node_parent->parent);
                     }
-                    digit_node_t *digit_node_front = p_tree_node_to_p_digit_node(tree_node_parent), *digit_node_back = digit_node_front;
-                    auto is_at_middle_s_left_or_right = [&sequence = sequence, prev](digit_node_t *digit_node, tree_node_t *tree_node)
+                    pointer_digit_node_t digit_node_front = p_tree_node_to_p_digit_node(tree_node_parent), digit_node_back = digit_node_front;
+                    auto is_at_middle_s_left_or_right = [&sequence = sequence, prev](pointer_digit_node_t digit_node, pointer_tree_node_t tree_node)
                     {
                         if(digit_node == sequence->digit_middle())
                         {
-                            if(tree_node == static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle()))->tree_left) return false;
-                            else if(tree_node == static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle()))->tree_right) return true;
+                            if(tree_node == pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_middle()))->tree_left) return false;
+                            else if(tree_node == pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_middle()))->tree_right) return true;
                             else std::unreachable();
                         }
                         else
@@ -1593,33 +1685,33 @@ namespace augmented_containers
                     bool back_is_at_middle_s_left_or_right = is_at_middle_s_left_or_right(digit_node_back, tree_node);
                     if(!front_is_at_middle_s_left_or_right && !back_is_at_middle_s_left_or_right)
                     {
-                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node_back == sequence->digit_middle() ? digit_node_back->prev : digit_node_back; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->prev)
-                            update_digit_node_left_accumulated_storage_if_exists(static_cast<digit_node_t *>(digit_node_navigator));
+                        for(pointer_navigator_t digit_node_navigator = digit_node_back == sequence->digit_middle() ? digit_node_back->prev : digit_node_back; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->prev)
+                            update_digit_node_left_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator));
                     }
                     else if(front_is_at_middle_s_left_or_right && back_is_at_middle_s_left_or_right)
                     {
-                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = digit_node_front == sequence->digit_middle() ? digit_node_front->next : digit_node_front; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->next)
-                            update_or_construct_digit_node_right_accumulated_storage_if_exists(static_cast<digit_node_t *>(digit_node_navigator));
+                        for(pointer_navigator_t digit_node_navigator = digit_node_front == sequence->digit_middle() ? digit_node_front->next : digit_node_front; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->next)
+                            update_or_construct_digit_node_right_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator));
                     }
                     else if(!front_is_at_middle_s_left_or_right && back_is_at_middle_s_left_or_right)
                     {
-                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle())->prev; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->prev)
-                            update_digit_node_left_accumulated_storage_if_exists(static_cast<digit_node_t *>(digit_node_navigator));
-                        for(circular_doubly_linked_list_node_navigator_t *digit_node_navigator = static_cast<circular_doubly_linked_list_node_navigator_t *>(sequence->digit_middle())->next; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->next)
-                            update_or_construct_digit_node_right_accumulated_storage_if_exists(static_cast<digit_node_t *>(digit_node_navigator));
+                        for(pointer_navigator_t digit_node_navigator = static_cast<pointer_navigator_t>(sequence->digit_middle())->prev; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->prev)
+                            update_digit_node_left_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator));
+                        for(pointer_navigator_t digit_node_navigator = static_cast<pointer_navigator_t>(sequence->digit_middle())->next; !tagged_ptr_bit0_is_set(digit_node_navigator); digit_node_navigator = digit_node_navigator->next)
+                            update_or_construct_digit_node_right_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(digit_node_navigator));
                     }
                     else std::unreachable();
-                    update_digit_node_end_accumulated_storage_if_exists(static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_front)())), static_cast<digit_node_t *>(static_cast<circular_doubly_linked_list_node_navigator_t *>((sequence->*p_digit_back)())));
+                    update_digit_node_end_accumulated_storage_if_exists(pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)())), pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)())));
                 }
-                accumulated_storage_t read_range_impl(list_node_t *list_node_range_front, list_node_t *list_node_range_back) const
+                accumulated_storage_t read_range_impl(pointer_list_node_t list_node_range_front, pointer_list_node_t list_node_range_back) const
                 {
                     assert(!tagged_ptr_bit0_is_set(list_node_range_front));
-                    assert(static_cast<circular_doubly_linked_list_node_navigator_t *>(list_node_range_front) != static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
+                    assert(static_cast<pointer_navigator_t>(list_node_range_front) != static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
                     assert(!tagged_ptr_bit0_is_set(list_node_range_back));
-                    assert(static_cast<circular_doubly_linked_list_node_navigator_t *>(list_node_range_back) != static_cast<circular_doubly_linked_list_node_navigator_t *>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
-                    next_or_prev_impl_t next{&circular_doubly_linked_list_node_navigator_t::next}, prev{&circular_doubly_linked_list_node_navigator_t::prev};
+                    assert(static_cast<pointer_navigator_t>(list_node_range_back) != static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
+                    next_or_prev_impl_t next{&navigator_t::next}, prev{&navigator_t::prev};
                     if(list_node_range_front == list_node_range_back)
-                        return sequence->projector_and_accumulator().construct_accumulated_storage(std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(list_node_range_front))));
+                        return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(list_node_range_front))));
                     else
                     {
                         enum { status_waiting_for_collision = 0,
@@ -1629,10 +1721,10 @@ namespace augmented_containers
                         auto recursive_polymorphic_lambda = [this, next,
                                                                 tree_node_front = p_list_node_to_p_tree_node(list_node_range_front), tree_node_back = p_list_node_to_p_tree_node(list_node_range_back),
                                                                 status_front = status_waiting_for_collision, status_back = status_waiting_for_collision,
-                                                                digit_node_front = static_cast<digit_node_t *>(nullptr), digit_node_back = static_cast<digit_node_t *>(nullptr)](auto &this_, auto accumulated_tuple_so_far_front, auto accumulated_tuple_so_far_back) mutable -> accumulated_storage_t
+                                                                digit_node_front = pointer_digit_node_t(nullptr), digit_node_back = pointer_digit_node_t(nullptr)](auto &this_, auto accumulated_tuple_so_far_front, auto accumulated_tuple_so_far_back) mutable -> accumulated_storage_t
                         {
-                            tree_node_t *tree_node_front_parent;
-                            tree_node_t *tree_node_back_parent;
+                            pointer_tree_node_t tree_node_front_parent;
+                            pointer_tree_node_t tree_node_back_parent;
                             if(status_front != status_waiting_at_digit_node)
                                 tree_node_front_parent = tagged_ptr_bit0_is_set(tree_node_front) ? p_tree_node_to_p_list_node(tree_node_front)->parent : tree_node_front->parent;
                             if(status_back != status_waiting_at_digit_node)
@@ -1644,15 +1736,15 @@ namespace augmented_containers
                                     if(tagged_ptr_bit0_is_set(tree_node_front_parent))
                                     {
                                         if(tagged_ptr_bit0_is_set(tree_node_front))
-                                            return sequence->projector_and_accumulator().construct_accumulated_storage(std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_front))), std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_back)))));
+                                            return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_front))), std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_back)))));
                                         else
-                                            return sequence->projector_and_accumulator().construct_accumulated_storage(std::make_tuple(std::ref(*tree_node_front->p_accumulated_storage()), std::ref(*tree_node_back->p_accumulated_storage())));
+                                            return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(*tree_node_front->p_accumulated_storage()), std::ref(*tree_node_back->p_accumulated_storage())));
                                     }
                                     else
-                                        return sequence->projector_and_accumulator().construct_accumulated_storage(std::make_tuple(std::ref(*tree_node_front_parent->p_accumulated_storage())));
+                                        return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(*tree_node_front_parent->p_accumulated_storage())));
                                 }
                                 else
-                                    return sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back));
+                                    return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back));
                             }
                             else if(status_front == status_waiting_at_digit_node && status_back == status_waiting_at_digit_node)
                             {
@@ -1660,10 +1752,10 @@ namespace augmented_containers
                                     (digit_node_front->next == digit_node_back &&
                                         ((tree_node_front == digit_node_front->tree_left && digit_node_front->tree_right == nullptr) || tree_node_front == digit_node_front->tree_right) &&
                                         (tree_node_back == digit_node_back->tree_left || (digit_node_back->tree_left == nullptr && tree_node_back == digit_node_back->tree_right))))
-                                    return sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back));
+                                    return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back));
                                 else
                                 {
-                                    tree_node_t *tree_to_be_accumulated;
+                                    pointer_tree_node_t tree_to_be_accumulated;
                                     if((tree_node_front == digit_node_front->tree_left && digit_node_front->tree_right == nullptr) || tree_node_front == digit_node_front->tree_right)
                                     {
                                         digit_node_front = digit_node_front->*next;
@@ -1680,12 +1772,12 @@ namespace augmented_containers
                                     else std::unreachable();
                                     if(tagged_ptr_bit0_is_set(tree_to_be_accumulated))
                                     {
-                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_to_be_accumulated)))))));
+                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_to_be_accumulated)))))));
                                         return tree_node_front = tree_to_be_accumulated, this_(this_, std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
                                     }
                                     else
                                     {
-                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_to_be_accumulated->p_accumulated_storage())))));
+                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_to_be_accumulated->p_accumulated_storage())))));
                                         return tree_node_front = tree_to_be_accumulated, this_(this_, std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
                                     }
                                 }
@@ -1721,7 +1813,7 @@ namespace augmented_containers
                                             {
                                                 if(tree_node_back == tree_node_back_parent->child_right)
                                                 {
-                                                    accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(std::make_tuple(std::ref(*tree_node_back_parent->child_left->p_accumulated_storage())), accumulated_tuple_so_far_back)));
+                                                    accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(std::make_tuple(std::ref(*tree_node_back_parent->child_left->p_accumulated_storage())), accumulated_tuple_so_far_back)));
                                                     return tree_node_back = tree_node_back_parent, this_(this_, accumulated_tuple_so_far_front, std::make_tuple(std::ref(intermediate_accumulated_storage)));
                                                 }
                                                 else if(tree_node_back == tree_node_back_parent->child_left)
@@ -1761,7 +1853,7 @@ namespace augmented_containers
                                             {
                                                 if(tree_node_front == tree_node_front_parent->child_left)
                                                 {
-                                                    accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_node_front_parent->child_right->p_accumulated_storage())))));
+                                                    accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_node_front_parent->child_right->p_accumulated_storage())))));
                                                     return tree_node_front = tree_node_front_parent, get_accumulated_tuple_back(std::make_tuple(std::ref(intermediate_accumulated_storage)));
                                                 }
                                                 else if(tree_node_front == tree_node_front_parent->child_right)
@@ -1780,24 +1872,25 @@ namespace augmented_containers
                 }
             };
 #ifdef __EMSCRIPTEN__
-            template<typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
-            sequence_push_or_pop_impl_t(sequence_possibly_const_t *sequence,
+            template<typename allocator_element_t, typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
+            sequence_push_or_pop_impl_t(allocator_element_t const &allocator_element,
+                sequence_possibly_const_t *sequence,
                 typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void),
                 typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void),
-                circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_prev),
-                circular_doubly_linked_list_node_navigator_t *(circular_doubly_linked_list_node_navigator_t::*p_next),
-                typename sequence_t::tree_node_t *(sequence_t::digit_node_t::*p_tree_left),
-                typename sequence_t::tree_node_t *(sequence_t::digit_node_t::*p_tree_right),
-                typename sequence_t::tree_node_t *(sequence_t::tree_node_t::*p_child_left),
-                typename sequence_t::tree_node_t *(sequence_t::tree_node_t::*p_child_right),
-                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed) -> sequence_push_or_pop_impl_t<sequence_possibly_const_t, sequence_t, tuple_identity_or_reversed_functor_t>;
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::navigator_t>(sequence_t::navigator_t::*p_prev),
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::navigator_t>(sequence_t::navigator_t::*p_next),
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::digit_node_t::*p_tree_left),
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::digit_node_t::*p_tree_right),
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::tree_node_t::*p_child_left),
+                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::tree_node_t::*p_child_right),
+                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed) -> sequence_push_or_pop_impl_t<allocator_element_t, sequence_possibly_const_t, sequence_t, tuple_identity_or_reversed_functor_t>;
 #endif
 
-            template<std::size_t stride_>
+            template<std::size_t requested_stride_>
             struct add_stride_member
             {
-                static constexpr std::size_t stride = stride_;
-                static constexpr std::size_t requested_stride = stride_;
+                static constexpr std::size_t stride = requested_stride_;
+                static constexpr std::size_t requested_stride = requested_stride_;
             };
             template<>
             struct add_stride_member<std::numeric_limits<std::size_t>::max()>
@@ -1834,28 +1927,32 @@ namespace augmented_containers
             using projected_storage_t = projected_storage_t_;
             projecting_n_ary_functor_t_ project_n_ary_functor;
 
-            template<typename it_projected_storage_t, typename it_element_t> // when requested_stride==1
-            void construct_projected_storage(projected_storage_t *storage, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_also_this_list_node) const
+            template<typename allocator_element_t, typename it_projected_storage_t, typename it_element_t> // when requested_stride==1
+            void construct_projected_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<projected_storage_t> pointer_projected_storage, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_also_this_list_node) const
             {
-                new(storage) projected_storage_t(project_n_ary_functor(it_also_this_list_node));
+                using allocator_projected_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<projected_storage_t>;
+                std::allocator_traits<allocator_projected_storage_t>::construct(detail::utility::unmove(allocator_projected_storage_t(allocator_element)), std::to_address(pointer_projected_storage), project_n_ary_functor(it_also_this_list_node));
             }
 
-            template<typename it_element_t> // when requested_stride>1
-            projected_storage_t construct_projected_storage(it_element_t it_chunk_begin, it_element_t it_chunk_end, [[maybe_unused]] std::size_t chunk_size) const
+            template<typename allocator_element_t, typename it_element_t> // when requested_stride>1
+            projected_storage_t construct_projected_storage([[maybe_unused]] allocator_element_t const &allocator_element, it_element_t it_chunk_begin, it_element_t it_chunk_end, std::size_t chunk_size) const
             {
                 assert(chunk_size != 0);
-                return projected_storage_t(project_n_ary_functor(it_chunk_begin, it_chunk_end));
+                return projected_storage_t(project_n_ary_functor(it_chunk_begin, it_chunk_end, chunk_size));
             }
-            template<typename it_projected_storage_t, typename it_element_t> // when requested_stride>1
-            void construct_projected_storage(projected_storage_t *storage, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_chunk_begin, it_element_t it_chunk_end, [[maybe_unused]] std::size_t chunk_size) const
+            template<typename allocator_element_t, typename it_projected_storage_t, typename it_element_t> // when requested_stride>1
+            void construct_projected_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<projected_storage_t> pointer_projected_storage, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_chunk_begin, it_element_t it_chunk_end, std::size_t chunk_size) const
             {
                 assert(chunk_size != 0);
-                new(storage) projected_storage_t(project_n_ary_functor(it_chunk_begin, it_chunk_end));
+                using allocator_projected_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<projected_storage_t>;
+                std::allocator_traits<allocator_projected_storage_t>::construct(detail::utility::unmove(allocator_projected_storage_t(allocator_element)), std::to_address(pointer_projected_storage), project_n_ary_functor(it_chunk_begin, it_chunk_end, chunk_size));
             }
 
-            void destroy_projected_storage(projected_storage_t *storage) const
+            template<typename allocator_element_t>
+            void destroy_projected_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<projected_storage_t> pointer_projected_storage) const
             {
-                storage->~projected_storage_t();
+                using allocator_projected_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<projected_storage_t>;
+                std::allocator_traits<allocator_projected_storage_t>::destroy(detail::utility::unmove(allocator_projected_storage_t(allocator_element)), std::to_address(pointer_projected_storage));
             }
 
             template<typename it_projected_storage_t, typename it_element_t> // when requested_stride==1
@@ -1872,10 +1969,10 @@ namespace augmented_containers
             }
 
             template<typename it_projected_storage_t, typename it_element_t> // when requested_stride>1
-            bool update_projected_storage(projected_storage_t &value, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_chunk_begin, it_element_t it_chunk_end, [[maybe_unused]] std::size_t chunk_size) const
+            bool update_projected_storage(projected_storage_t &value, [[maybe_unused]] it_projected_storage_t it_this_list_node, it_element_t it_chunk_begin, it_element_t it_chunk_end, std::size_t chunk_size) const
             {
                 assert(chunk_size != 0);
-                projected_storage_t value_new(project_n_ary_functor(it_chunk_begin, it_chunk_end));
+                projected_storage_t value_new(project_n_ary_functor(it_chunk_begin, it_chunk_end, chunk_size));
                 if(value == value_new)
                     return false;
                 else
@@ -1924,8 +2021,8 @@ namespace augmented_containers
             using accumulated_storage_t = accumulated_storage_t_;
             accumulating_binary_functor_t_ accumulate_binary_functor;
 
-            template<typename... Args>
-            accumulated_storage_t construct_accumulated_storage(std::tuple<Args &...> const &values) const
+            template<typename allocator_element_t, typename... Args>
+            accumulated_storage_t construct_accumulated_storage([[maybe_unused]] allocator_element_t const &allocator_element, std::tuple<Args &...> const &values) const
             {
                 if constexpr(sizeof...(Args) == 0)
                 {
@@ -1937,23 +2034,26 @@ namespace augmented_containers
                 else
                     return accumulated_storage_t(tuple_fold<sizeof...(Args) - 1>(accumulate_binary_functor, values));
             }
-            template<typename... Args>
-            void construct_accumulated_storage(accumulated_storage_t *storage, std::tuple<Args &...> const &values) const
+            template<typename allocator_element_t, typename... Args>
+            void construct_accumulated_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<accumulated_storage_t> pointer_accumulated_storage, std::tuple<Args &...> const &values) const
             {
+                using allocator_accumulated_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<accumulated_storage_t>;
                 if constexpr(sizeof...(Args) == 0)
                 {
                     if constexpr(requires { accumulate_binary_functor.monoidal(); })
-                        new(storage) accumulated_storage_t(accumulate_binary_functor.monoidal());
+                        std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage), accumulate_binary_functor.monoidal());
                     else
-                        new(storage) accumulated_storage_t();
+                        std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage));
                 }
                 else
-                    new(storage) accumulated_storage_t(tuple_fold<sizeof...(Args) - 1>(accumulate_binary_functor, values));
+                    std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage), tuple_fold<sizeof...(Args) - 1>(accumulate_binary_functor, values));
             }
 
-            void destroy_accumulated_storage(accumulated_storage_t *storage) const
+            template<typename allocator_element_t>
+            void destroy_accumulated_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<accumulated_storage_t> pointer_accumulated_storage) const
             {
-                storage->~accumulated_storage_t();
+                using allocator_accumulated_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<accumulated_storage_t>;
+                std::allocator_traits<allocator_accumulated_storage_t>::destroy(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage));
             }
 
             template<typename... Args>
@@ -2005,7 +2105,7 @@ namespace augmented_containers
             binary_comparator_t binary_functor;
 
             template<typename It_Chunk>
-            projected_storage_t operator()(It_Chunk it_chunk_begin, It_Chunk it_chunk_end) const
+            projected_storage_t operator()(It_Chunk it_chunk_begin, It_Chunk it_chunk_end, [[maybe_unused]] std::size_t chunk_size) const
             {
                 assert(it_chunk_begin != it_chunk_end);
                 if constexpr(!min_or_max)
@@ -2188,78 +2288,100 @@ namespace augmented_containers
         /**/ static_assert(std::is_same_v<example_chunkgt1_projector_max_element_and_accumulator_min_t<int>::accumulator_t::accumulated_storage_t, int>);
     } // namespace augmented_deque_helpers
 
-    //    typename stride_to_projector_and_accumulator_map_t = std::tuple< //
-    //                                                             std::pair<std::integral_constant<std::size_t, 1>, augmented_deque_helpers::example_stride1_chunk1_projector_skipped_and_accumulator_plus_t<element_t_>>, //
-    //                                                             std::pair<std::integral_constant<std::size_t, 2>, augmented_deque_helpers::example_chunkgt1_projector_min_element_and_accumulator_max_t<element_t_>> //
-    //                                                             > //
-    //        >
     template<
         typename element_t_,
-        typename allocator_t = std::allocator<element_t_>,
-        typename requested_stride_to_projector_and_accumulator_map_t = std::tuple<> //
+        typename allocator_element_t_ = std::allocator<element_t_>,
+        typename requested_stride_to_projector_and_accumulator_map_t_ = std::tuple<> //
         >
     struct augmented_deque_t
     {
+        using element_t = element_t_;
+        using allocator_element_t = allocator_element_t_;
+        using pointer_element_t = typename std::allocator_traits<allocator_element_t>::pointer;
+        using requested_stride_to_projector_and_accumulator_map_t = requested_stride_to_projector_and_accumulator_map_t_;
+
+        using value_type = element_t;
+        using allocator_type = allocator_element_t;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using reference = value_type &;
+        using const_reference = value_type const &;
+        using pointer = typename std::allocator_traits<allocator_type>::pointer;
+        using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
+
         using not_empty_stride_to_projector_and_accumulator_map_t = std::conditional_t<std::tuple_size_v<requested_stride_to_projector_and_accumulator_map_t> == 0,
-            std::tuple<std::pair<std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t_>>>,
+            std::tuple<std::pair<std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t>>>,
             requested_stride_to_projector_and_accumulator_map_t>;
         using stride_to_projector_and_accumulator_map_t = std::conditional_t<
             std::is_same_v<typename std::tuple_element_t<0, not_empty_stride_to_projector_and_accumulator_map_t>::first_type, std::integral_constant<std::size_t, 1>>,
             not_empty_stride_to_projector_and_accumulator_map_t,
-            decltype(std::tuple_cat(std::declval<std::tuple<std::pair<std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t_>>>>(), std::declval<not_empty_stride_to_projector_and_accumulator_map_t>()))>;
+            detail::utility::tuple_cat_t<std::tuple<std::pair<std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t>>>, not_empty_stride_to_projector_and_accumulator_map_t>>;
 
-        using element_t = element_t_;
-
-        template<std::size_t sequence_index, std::size_t stride, typename projector_and_accumulator_t>
+        template<std::size_t sequence_index, std::size_t requested_stride, typename projector_and_accumulator_t>
         struct augmented_deque_sequence_t;
-        template<std::size_t sequence_index, std::size_t stride_, typename projector_and_accumulator_t_>
+        template<std::size_t sequence_index, std::size_t requested_stride, typename projector_and_accumulator_t_>
             requires(sequence_index != 0)
-        struct augmented_deque_sequence_t<sequence_index, stride_, projector_and_accumulator_t_>;
+        struct augmented_deque_sequence_t<sequence_index, requested_stride, projector_and_accumulator_t_>;
         template<typename projector_and_accumulator_t_>
         struct augmented_deque_sequence_t<0, 1, projector_and_accumulator_t_>;
 
-        using stride1_projector_and_accumulator_t = detail::mp::map_find_first_t<stride_to_projector_and_accumulator_map_t, std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t>>;
+        using stride1_projector_and_accumulator_t = detail::utility::map_find_first_t<stride_to_projector_and_accumulator_map_t, std::integral_constant<std::size_t, 1>, augmented_deque_helpers::empty_projector_and_accumulator_t<element_t>>;
         using stride1_sequence_t = augmented_deque_sequence_t<0, 1, stride1_projector_and_accumulator_t>;
 
-        using other_strides_stride_to_projector_and_accumulator_map_t = detail::mp::map_erase_first_t<stride_to_projector_and_accumulator_map_t, std::integral_constant<std::size_t, 1>>;
+        using other_strides_stride_to_projector_and_accumulator_map_t = detail::utility::map_erase_first_t<stride_to_projector_and_accumulator_map_t, std::integral_constant<std::size_t, 1>>;
         template<std::size_t index, typename stride_to_projector_and_accumulator_item_t>
         struct stride_to_projector_and_accumulator_item_to_sequence: std::type_identity<augmented_deque_sequence_t<index + 1, stride_to_projector_and_accumulator_item_t::first_type::value, typename stride_to_projector_and_accumulator_item_t::second_type>>
         {};
-        using other_stride_sequences_t = detail::mp::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_sequence>;
+        using other_stride_sequences_t = detail::utility::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_sequence>;
 
-        template<std::size_t sequence_index, std::size_t stride_, typename projector_and_accumulator_t_>
-            requires(sequence_index != 0)
-        struct augmented_deque_sequence_t<sequence_index, stride_, projector_and_accumulator_t_>: detail::augmented_deque::add_stride_member<stride_>
+        template<std::size_t sequence_index_, std::size_t requested_stride_, typename projector_and_accumulator_t_>
+            requires(sequence_index_ != 0)
+        struct augmented_deque_sequence_t<sequence_index_, requested_stride_, projector_and_accumulator_t_>: detail::augmented_deque::add_stride_member<requested_stride_>
         {
+            static constexpr std::size_t sequence_index = sequence_index_;
+            static constexpr std::size_t requested_stride = requested_stride_;
             using projector_and_accumulator_t = projector_and_accumulator_t_;
 
             using stride1_sequence_t = augmented_deque_t::stride1_sequence_t;
 
             using projected_storage_t = typename projector_and_accumulator_t::projected_storage_t;
             using accumulated_storage_t = typename projector_and_accumulator_t::accumulated_storage_t;
-            static_assert((stride_ == 1 && (!std::is_same_v<projected_storage_t, void> || !std::is_same_v<accumulated_storage_t, void>)) || (stride_ != 1 && !std::is_same_v<projected_storage_t, void>));
+            static_assert((requested_stride_ == 1 && (!std::is_same_v<projected_storage_t, void> || !std::is_same_v<accumulated_storage_t, void>)) || (requested_stride_ != 1 && !std::is_same_v<projected_storage_t, void>));
             struct sequence_config_t
             {
-                static constexpr std::size_t requested_stride = stride_;
+                using allocator_element_t = augmented_deque_t::allocator_element_t;
+                using pointer_element_t = augmented_deque_t::pointer_element_t;
+
+                static constexpr std::size_t sequence_index = augmented_deque_sequence_t::sequence_index;
+                static constexpr std::size_t requested_stride = augmented_deque_sequence_t::requested_stride;
                 using projector_and_accumulator_t = augmented_deque_sequence_t::projector_and_accumulator_t;
+
+                using stride1_sequence_t = augmented_deque_sequence_t::stride1_sequence_t;
 
                 using projected_storage_t = augmented_deque_sequence_t::projected_storage_t;
                 using accumulated_storage_t = augmented_deque_sequence_t::accumulated_storage_t;
-                struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<projected_storage_t>
+                struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<pointer_element_t, projected_storage_t>
                 {
-                    typename stride1_sequence_t::list_node_t *child;
+                    typename std::pointer_traits<pointer_element_t>::template rebind<typename stride1_sequence_t::list_node_t> child;
                 };
                 struct actual_projected_storage_end_t
                 {
-                    typename stride1_sequence_t::list_node_end_t *child;
+                    typename std::pointer_traits<pointer_element_t>::template rebind<typename stride1_sequence_t::list_node_end_t> child;
                 };
             };
+            using navigator_t = detail::augmented_deque::circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>;
             using list_node_end_t = detail::augmented_deque::list_node_end_t<sequence_config_t>;
             using list_node_t = detail::augmented_deque::list_node_t<sequence_config_t>;
-            using actual_projected_storage_t = typename list_node_t::actual_projected_storage_t;
-            using tree_node_t = detail::augmented_deque::tree_node_t<accumulated_storage_t>;
+            using tree_node_t = detail::augmented_deque::tree_node_t<sequence_config_t>;
             using digit_node_end_t = detail::augmented_deque::digit_node_end_t<sequence_config_t>;
             using digit_node_t = detail::augmented_deque::digit_node_t<sequence_config_t>;
+
+            using pointer_navigator_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<navigator_t>;
+            using pointer_list_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_t>;
+            using pointer_list_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_end_t>;
+            using pointer_tree_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t>;
+            using pointer_digit_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_t>;
+            using pointer_digit_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t>;
 
             using iterator_projected_storage_t = detail::augmented_deque::iterator_projected_storage_t<false, sequence_config_t>;
             static_assert(std::input_or_output_iterator<iterator_projected_storage_t>);
@@ -2281,32 +2403,34 @@ namespace augmented_containers
             static_assert(std::sized_sentinel_for<const_iterator_projected_storage_t, const_iterator_projected_storage_t>);
             static_assert(std::sized_sentinel_for<std::default_sentinel_t, const_iterator_projected_storage_t>);
             static_assert(std::random_access_iterator<const_iterator_projected_storage_t>);
-            iterator_projected_storage_t begin_projected_storage() { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
-            const_iterator_projected_storage_t cbegin_projected_storage() const { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            iterator_projected_storage_t begin_projected_storage() { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             iterator_projected_storage_t end_projected_storage() { return {list_node_end}; }
+            const_iterator_projected_storage_t begin_projected_storage() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            const_iterator_projected_storage_t end_projected_storage() const { return {list_node_end}; }
+            const_iterator_projected_storage_t cbegin_projected_storage() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             const_iterator_projected_storage_t cend_projected_storage() const { return {list_node_end}; }
 
-            list_node_end_t *list_node_end;
-            std::size_t const &list_node_count() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
-            std::size_t const &list_front_element_count() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->front_element_count; }
-            std::size_t const &list_back_element_count() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->back_element_count; }
-            std::size_t &list_node_count() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
-            std::size_t &list_front_element_count() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->front_element_count; }
-            std::size_t &list_back_element_count() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->back_element_count; }
+            pointer_list_node_end_t list_node_end;
+            std::size_t const &list_node_count() const { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
+            std::size_t const &list_front_element_count() const { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->front_element_count; }
+            std::size_t const &list_back_element_count() const { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->back_element_count; }
+            std::size_t &list_node_count() { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
+            std::size_t &list_front_element_count() { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->front_element_count; }
+            std::size_t &list_back_element_count() { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->back_element_count; }
 
-            digit_node_end_t *digit_node_end;
-            projector_and_accumulator_t const &projector_and_accumulator() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->projector_and_accumulator; }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_front() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->next); }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_middle() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->middle); }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_back() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->prev); }
+            pointer_digit_node_end_t digit_node_end;
+            projector_and_accumulator_t const &projector_and_accumulator() const { return detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->projector_and_accumulator; }
+            pointer_navigator_t digit_front() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->next); }
+            pointer_navigator_t digit_middle() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->middle); }
+            pointer_navigator_t digit_back() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->prev); }
             struct digit_proxy_t
             {
                 augmented_deque_sequence_t *this_;
-                detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::*next_or_prev);
-                operator detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev); }
-                digit_proxy_t &operator=(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_front_new)
+                pointer_navigator_t(navigator_t::*next_or_prev);
+                operator pointer_navigator_t() { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev); }
+                digit_proxy_t &operator=(pointer_navigator_t digit_front_new)
                 {
-                    detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev = detail::tagged_ptr_ns::tagged_ptr_bit0_setted(digit_front_new);
+                    detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev = detail::language::tagged_ptr_bit0_setted(digit_front_new);
                     return *this;
                 }
             };
@@ -2314,7 +2438,7 @@ namespace augmented_containers
             {
                 return digit_proxy_t{
                     .this_ = this,
-                    .next_or_prev = &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next,
+                    .next_or_prev = &navigator_t::next,
                 };
             }
             auto digit_middle()
@@ -2322,13 +2446,13 @@ namespace augmented_containers
                 struct proxy_t
                 {
                     augmented_deque_sequence_t *this_;
-                    operator detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *()
+                    operator pointer_navigator_t()
                     {
-                        return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle);
+                        return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle);
                     }
-                    proxy_t &operator=(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_middle_new)
+                    proxy_t &operator=(pointer_navigator_t digit_middle_new)
                     {
-                        detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle = detail::tagged_ptr_ns::tagged_ptr_bit0_setted(digit_middle_new);
+                        detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle = detail::language::tagged_ptr_bit0_setted(digit_middle_new);
                         return *this;
                     }
                 } proxy{.this_ = this};
@@ -2338,37 +2462,39 @@ namespace augmented_containers
             {
                 return digit_proxy_t{
                     .this_ = this,
-                    .next_or_prev = &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev,
+                    .next_or_prev = &navigator_t::prev,
                 };
             }
 
-            augmented_deque_sequence_t()
-                : list_node_end(list_node_end_t::create_tagged_end()),
-                  digit_node_end(digit_node_end_t::create_tagged_end())
+            void create_end_nodes(allocator_element_t const &allocator_element)
             {
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->middle = digit_node_end;
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->list_node_end = list_node_end;
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->digit_node_end = digit_node_end;
-                projector_and_accumulator().construct_accumulated_storage(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage(), std::make_tuple());
+                list_node_end = list_node_end_t::create_tagged_end(allocator_element);
+                digit_node_end = digit_node_end_t::create_tagged_end(allocator_element);
+                detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->middle = digit_node_end;
+                detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->list_node_end = list_node_end;
+                detail::language::tagged_ptr_bit0_unsetted(list_node_end)->digit_node_end = digit_node_end;
+                if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    projector_and_accumulator().construct_accumulated_storage(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage(), std::make_tuple());
+            }
+            void destroy_end_nodes(allocator_element_t const &allocator_element)
+            {
+                if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    projector_and_accumulator().destroy_accumulated_storage(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage());
+                detail::memory::delete_expression<digit_node_end_t>(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end));
+                detail::memory::delete_expression<list_node_end_t>(allocator_element, detail::language::tagged_ptr_bit0_unsetted(list_node_end));
             }
 
-            bool empty() const { return list_node_count() == 0; }
-            void push_back(typename stride1_sequence_t::list_node_t *p_stride1_sequence_list_node)
+            void push_back(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_t> p_stride1_sequence_list_node)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{this,
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
                     &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                     detail::augmented_deque::tuple_identity};
-                auto push_back_and_get_p_list_node = [this, &p_stride1_sequence_list_node](tree_node_t *parent)
+                auto push_back_and_get_p_list_node = [&](pointer_tree_node_t parent)
                 {
                     ++list_node_count();
-                    auto list_back = new list_node_t{
-                        .parent = parent,
-                        .actual_projected_storage{
-                            .child = p_stride1_sequence_list_node,
-                        },
-                    };
-                    detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::push_impl(list_node_end, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, list_back);
+                    pointer_list_node_t list_back = detail::memory::new_expression<list_node_t>(allocator_element, parent, p_stride1_sequence_list_node);
+                    navigator_t::push_impl(list_node_end, &navigator_t::prev, &navigator_t::next, list_back);
                     std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_back;
                     return list_back;
                 };
@@ -2392,9 +2518,9 @@ namespace augmented_containers
                         ++list_back_element_count();
                         std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_node_t::untagged_prev(list_node_end);
 
-                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{this,
+                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
                             &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                            &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                            &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                             detail::augmented_deque::tuple_identity};
                         update_range_impl_functor.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
                     }
@@ -2405,22 +2531,17 @@ namespace augmented_containers
                     }
                 }
             }
-            void push_front(typename stride1_sequence_t::list_node_t *p_stride1_sequence_list_node)
+            void push_front(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_t> p_stride1_sequence_list_node)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{this,
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{allocator_element, this,
                     &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front,
-                    &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
+                    &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
                     detail::augmented_deque::tuple_reversed};
-                auto push_back_and_get_p_list_node = [this, &p_stride1_sequence_list_node](tree_node_t *parent)
+                auto push_back_and_get_p_list_node = [&](pointer_tree_node_t parent)
                 {
                     ++list_node_count();
-                    auto list_front = new list_node_t{
-                        .parent = parent,
-                        .actual_projected_storage{
-                            .child = p_stride1_sequence_list_node,
-                        },
-                    };
-                    detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::push_impl(list_node_end, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, list_front);
+                    pointer_list_node_t list_front = detail::memory::new_expression<list_node_t>(allocator_element, parent, p_stride1_sequence_list_node);
+                    navigator_t::push_impl(list_node_end, &navigator_t::next, &navigator_t::prev, list_front);
                     std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_front;
                     return list_front;
                 };
@@ -2445,9 +2566,9 @@ namespace augmented_containers
                         list_node_t::untagged_next(list_node_end)->actual_projected_storage.child = p_stride1_sequence_list_node;
                         std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_node_t::untagged_next(list_node_end);
 
-                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{this,
+                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
                             &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                            &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                            &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                             detail::augmented_deque::tuple_identity};
                         update_range_impl_functor.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
                     }
@@ -2458,16 +2579,16 @@ namespace augmented_containers
                     }
                 }
             }
-            void pop_back([[maybe_unused]] detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *p_stride1_sequence_list_node_end)
+            void pop_back(allocator_element_t const &allocator_element, [[maybe_unused]] typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_end_t> p_stride1_sequence_list_node_end)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
-                auto pop_list_node = [this]()
+                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
+                auto pop_list_node = [&]()
                 {
                     --list_node_count();
-                    list_node_t *list_back = list_node_t::untagged_prev(list_node_end);
-                    list_node_t::extract_impl(list_back, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next);
-                    delete list_back;
+                    pointer_list_node_t list_back = list_node_t::untagged_prev(list_node_end);
+                    list_node_t::extract_impl(list_back, &navigator_t::prev, &navigator_t::next);
+                    detail::memory::delete_expression<list_node_t>(allocator_element, list_back);
                 };
                 assert(list_node_count() != 0);
                 if(list_back_element_count() != 1)
@@ -2479,9 +2600,9 @@ namespace augmented_containers
                     }
                     --list_back_element_count();
 
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
                     update_range_impl_functor.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
                 }
@@ -2500,16 +2621,16 @@ namespace augmented_containers
                     pop_back_impl_functor.pop_impl(pop_list_node);
                 }
             }
-            void pop_front(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *p_stride1_sequence_list_node_end)
+            void pop_front(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_end_t> p_stride1_sequence_list_node_end)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
-                auto pop_list_node = [this]()
+                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
+                auto pop_list_node = [&]()
                 {
                     --list_node_count();
-                    list_node_t *list_front = list_node_t::untagged_next(list_node_end);
-                    list_node_t::extract_impl(list_front, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev);
-                    delete list_front;
+                    pointer_list_node_t list_front = list_node_t::untagged_next(list_node_end);
+                    list_node_t::extract_impl(list_front, &navigator_t::next, &navigator_t::prev);
+                    detail::memory::delete_expression<list_node_t>(allocator_element, list_front);
                 };
                 assert(list_node_count() != 0);
                 if(list_front_element_count() != 1)
@@ -2522,9 +2643,9 @@ namespace augmented_containers
                     --list_front_element_count();
                     list_node_t::untagged_next(list_node_end)->actual_projected_storage.child = stride1_sequence_t::list_node_t::untagged_next(p_stride1_sequence_list_node_end);
 
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
                     update_range_impl_functor.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
                 }
@@ -2544,65 +2665,65 @@ namespace augmented_containers
                 }
             }
 
-            void update_range(const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end)
+            void update_range(allocator_element_t const &allocator_element, const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end)
             {
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
-                    push_back_impl_functor.update_range_impl(static_cast<list_node_t *>(const_iterator_projected_storage_begin.current_list_node), static_cast<list_node_t *>(
+                    push_back_impl_functor.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
-                                                                                                                                                       std::prev
+                                                                                                                                                                                              std::prev
 #else
-                                                                                                                                                       std::ranges::prev
+                                                                                                                                                                                              std::ranges::prev
 #endif
-                                                                                                                                                       (const_iterator_projected_storage_end)
-                                                                                                                                                           .current_list_node));
+                                                                                                                                                                                              (const_iterator_projected_storage_end)
+                                                                                                                                                                                                  .current_list_node));
                 }
             }
-            accumulated_storage_t read_range(const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end) const
+            accumulated_storage_t read_range(allocator_element_t const &allocator_element, const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end) const
             {
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
-                    return push_back_impl_functor.read_range_impl(static_cast<list_node_t *>(const_iterator_projected_storage_begin.current_list_node), static_cast<list_node_t *>(
+                    return push_back_impl_functor.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
-                                                                                                                                                            std::prev
+                                                                                                                                                                                                   std::prev
 #else
-                                                                                                                                                            std::ranges::prev
+                                                                                                                                                                                                   std::ranges::prev
 #endif
-                                                                                                                                                            (const_iterator_projected_storage_end)
-                                                                                                                                                                .current_list_node));
+                                                                                                                                                                                                   (const_iterator_projected_storage_end)
+                                                                                                                                                                                                       .current_list_node));
                 }
                 else
-                    return projector_and_accumulator().construct_accumulated_storage(std::make_tuple());
+                    return projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple());
             }
             template<typename T>
             struct get_const_iterator_element_t: std::type_identity<typename T::const_iterator_element_t>
             {};
             template<template<typename T> typename get_const_iterator_element_tt = get_const_iterator_element_t>
-            accumulated_storage_t read_range(typename get_const_iterator_element_tt<stride1_sequence_t>::type const &const_iterator_element_begin, typename get_const_iterator_element_tt<stride1_sequence_t>::type const &const_iterator_element_end) const
+            accumulated_storage_t read_range(allocator_element_t const &allocator_element, typename get_const_iterator_element_tt<stride1_sequence_t>::type const &const_iterator_element_begin, typename get_const_iterator_element_tt<stride1_sequence_t>::type const &const_iterator_element_end) const
             {
                 assert(const_iterator_element_begin <= const_iterator_element_end);
-                if constexpr(stride_ == 1)
-                    return read_range(augmented_deque_t::to_iterator_projected_storage<0>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<0>(const_iterator_element_end));
+                if constexpr(requested_stride_ == 1)
+                    return read_range(augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_end));
                 else
                 {
                     if(const_iterator_projected_storage_t const_iterator_projected_storage_begin = augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_begin), const_iterator_projected_storage_end = augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_end); const_iterator_projected_storage_begin == const_iterator_projected_storage_end)
                     {
                         if(const_iterator_element_begin == const_iterator_element_end)
-                            return projector_and_accumulator().construct_accumulated_storage(std::make_tuple());
+                            return projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple());
                         else
                         {
-                            projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(const_iterator_element_begin, const_iterator_element_end, const_iterator_element_end - const_iterator_element_begin));
-                            return projector_and_accumulator().construct_accumulated_storage(std::make_tuple(std::cref(intermediate_projected_storage)));
+                            projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(allocator_element, const_iterator_element_begin, const_iterator_element_end, const_iterator_element_end - const_iterator_element_begin));
+                            return projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(intermediate_projected_storage)));
                         }
                     }
                     else
@@ -2616,7 +2737,7 @@ namespace augmented_containers
                               {
                                   ++const_iterator_projected_storage_begin;
                                   const_iterator_element_chunk_begin = augmented_deque_t::to_iterator_element(const_iterator_projected_storage_begin);
-                                  projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(const_iterator_element_begin, const_iterator_element_chunk_begin, const_iterator_element_chunk_begin - const_iterator_element_begin));
+                                  projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(allocator_element, const_iterator_element_begin, const_iterator_element_chunk_begin, const_iterator_element_chunk_begin - const_iterator_element_begin));
                                   return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(intermediate_projected_storage))));
                               }
                           }; };
@@ -2627,7 +2748,7 @@ namespace augmented_containers
                                   return return_accumulated_tuple(accumulated_tuple_so_far);
                               else
                               {
-                                  accumulated_storage_t intermediate_accumulated_storage(read_range(const_iterator_projected_storage_begin, const_iterator_projected_storage_end));
+                                  accumulated_storage_t intermediate_accumulated_storage(read_range(allocator_element, const_iterator_projected_storage_begin, const_iterator_projected_storage_end));
                                   return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(intermediate_accumulated_storage))));
                               }
                           }; };
@@ -2638,12 +2759,12 @@ namespace augmented_containers
                                   return return_accumulated_tuple(accumulated_tuple_so_far);
                               else
                               {
-                                  projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(const_iterator_element_chunk_end, const_iterator_element_end, const_iterator_element_end - const_iterator_element_chunk_end));
+                                  projected_storage_t intermediate_projected_storage(projector_and_accumulator().construct_projected_storage(allocator_element, const_iterator_element_chunk_end, const_iterator_element_end, const_iterator_element_end - const_iterator_element_chunk_end));
                                   return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(intermediate_projected_storage))));
                               }
                           }; };
                         auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far)
-                        { return projector_and_accumulator().construct_accumulated_storage(accumulated_tuple_so_far); };
+                        { return projector_and_accumulator().construct_accumulated_storage(allocator_element, accumulated_tuple_so_far); };
                         return get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                     }
                 }
@@ -2652,33 +2773,41 @@ namespace augmented_containers
         template<typename projector_and_accumulator_t_>
         struct augmented_deque_sequence_t<0, 1, projector_and_accumulator_t_>: detail::augmented_deque::add_stride_member<1>
         {
+            static constexpr std::size_t sequence_index = 0;
+            static constexpr std::size_t requested_stride = 1;
             using projector_and_accumulator_t = projector_and_accumulator_t_;
 
-            using element_t = typename augmented_deque_t::element_t;
             using projected_storage_t = typename projector_and_accumulator_t::projected_storage_t;
             using accumulated_storage_t = typename projector_and_accumulator_t::accumulated_storage_t;
             struct sequence_config_t
             {
-                static constexpr std::size_t requested_stride = 1;
+                using element_t = augmented_deque_t::element_t;
+                using allocator_element_t = augmented_deque_t::allocator_element_t;
+                using pointer_element_t = augmented_deque_t::pointer_element_t;
+
+                static constexpr std::size_t sequence_index = augmented_deque_sequence_t::sequence_index;
+                static constexpr std::size_t requested_stride = augmented_deque_sequence_t::requested_stride;
                 using projector_and_accumulator_t = augmented_deque_sequence_t::projector_and_accumulator_t;
 
-                template<std::size_t index, typename stride_to_projector_and_accumulator_item_t>
-                struct stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_t: std::type_identity<typename augmented_deque_sequence_t<index + 1, stride_to_projector_and_accumulator_item_t::first_type::value, typename stride_to_projector_and_accumulator_item_t::second_type>::list_node_t *>
-                {};
-                using pointers_to_other_strides_sequence_list_node_t = detail::mp::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_t>;
+                using list_node_end_t = detail::augmented_deque::list_node_end_t<sequence_config_t>;
+                using list_node_t = detail::augmented_deque::list_node_t<sequence_config_t>;
 
                 template<std::size_t index, typename stride_to_projector_and_accumulator_item_t>
-                struct stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_end_t: std::type_identity<typename augmented_deque_sequence_t<index + 1, stride_to_projector_and_accumulator_item_t::first_type::value, typename stride_to_projector_and_accumulator_item_t::second_type>::list_node_end_t *>
+                struct stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_t: std::type_identity<typename std::pointer_traits<pointer_element_t>::template rebind<typename augmented_deque_sequence_t<index + 1, stride_to_projector_and_accumulator_item_t::first_type::value, typename stride_to_projector_and_accumulator_item_t::second_type>::list_node_t>>
                 {};
-                using pointers_to_other_strides_sequence_list_node_end_t = detail::mp::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_end_t>;
+                using pointers_to_other_strides_sequence_list_node_t = detail::utility::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_t>;
 
-                using element_t = augmented_deque_sequence_t::element_t;
+                template<std::size_t index, typename stride_to_projector_and_accumulator_item_t>
+                struct stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_end_t: std::type_identity<typename std::pointer_traits<pointer_element_t>::template rebind<typename augmented_deque_sequence_t<index + 1, stride_to_projector_and_accumulator_item_t::first_type::value, typename stride_to_projector_and_accumulator_item_t::second_type>::list_node_end_t>>
+                {};
+                using pointers_to_other_strides_sequence_list_node_end_t = detail::utility::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_end_t>;
+
                 using projected_storage_t = augmented_deque_sequence_t::projected_storage_t;
                 using accumulated_storage_t = augmented_deque_sequence_t::accumulated_storage_t;
-                struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<projected_storage_t>
+                struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<pointer_element_t, projected_storage_t>
                 {
                     alignas(element_t) std::byte element_buffer[sizeof(element_t)]; // element_t element;
-                    element_t *p_element() { return reinterpret_cast<element_t *>(&element_buffer); }
+                    pointer_element_t p_element() { return std::pointer_traits<pointer_element_t>::pointer_to(*reinterpret_cast<element_t *>(&element_buffer)); }
                     pointers_to_other_strides_sequence_list_node_t parents;
                 };
                 struct actual_projected_storage_end_t
@@ -2686,12 +2815,20 @@ namespace augmented_containers
                     pointers_to_other_strides_sequence_list_node_end_t parents;
                 };
             };
+
+            using navigator_t = detail::augmented_deque::circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>;
             using list_node_end_t = detail::augmented_deque::list_node_end_t<sequence_config_t>;
             using list_node_t = detail::augmented_deque::list_node_t<sequence_config_t>;
-            using actual_projected_storage_t = typename list_node_t::actual_projected_storage_t;
-            using tree_node_t = detail::augmented_deque::tree_node_t<accumulated_storage_t>;
+            using tree_node_t = detail::augmented_deque::tree_node_t<sequence_config_t>;
             using digit_node_end_t = detail::augmented_deque::digit_node_end_t<sequence_config_t>;
             using digit_node_t = detail::augmented_deque::digit_node_t<sequence_config_t>;
+
+            using pointer_navigator_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<navigator_t>;
+            using pointer_list_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_t>;
+            using pointer_list_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<list_node_end_t>;
+            using pointer_tree_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<tree_node_t>;
+            using pointer_digit_node_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_t>;
+            using pointer_digit_node_end_t = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<digit_node_end_t>;
 
             using iterator_element_t = detail::augmented_deque::iterator_element_t<false, sequence_config_t>;
             static_assert(std::input_or_output_iterator<iterator_element_t>);
@@ -2713,9 +2850,11 @@ namespace augmented_containers
             static_assert(std::sized_sentinel_for<const_iterator_element_t, const_iterator_element_t>);
             static_assert(std::sized_sentinel_for<std::default_sentinel_t, const_iterator_element_t>);
             static_assert(std::random_access_iterator<const_iterator_element_t>);
-            iterator_element_t begin_element() { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
-            const_iterator_element_t cbegin_element() const { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            iterator_element_t begin_element() { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             iterator_element_t end_element() { return {list_node_end}; }
+            const_iterator_element_t begin_element() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            const_iterator_element_t end_element() const { return {list_node_end}; }
+            const_iterator_element_t cbegin_element() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             const_iterator_element_t cend_element() const { return {list_node_end}; }
 
             using iterator_projected_storage_t = detail::augmented_deque::iterator_projected_storage_t<false, sequence_config_t>;
@@ -2738,29 +2877,31 @@ namespace augmented_containers
             static_assert(std::is_same_v<projected_storage_t, void> || std::sized_sentinel_for<const_iterator_projected_storage_t, const_iterator_projected_storage_t>);
             static_assert(std::is_same_v<projected_storage_t, void> || std::sized_sentinel_for<std::default_sentinel_t, const_iterator_projected_storage_t>);
             static_assert(std::is_same_v<projected_storage_t, void> || std::random_access_iterator<const_iterator_projected_storage_t>);
-            iterator_projected_storage_t begin_projected_storage() { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
-            const_iterator_projected_storage_t cbegin_projected_storage() const { return {detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            iterator_projected_storage_t begin_projected_storage() { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             iterator_projected_storage_t end_projected_storage() { return {list_node_end}; }
+            const_iterator_projected_storage_t begin_projected_storage() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
+            const_iterator_projected_storage_t end_projected_storage() const { return {list_node_end}; }
+            const_iterator_projected_storage_t cbegin_projected_storage() const { return {navigator_t::untagged_next_or_tagged_end(list_node_end)}; }
             const_iterator_projected_storage_t cend_projected_storage() const { return {list_node_end}; }
 
 
-            list_node_end_t *list_node_end;
-            std::size_t const &list_node_count() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
-            std::size_t &list_node_count() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
+            pointer_list_node_end_t list_node_end;
+            std::size_t const &list_node_count() const { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
+            std::size_t &list_node_count() { return detail::language::tagged_ptr_bit0_unsetted(list_node_end)->node_count; }
 
-            digit_node_end_t *digit_node_end;
-            projector_and_accumulator_t const &projector_and_accumulator() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->projector_and_accumulator; }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_front() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->next); }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_middle() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->middle); }
-            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_back() const { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this->digit_node_end)->prev); }
+            pointer_digit_node_end_t digit_node_end;
+            projector_and_accumulator_t const &projector_and_accumulator() const { return detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->projector_and_accumulator; }
+            pointer_navigator_t digit_front() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->next); }
+            pointer_navigator_t digit_middle() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->middle); }
+            pointer_navigator_t digit_back() const { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this->digit_node_end)->prev); }
             struct digit_proxy_t
             {
                 augmented_deque_sequence_t *this_;
-                detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::*next_or_prev);
-                operator detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev); }
-                digit_proxy_t &operator=(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_front_new)
+                pointer_navigator_t(navigator_t::*next_or_prev);
+                operator pointer_navigator_t() { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev); }
+                digit_proxy_t &operator=(pointer_navigator_t digit_front_new)
                 {
-                    detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev = detail::tagged_ptr_ns::tagged_ptr_bit0_setted(digit_front_new);
+                    detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->*next_or_prev = detail::language::tagged_ptr_bit0_setted(digit_front_new);
                     return *this;
                 }
             };
@@ -2768,7 +2909,7 @@ namespace augmented_containers
             {
                 return digit_proxy_t{
                     .this_ = this,
-                    .next_or_prev = &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next,
+                    .next_or_prev = &navigator_t::next,
                 };
             }
             auto digit_middle()
@@ -2776,10 +2917,10 @@ namespace augmented_containers
                 struct proxy_t
                 {
                     augmented_deque_sequence_t *this_;
-                    operator detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *() { return detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle); }
-                    proxy_t &operator=(detail::augmented_deque::circular_doubly_linked_list_node_navigator_t *digit_middle_new)
+                    operator pointer_navigator_t() { return detail::language::tagged_ptr_bit0_unsetted(detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle); }
+                    proxy_t &operator=(pointer_navigator_t digit_middle_new)
                     {
-                        detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle = detail::tagged_ptr_ns::tagged_ptr_bit0_setted(digit_middle_new);
+                        detail::language::tagged_ptr_bit0_unsetted(this_->digit_node_end)->middle = detail::language::tagged_ptr_bit0_setted(digit_middle_new);
                         return *this;
                     }
                 } proxy{.this_ = this};
@@ -2789,84 +2930,92 @@ namespace augmented_containers
             {
                 return digit_proxy_t{
                     .this_ = this,
-                    .next_or_prev = &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev,
+                    .next_or_prev = &navigator_t::prev,
                 };
             }
 
-            augmented_deque_sequence_t()
-                : list_node_end(list_node_end_t::create_tagged_end()),
-                  digit_node_end(digit_node_end_t::create_tagged_end())
+            void create_end_nodes(allocator_element_t const &allocator_element)
             {
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->middle = digit_node_end;
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->list_node_end = list_node_end;
-                detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(list_node_end)->digit_node_end = digit_node_end;
+                list_node_end = list_node_end_t::create_tagged_end(allocator_element);
+                digit_node_end = digit_node_end_t::create_tagged_end(allocator_element);
+                detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->middle = digit_node_end;
+                detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->list_node_end = list_node_end;
+                detail::language::tagged_ptr_bit0_unsetted(list_node_end)->digit_node_end = digit_node_end;
                 if constexpr(!std::is_same_v<accumulated_storage_t, void>)
-                    projector_and_accumulator().construct_accumulated_storage(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage(), std::make_tuple());
+                    projector_and_accumulator().construct_accumulated_storage(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage(), std::make_tuple());
+            }
+            void destroy_end_nodes(allocator_element_t const &allocator_element)
+            {
+                if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    projector_and_accumulator().destroy_accumulated_storage(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end)->p_accumulated_storage());
+                detail::memory::delete_expression<digit_node_end_t>(allocator_element, detail::language::tagged_ptr_bit0_unsetted(digit_node_end));
+                detail::memory::delete_expression<list_node_end_t>(allocator_element, detail::language::tagged_ptr_bit0_unsetted(list_node_end));
             }
 
-            bool empty() const { return list_node_count() == 0; }
-            void push_back(element_t const &value)
+            template<typename... args_t>
+            void emplace_back(allocator_element_t const &allocator_element, args_t &&...args)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{this,
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
                     &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                     detail::augmented_deque::tuple_identity};
-                push_back_impl_functor.push_impl([this, &value](tree_node_t *parent)
+                push_back_impl_functor.push_impl([&](pointer_tree_node_t parent)
                     {
-                            ++list_node_count();
-                            list_node_t *list_back = new list_node_t{.parent = parent};
-                            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::push_impl(list_node_end, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, list_back);
-                            new(list_back->actual_projected_storage.element_buffer) element_t(value);
-                            return list_back; });
+                        ++list_node_count();
+                        pointer_list_node_t list_back = detail::memory::new_expression<list_node_t>(allocator_element, parent);
+                        navigator_t::push_impl(list_node_end, &navigator_t::prev, &navigator_t::next, list_back);
+                        std::allocator_traits<allocator_element_t>::construct(detail::utility::unmove(allocator_element_t(allocator_element)), std::to_address(list_back->actual_projected_storage.p_element()), std::forward<args_t>(args)...);
+                        return list_back; });
             }
-            void push_front(element_t const &value)
+            template<typename... args_t>
+            void emplace_front(allocator_element_t const &allocator_element, args_t &&...args)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{this,
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{allocator_element, this,
                     &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front,
-                    &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
+                    &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
                     detail::augmented_deque::tuple_reversed};
-                push_front_impl_functor.push_impl([this, &value](tree_node_t *parent)
+                push_front_impl_functor.push_impl([&](pointer_tree_node_t parent)
                     {
-                            ++list_node_count();
-                            list_node_t *list_front = new list_node_t{.parent = parent};
-                            detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::push_impl(list_node_end, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, list_front);
-                            new(list_front->actual_projected_storage.element_buffer) element_t(value);
-                            return list_front; });
+                        ++list_node_count();
+                        pointer_list_node_t list_front = detail::memory::new_expression<list_node_t>(allocator_element, parent);
+                        navigator_t::push_impl(list_node_end, &navigator_t::next, &navigator_t::prev, list_front);
+                        std::allocator_traits<allocator_element_t>::construct(detail::utility::unmove(allocator_element_t(allocator_element)), std::to_address(list_front->actual_projected_storage.p_element()), std::forward<args_t>(args)...);
+                        return list_front; });
             }
-            void pop_back()
+            void pop_back(allocator_element_t const &allocator_element)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
-                pop_back_impl_functor.pop_impl([this]()
+                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
+                pop_back_impl_functor.pop_impl([&]()
                     {
-                            --list_node_count();
-                            list_node_t *list_back = list_node_t::untagged_prev(list_node_end);
-                            list_node_t::extract_impl(list_back, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next);
-                            delete list_back; });
+                        --list_node_count();
+                        pointer_list_node_t list_back = list_node_t::untagged_prev(list_node_end);
+                        list_node_t::extract_impl(list_back, &navigator_t::prev, &navigator_t::next);
+                        detail::memory::delete_expression<list_node_t>(allocator_element, list_back); });
             }
-            void pop_front()
+            void pop_front(allocator_element_t const &allocator_element)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
-                pop_front_impl_functor.pop_impl([this]()
+                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
+                pop_front_impl_functor.pop_impl([&]()
                     {
-                            --list_node_count();
-                            list_node_t *list_front = list_node_t::untagged_next(list_node_end);
-                            list_node_t::extract_impl(list_front, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev);
-                            delete list_front; });
+                        --list_node_count();
+                        pointer_list_node_t list_front = list_node_t::untagged_next(list_node_end);
+                        list_node_t::extract_impl(list_front, &navigator_t::next, &navigator_t::prev);
+                        detail::memory::delete_expression<list_node_t>(allocator_element, list_front); });
             }
 
-            void update_range(const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end)
+            void update_range(allocator_element_t const &allocator_element, const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end)
             {
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
-                    update_range_impl_functor.update_range_impl(static_cast<list_node_t *>(const_iterator_projected_storage_begin.current_list_node),
-                        static_cast<list_node_t *>(
+                    update_range_impl_functor.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
+                        detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
                             std::prev
 #else
@@ -2876,17 +3025,17 @@ namespace augmented_containers
                                 .current_list_node));
                 }
             }
-            accumulated_storage_t read_range(const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end) const
+            accumulated_storage_t read_range(allocator_element_t const &allocator_element, const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end) const
             {
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t read_range_impl_functor{this,
+                    detail::augmented_deque::sequence_push_or_pop_impl_t read_range_impl_functor{allocator_element, this,
                         &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::prev, &detail::augmented_deque::circular_doubly_linked_list_node_navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
                         detail::augmented_deque::tuple_identity};
-                    return read_range_impl_functor.read_range_impl(static_cast<list_node_t *>(const_iterator_projected_storage_begin.current_list_node),
-                        static_cast<list_node_t *>(
+                    return read_range_impl_functor.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
+                        detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
                             std::prev
 #else
@@ -2896,84 +3045,418 @@ namespace augmented_containers
                                 .current_list_node));
                 }
                 else
-                    return projector_and_accumulator().construct_accumulated_storage(std::make_tuple());
+                    return projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple());
             }
-            accumulated_storage_t read_range(const_iterator_element_t const &const_iterator_element_begin, const_iterator_element_t const &const_iterator_element_end) const
+            accumulated_storage_t read_range(allocator_element_t const &allocator_element, const_iterator_element_t const &const_iterator_element_begin, const_iterator_element_t const &const_iterator_element_end) const
             {
                 assert(const_iterator_element_begin <= const_iterator_element_end);
-                return read_range(augmented_deque_t::to_iterator_projected_storage<0>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<0>(const_iterator_element_end));
+                return read_range(allocator_element, augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_end));
             }
         };
 
+        allocator_element_t allocator;
+        allocator_type get_allocator() const noexcept { return allocator; }
         stride1_sequence_t stride1_sequence;
         other_stride_sequences_t other_stride_sequences;
 
-        static constexpr std::size_t sequences_count = 1 + std::tuple_size_v<other_stride_sequences_t>;
+        static constexpr std::size_t sequences_count = std::tuple_size_v<stride_to_projector_and_accumulator_map_t>;
+        using sequences_t = detail::utility::tuple_cat_t<std::tuple<stride1_sequence_t>, other_stride_sequences_t>;
         template<std::size_t I>
-        auto &sequence()
+        using sequence_t = std::tuple_element_t<I, sequences_t>;
+        template<std::size_t I>
+        sequence_t<I> &sequence() &
         {
-            if constexpr(I == 0)
-                return stride1_sequence;
-            else
-                return std::get<I - 1>(other_stride_sequences);
+            if constexpr(I == 0) return stride1_sequence;
+            else return std::get<I - 1>(other_stride_sequences);
         }
         template<std::size_t I>
-        auto &sequence() const
+        sequence_t<I> const &sequence() const &
         {
-            if constexpr(I == 0)
-                return stride1_sequence;
-            else
-                return std::get<I - 1>(other_stride_sequences);
+            if constexpr(I == 0) return stride1_sequence;
+            else return std::get<I - 1>(other_stride_sequences);
         }
-        using sequences_t = decltype(std::tuple_cat(std::declval<std::tuple<stride1_sequence_t> &>(), std::declval<other_stride_sequences_t &>()));
         template<std::size_t I>
-        using sequence_t = typename std::conditional_t<I == 0, std::type_identity<stride1_sequence_t>, std::tuple_element<I - 1, other_stride_sequences_t>>::type;
+        sequence_t<I> &&sequence() &&
+        {
+            if constexpr(I == 0) return std::move(stride1_sequence);
+            else return std::move(std::get<I - 1>(other_stride_sequences));
+        }
+        template<std::size_t I>
+        sequence_t<I> const &&sequence() const &&
+        {
+            if constexpr(I == 0) return std::move(stride1_sequence);
+            else return std::move(std::get<I - 1>(other_stride_sequences));
+        }
 
-        augmented_deque_t()
+        void create_end_nodes()
         {
+            stride1_sequence.create_end_nodes(this->allocator);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., (detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(std::get<I>(other_stride_sequences).list_node_end)->actual_projected_storage_end.child = stride1_sequence.list_node_end, std::get<I>(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(stride1_sequence.list_node_end)->actual_projected_storage_end.parents) = std::get<I>(other_stride_sequences).list_node_end));
+                (..., std::get<I>(other_stride_sequences).create_end_nodes(this->allocator));
+            }
+            (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+
+            [&]<std::size_t... I>(std::index_sequence<I...>)
+            {
+                (..., (detail::language::tagged_ptr_bit0_unsetted(std::get<I>(other_stride_sequences).list_node_end)->actual_projected_storage_end.child = stride1_sequence.list_node_end, std::get<I>(detail::language::tagged_ptr_bit0_unsetted(stride1_sequence.list_node_end)->actual_projected_storage_end.parents) = std::get<I>(other_stride_sequences).list_node_end));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
-        bool empty() const { return stride1_sequence.empty(); }
-        void push_back(element_t const &value)
+        void destroy_end_nodes()
         {
-            stride1_sequence.push_back(value);
+            stride1_sequence.destroy_end_nodes(this->allocator);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).push_back(stride1_sequence_t::list_node_t::untagged_prev(stride1_sequence.list_node_end)));
+                (..., std::get<I>(other_stride_sequences).destroy_end_nodes(this->allocator));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
-        void push_front(element_t const &value)
+        void swap_end_nodes(augmented_deque_t &other)
         {
-            stride1_sequence.push_front(value);
+#ifdef __EMSCRIPTEN__
+            std::swap
+#else
+            std::ranges::swap
+#endif
+                (stride1_sequence.list_node_end, other.stride1_sequence.list_node_end),
+#ifdef __EMSCRIPTEN__
+                std::swap
+#else
+                std::ranges::swap
+#endif
+                (stride1_sequence.digit_node_end, other.stride1_sequence.digit_node_end);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).push_front(stride1_sequence_t::list_node_t::untagged_next(stride1_sequence.list_node_end)));
+                (..., (
+#ifdef __EMSCRIPTEN__
+                          std::swap
+#else
+                          std::ranges::swap
+#endif
+                          (std::get<I>(other_stride_sequences).list_node_end, std::get<I>(other.other_stride_sequences).list_node_end),
+#ifdef __EMSCRIPTEN__
+                          std::swap
+#else
+                          std::ranges::swap
+#endif
+                          (std::get<I>(other_stride_sequences).digit_node_end, std::get<I>(other.other_stride_sequences).digit_node_end)));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
+
+        augmented_deque_t() /* allocator is default initialized */ { create_end_nodes(); } // default constructor
+        void clear()
+        {
+            while(!empty())
+                this->pop_back();
+        }
+        explicit augmented_deque_t(allocator_element_t const &allocator) // default constructor with allocator
+            : allocator(allocator)
+        {
+            create_end_nodes();
+        }
+        explicit augmented_deque_t(size_type count, allocator_element_t const &allocator = allocator_element_t()) // count default-inserted constructor (with allocator)?
+            : augmented_deque_t(allocator)
+        {
+#ifdef __EMSCRIPTEN__
+            for(size_type index = 0; index != count; ++index) this->emplace_back();
+#else
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this]([[maybe_unused]] size_type index)
+                { this->emplace_back(); });
+#endif
+        }
+        explicit augmented_deque_t(size_type count, element_t const &value, allocator_element_t const &allocator = allocator_element_t()) // count copy-inserted constructor (with allocator)?
+            : augmented_deque_t(allocator)
+        {
+#ifdef __EMSCRIPTEN__
+            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
+#else
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
+                { this->emplace_back(value); });
+#endif
+        }
+        void assign(size_type count, element_t const &value) &
+        {
+            while(!empty())
+                this->pop_back();
+#ifdef __EMSCRIPTEN__
+            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
+#else
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
+                { this->emplace_back(value); });
+#endif
+        }
+        template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
+        augmented_deque_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator = allocator_element_t()) // comparable range constructor (with allocator)?
+            : augmented_deque_t(allocator)
+        {
+#ifdef __EMSCRIPTEN__
+            std::for_each(iterator, sentinel
+#else
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
+#endif
+                ,
+                [this]<typename other_element_t>(other_element_t &&other_element)
+                { this->emplace_back(std::forward<other_element_t>(other_element)); });
+        }
+        template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
+        void assign(iterator_t iterator, sentinel_t sentinel) &
+        {
+            while(!empty())
+                this->pop_back();
+#ifdef __EMSCRIPTEN__
+            std::for_each(iterator, sentinel
+#else
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
+#endif
+                ,
+                [this]<typename other_element_t>(other_element_t &&other_element)
+                { this->emplace_back(std::forward<other_element_t>(other_element)); });
+        }
+        augmented_deque_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator = allocator_element_t()) // std::initializer_list constructor (with allocator)?
+            : augmented_deque_t(allocator)
+        {
+#ifdef __EMSCRIPTEN__
+            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
+#else
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
+                { this->emplace_back(other_element); });
+#endif
+        }
+        augmented_deque_t &operator=(std::initializer_list<element_t> initializer_list) & // std::initializer_list assignment operator
+        {
+            while(!empty())
+                this->pop_back();
+#ifdef __EMSCRIPTEN__
+            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
+#else
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
+                { this->emplace_back(other_element); });
+#endif
+        }
+        void assign(std::initializer_list<element_t> initializer_list) &
+        {
+            while(!empty())
+                this->pop_back();
+#ifdef __EMSCRIPTEN__
+            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
+#else
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
+                { this->emplace_back(other_element); });
+#endif
+        }
+        augmented_deque_t(augmented_deque_t const &other, std::type_identity_t<allocator_element_t> const &allocator) // copy constructor with allocator
+            : augmented_deque_t(allocator)
+        {
+#ifdef __EMSCRIPTEN__
+            std::for_each(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()
+#else
+            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element())
+#endif
+                                                                    ,
+                [this](element_t const &other_element)
+                { this->emplace_back(other_element); });
+        }
+        augmented_deque_t(augmented_deque_t const &other) // copy constructor
+            : augmented_deque_t(other, std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.allocator))
+        {}
+        augmented_deque_t &operator=(augmented_deque_t const &other) & // copy assignment operator
+        {
+            while(!empty())
+                this->pop_back();
+            if(this->allocator != other.allocator)
+            {
+                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value)
+                {
+                    destroy_end_nodes();
+                    this->allocator = other.allocator;
+                    create_end_nodes();
+                }
+            }
+#ifdef __EMSCRIPTEN__
+            std::for_each(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()
+#else
+            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element())
+#endif
+                                                                    ,
+                [this](element_t const &other_element)
+                { this->emplace_back(other_element); });
+        }
+
+        augmented_deque_t(augmented_deque_t &&other) // move constructor
+            : allocator(([&]()
+                  {
+                            stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
+                            [&]<std::size_t... I>(std::index_sequence<I...>)
+                            {
+                                (..., (std::get<I>(other_stride_sequences).list_node_end = std::get<I>(other.other_stride_sequences).list_node_end, std::get<I>(other_stride_sequences).digit_node_end = std::get<I>(other.other_stride_sequences).digit_node_end));
+                            }
+                            (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+                            other.create_end_nodes(); }(),
+                  std::move(other.allocator)))
+        {}
+        augmented_deque_t(augmented_deque_t &&other, std::type_identity_t<allocator_element_t> const &allocator) // move constructor with allocator
+            : allocator(allocator)
+        {
+            if(allocator == other.allocator)
+            {
+                stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
+                [&]<std::size_t... I>(std::index_sequence<I...>)
+                {
+                    (..., (std::get<I>(other_stride_sequences).list_node_end = std::get<I>(other.other_stride_sequences).list_node_end, std::get<I>(other_stride_sequences).digit_node_end = std::get<I>(other.other_stride_sequences).digit_node_end));
+                }
+                (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+                other.create_end_nodes();
+            }
+            else
+            {
+                create_end_nodes();
+#ifdef __EMSCRIPTEN__
+                std::for_each(other.sequence<0>().begin_element(), other.sequence<0>().end_element()
+#else
+                std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element())
+#endif
+                                                                       ,
+                    [this](element_t &other_element)
+                    { this->emplace_back(std::move(other_element)); });
+            }
+        }
+        augmented_deque_t &operator=(augmented_deque_t &&other) & // move assignment operator
+        {
+            while(!empty())
+                this->pop_back();
+            if(this->allocator == other.allocator)
+                swap_end_nodes(other);
+            else
+            {
+                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value)
+                {
+                    destroy_end_nodes();
+                    this->allocator = std::move(other.allocator);
+                    create_end_nodes();
+                    swap_end_nodes(other);
+                }
+                else
+#ifdef __EMSCRIPTEN__
+                    std::for_each(other.sequence<0>().begin_element(), other.sequence<0>().end_element()
+#else
+                    std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element())
+#endif
+                                                                           ,
+                        [this](element_t &other_element)
+                        { this->emplace_back(std::move(other_element)); });
+            }
+        }
+        void swap(augmented_deque_t &other)
+        {
+            if(this->allocator == other.allocator)
+                swap_end_nodes(other);
+            else
+            {
+                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value)
+                {
+#ifdef __EMSCRIPTEN__
+                    std::swap
+#else
+                    std::ranges::swap
+#endif
+                        (this->allocator, other.allocator);
+                    swap_end_nodes(other);
+                }
+                else
+                {
+                    augmented_deque_t temp_this(other, this->allocator);
+                    augmented_deque_t temp_other(*this, other.allocator);
+                    swap_end_nodes(temp_this);
+                    other.swap_end_nodes(temp_other);
+                }
+            }
+        }
+        ~augmented_deque_t()
+        {
+            while(!empty())
+                this->pop_back();
+            destroy_end_nodes();
+        }
+
+        bool empty() const { return stride1_sequence.list_node_count() == 0; }
+        size_type size() const { return stride1_sequence.list_node_count(); }
+
+        reference at(size_type pos) { return stride1_sequence.begin_element()[pos]; }
+        const_reference at(size_type pos) const { return stride1_sequence.begin_element()[pos]; }
+        reference operator[](size_type pos) { return stride1_sequence.begin_element()[pos]; }
+        const_reference operator[](size_type pos) const { return stride1_sequence.begin_element()[pos]; }
+        reference front() { return stride1_sequence.begin_element()[0]; }
+        const_reference front() const { return stride1_sequence.begin_element()[0]; }
+        reference back() { return stride1_sequence.end_element()[-1]; }
+        const_reference back() const { return stride1_sequence.end_element()[-1]; }
+
+        template<typename... args_t>
+        void emplace_back(args_t... args)
+        {
+            stride1_sequence.emplace_back(this->allocator, std::forward<args_t>(args)...);
+            [&]<std::size_t... I>(std::index_sequence<I...>)
+            {
+                (..., std::get<I>(other_stride_sequences).push_back(this->allocator, stride1_sequence_t::list_node_t::untagged_prev(stride1_sequence.list_node_end)));
+            }
+            (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+        }
+        template<typename... args_t>
+        void emplace_front(args_t... args)
+        {
+            stride1_sequence.emplace_front(this->allocator, std::forward<args_t>(args)...);
+            [&]<std::size_t... I>(std::index_sequence<I...>)
+            {
+                (..., std::get<I>(other_stride_sequences).push_front(this->allocator, stride1_sequence_t::list_node_t::untagged_next(stride1_sequence.list_node_end)));
+            }
+            (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+        }
+        void push_back(element_t const &value) { this->emplace_back(value); }
+        void push_front(element_t const &value) { this->emplace_front(value); }
 
         void pop_back()
         {
-            stride1_sequence.pop_back();
+            stride1_sequence.pop_back(this->allocator);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).pop_back(stride1_sequence.list_node_end));
+                (..., std::get<I>(other_stride_sequences).pop_back(this->allocator, stride1_sequence.list_node_end));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
         void pop_front()
         {
-            stride1_sequence.pop_front();
+            stride1_sequence.pop_front(this->allocator);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).pop_front(stride1_sequence.list_node_end));
+                (..., std::get<I>(other_stride_sequences).pop_front(this->allocator, stride1_sequence.list_node_end));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
+        }
+
+        friend void swap(augmented_deque_t &lhs, augmented_deque_t &rhs) { lhs.swap(rhs); }
+        friend bool operator==(augmented_deque_t const &lhs, augmented_deque_t const &rhs)
+        {
+#ifdef __EMSCRIPTEN__
+            return std::equal(lhs.stride1_sequence.begin_element(), lhs.stride1_sequence.end_element(), rhs.stride1_sequence.begin_element(), rhs.stride1_sequence.end_element());
+#else
+            return std::ranges::equal(std::ranges::subrange(lhs.stride1_sequence.begin_element(), lhs.stride1_sequence.end_element()), std::ranges::subrange(rhs.stride1_sequence.begin_element(), rhs.stride1_sequence.end_element()));
+#endif
+        }
+        friend auto operator<=>(augmented_deque_t const &lhs, augmented_deque_t const &rhs)
+        {
+#ifdef __EMSCRIPTEN__
+            auto f1 = lhs.stride1_sequence.begin_element(), l1 = lhs.stride1_sequence.end_element(), f2 = rhs.stride1_sequence.begin_element(), l2 = rhs.stride1_sequence.end_element();
+            bool exhaust1 = (f1 == l1);
+            bool exhaust2 = (f2 == l2);
+            for(; !exhaust1 && !exhaust2; exhaust1 = (++f1 == l1), exhaust2 = (++f2 == l2))
+                if(auto c = comp(*f1, *f2); c != 0)
+                    return c;
+            return !exhaust1 ? std::strong_ordering::greater : !exhaust2 ? std::strong_ordering::less
+                                                                         : std::strong_ordering::equal;
+#else
+            return std::lexicographical_compare_three_way(lhs.stride1_sequence.begin_element(), lhs.stride1_sequence.end_element(), rhs.stride1_sequence.begin_element(), rhs.stride1_sequence.end_element());
+#endif
         }
 
         template<bool is_const>
@@ -2984,7 +3467,8 @@ namespace augmented_containers
             {
             };
         };
-        template<bool is_const, typename sequence_config_t, std::size_t I = detail::mp::list_find_first_index_t<detail::mp::list_transform_t<sequences_t, sequence_t_to_conditional_const_iterator_projected_storage_t<is_const>::template sequence_t_to_possibly_const_iterator_projected_storage_t>, detail::augmented_deque::iterator_projected_storage_t<is_const, sequence_config_t>>::value>
+        template<bool is_const, typename sequence_config_t, std::size_t I = detail::utility::list_find_first_index_t<detail::utility::list_transform_t<sequences_t, sequence_t_to_conditional_const_iterator_projected_storage_t<is_const>::template sequence_t_to_possibly_const_iterator_projected_storage_t>, detail::augmented_deque::iterator_projected_storage_t<is_const, sequence_config_t>>::value>
+            requires(I != sequences_count)
         static detail::augmented_deque::iterator_element_t<is_const, typename stride1_sequence_t::sequence_config_t> to_iterator_element(detail::augmented_deque::iterator_projected_storage_t<is_const, sequence_config_t> const &possibly_const_iterator_projected_storage)
         {
             if constexpr(I == 0)
@@ -2992,13 +3476,14 @@ namespace augmented_containers
             else
             {
                 if(possibly_const_iterator_projected_storage.is_end())
-                    return {static_cast<typename sequence_t<I>::list_node_end_t *>(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(possibly_const_iterator_projected_storage.current_list_node))->actual_projected_storage_end.child};
+                    return {detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_end_t>(detail::language::tagged_ptr_bit0_unsetted(possibly_const_iterator_projected_storage.current_list_node))->actual_projected_storage_end.child};
                 else
-                    return {static_cast<typename sequence_t<I>::list_node_t *>(possibly_const_iterator_projected_storage.current_list_node)->actual_projected_storage.child};
+                    return {detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(possibly_const_iterator_projected_storage.current_list_node)->actual_projected_storage.child};
             }
         }
 
         template<std::size_t I, bool is_const>
+            requires(I < sequences_count)
         static auto to_iterator_projected_storage(detail::augmented_deque::iterator_element_t<is_const, typename stride1_sequence_t::sequence_config_t> const &possibly_const_iterator_element)
         {
             if constexpr(I == 0)
@@ -3006,22 +3491,33 @@ namespace augmented_containers
             else
             {
                 if(possibly_const_iterator_element.is_end())
-                    return detail::augmented_deque::iterator_projected_storage_t<is_const, typename std::tuple_element_t<I - 1, other_stride_sequences_t>::sequence_config_t>{std::get<I - 1>(static_cast<typename stride1_sequence_t::list_node_end_t *>(detail::tagged_ptr_ns::tagged_ptr_bit0_unsetted(possibly_const_iterator_element.current_list_node))->actual_projected_storage_end.parents)};
+                    return detail::augmented_deque::iterator_projected_storage_t<is_const, typename std::tuple_element_t<I - 1, other_stride_sequences_t>::sequence_config_t>{std::get<I - 1>(detail::language::pointer_traits_static_cast<typename stride1_sequence_t::pointer_list_node_end_t>(detail::language::tagged_ptr_bit0_unsetted(possibly_const_iterator_element.current_list_node))->actual_projected_storage_end.parents)};
                 else
-                    return detail::augmented_deque::iterator_projected_storage_t<is_const, typename std::tuple_element_t<I - 1, other_stride_sequences_t>::sequence_config_t>{std::get<I - 1>(static_cast<typename stride1_sequence_t::list_node_t *>(possibly_const_iterator_element.current_list_node)->actual_projected_storage.parents)};
+                    return detail::augmented_deque::iterator_projected_storage_t<is_const, typename std::tuple_element_t<I - 1, other_stride_sequences_t>::sequence_config_t>{std::get<I - 1>(detail::language::pointer_traits_static_cast<typename stride1_sequence_t::pointer_list_node_t>(possibly_const_iterator_element.current_list_node)->actual_projected_storage.parents)};
             }
         }
 
         void update_range(typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_begin, typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_end)
         {
-            stride1_sequence.update_range(to_iterator_projected_storage<0>(const_iterator_element_begin), to_iterator_projected_storage<0>(const_iterator_element_end));
+            stride1_sequence.update_range(this->allocator, to_iterator_projected_storage<0>(const_iterator_element_begin), to_iterator_projected_storage<0>(const_iterator_element_end));
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).update_range(to_iterator_projected_storage<I + 1>(const_iterator_element_begin), to_iterator_projected_storage<I + 1>(const_iterator_element_end)));
+                (..., std::get<I>(other_stride_sequences).update_range(this->allocator, to_iterator_projected_storage<I + 1>(const_iterator_element_begin), to_iterator_projected_storage<I + 1>(const_iterator_element_end)));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
+
+        template<size_t I>
+            requires(I < sequences_count) decltype(auto)
+        read_range(typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_begin, typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_end) const
+        {
+            return this->sequence<I>().read_range(this->allocator, const_iterator_element_begin, const_iterator_element_end);
+        }
     };
+
+    template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t, typename allocator_t = std::allocator<typename std::iterator_traits<iterator_t>::value_type>>
+        requires(requires { std::declval<allocator_t &>().allocate(std::size_t{}); })
+    augmented_deque_t(iterator_t, sentinel_t, allocator_t = allocator_t()) -> augmented_deque_t<typename std::iterator_traits<iterator_t>::value_type, allocator_t>;
 } // namespace augmented_containers
 
 #endif // AUGMENTED_DEQUE_H
