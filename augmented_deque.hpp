@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <memory>
 #include <concepts>
+#include <coroutine>
 
 namespace augmented_containers
 {
@@ -40,13 +41,13 @@ namespace augmented_containers
 
         namespace concepts
         {
-            template<class F, typename Ret, class... Args>
+            template<typename F, typename Ret, typename... Args>
             concept invocable_r = std::invocable<F, Args...> && std::same_as<Ret, std::invoke_result_t<F, Args...>>; // https://stackoverflow.com/questions/61932900/c-template-function-specify-argument-type-of-callback-functor-lambda-while-st#comment109544863_61933163
         }
 
         namespace utility
         {
-            template<class T>
+            template<typename T>
             constexpr T &unmove(T &&t) { return static_cast<T &>(t); } //https://stackoverflow.com/a/67059296/8343353
 
             template<bool is_const = true, typename T = void>
@@ -209,12 +210,215 @@ namespace augmented_containers
             }
         } // namespace memory
 
+        namespace functional
+        {
+            template<typename... Ts>
+            struct overloaded: Ts... //https://en.cppreference.com/w/cpp/utility/variant/visit
+            {
+                using Ts::operator()...;
+            };
+#if __cpp_deduction_guides >= 201907L
+#else
+            template<typename... Ts>
+            overloaded(Ts...) -> overloaded<Ts...>;
+#endif
+        } // namespace functional
+
+        namespace iterator
+        {
+            template<typename wrapped_iterator_t, typename transformer_t>
+            struct transform_output_iterator_t
+            {
+                wrapped_iterator_t wrapped_iterator;
+                transformer_t transformer;
+
+                using difference_type = std::ptrdiff_t;
+                transform_output_iterator_t &operator++() &
+                {
+                    ++wrapped_iterator;
+                    return *this;
+                }
+                transform_output_iterator_t operator++(int) &
+                {
+                    transform_output_iterator_t temp = *this;
+                    operator++();
+                    return temp;
+                }
+
+                template<typename wrapped_iterator_cvref_t>
+                struct dereference_proxy_t
+                {
+                    transform_output_iterator_t const &transform_output_iterator;
+                    decltype(auto) operator=(auto &&value) const & { return *const_cast<wrapped_iterator_cvref_t>(transform_output_iterator.wrapped_iterator) = transform_output_iterator.transformer(std::forward<decltype(value)>(value)); }
+                };
+                dereference_proxy_t<wrapped_iterator_t const &> operator*() const & { return dereference_proxy_t<wrapped_iterator_t const &>{.transform_output_iterator = *this}; }
+                dereference_proxy_t<wrapped_iterator_t &> operator*() & { return dereference_proxy_t<wrapped_iterator_t &>{.transform_output_iterator = *this}; }
+                dereference_proxy_t<wrapped_iterator_t const &&> operator*() const && { return dereference_proxy_t<wrapped_iterator_t const &&>{.transform_output_iterator = *this}; }
+                dereference_proxy_t<wrapped_iterator_t &&> operator*() && { return dereference_proxy_t<wrapped_iterator_t &&>{.transform_output_iterator = *this}; }
+            };
+#if __cpp_deduction_guides >= 201907L
+#else
+            template<typename wrapped_iterator_t, typename transformer_t>
+            transform_output_iterator_t(wrapped_iterator_t, transformer_t) -> transform_output_iterator_t<wrapped_iterator_t, transformer_t>;
+#endif
+        } // namespace iterator
+
+        namespace coroutine
+        {
+            template<typename element_t>
+            struct generator_t // https://github.com/cor3ntin/coro_benchmark/blob/main/generator.hpp
+            {
+                struct promise_t
+                {
+                    element_t *element = nullptr;
+                    std::coroutine_handle<promise_t> continuation = nullptr;
+                    std::coroutine_handle<promise_t> root_or_current;
+                    std::exception_ptr *exception = nullptr;
+
+                    promise_t()
+                        : root_or_current(std::coroutine_handle<promise_t>::from_promise(*this))
+                    {}
+                    generator_t get_return_object() { return {std::coroutine_handle<promise_t>::from_promise(*this)}; }
+                    std::suspend_never initial_suspend() { return {}; }
+                    auto final_suspend() noexcept
+                    {
+                        struct final_awaitable_t
+                        {
+                            bool await_ready() noexcept { return false; }
+                            std::coroutine_handle<> await_suspend(std::coroutine_handle<promise_t> continuation) noexcept
+                            {
+                                if(continuation.promise().continuation)
+                                {
+                                    continuation.promise().root_or_current.promise().root_or_current = continuation.promise().continuation;
+                                    return continuation.promise().continuation;
+                                }
+                                else return std::noop_coroutine();
+                            }
+                            void await_resume() noexcept {}
+                        } final_awaitable;
+                        return final_awaitable;
+                    }
+                    void return_void() {}
+                    void unhandled_exception()
+                    {
+                        if(exception == nullptr) throw;
+                        else *exception = std::current_exception();
+                    }
+
+                    std::suspend_always yield_value(element_t &element)
+                    {
+                        this->element = std::addressof(element);
+                        return {};
+                    }
+                    std::suspend_always yield_value(element_t &&element)
+                    {
+                        this->element = std::addressof(element);
+                        return {};
+                    }
+                    auto yield_value(generator_t<element_t> generator)
+                    {
+                        struct yield_awaitable_t
+                        {
+                            generator_t<element_t> generator;
+                            std::exception_ptr exception;
+                            bool await_ready() noexcept { return generator.handle.done(); }
+                            std::coroutine_handle<> await_suspend(std::coroutine_handle<promise_t> continuation) noexcept
+                            {
+                                generator.handle.promise().continuation = continuation;
+                                std::coroutine_handle<promise_t> root = continuation.promise().continuation == nullptr ? continuation : continuation.promise().root_or_current;
+                                root.promise().root_or_current = generator.handle.promise().root_or_current;
+                                for(std::coroutine_handle<promise_t> state = generator.handle.promise().root_or_current; state != continuation; state = state.promise().continuation)
+                                    state.promise().root_or_current = root;
+                                generator.handle.promise().exception = &exception;
+                                return std::noop_coroutine();
+                            }
+                            void await_resume() noexcept
+                            {
+                                if(exception)
+                                    std::rethrow_exception(std::move(exception));
+                            }
+                        } yield_awaitable{.generator = std::move(generator)};
+                        return yield_awaitable;
+                    }
+                };
+                using promise_type = promise_t;
+                std::coroutine_handle<promise_t> handle;
+                generator_t()
+                    : handle(nullptr)
+                {}
+                generator_t(std::coroutine_handle<promise_t> handle)
+                    : handle(handle)
+                {}
+                generator_t(generator_t &&other)
+                    : handle(std::exchange(other.handle, nullptr))
+                {}
+                generator_t &operator=(generator_t &&other) &
+                {
+                    if(handle) handle.destroy();
+                    handle = std::exchange(other.handle, nullptr);
+                }
+                ~generator_t()
+                {
+                    if(handle)
+                    {
+                        //            if(handle.promise().continuation != nullptr)
+                        //                handle.promise().root_or_current.promise().root_or_current = handle.promise().continuation;
+                        handle.destroy();
+                    }
+                }
+                bool empty() const { return handle.done(); }
+
+                struct iterator_t
+                {
+                    std::coroutine_handle<promise_t> handle = nullptr;
+
+                    using difference_type = std::ptrdiff_t;
+                    iterator_t &operator++()
+                    {
+                        assert(handle != nullptr);
+                        assert(handle.promise().continuation == nullptr);
+                        assert(!handle.done());
+                        handle.promise().root_or_current.resume();
+                        return *this;
+                    }
+                    iterator_t operator++(int)
+                    {
+                        iterator_t temp = *this;
+                        operator++();
+                        return temp;
+                    }
+
+                    using value_type = element_t;
+                    element_t &operator*() const &
+                    {
+                        assert(handle != nullptr);
+                        assert(handle.promise().continuation == nullptr);
+                        return *handle.promise().root_or_current.promise().element;
+                    }
+                    bool is_end() const
+                    {
+                        assert(handle != nullptr);
+                        assert(handle.promise().continuation == nullptr);
+                        return handle.done();
+                    }
+                    friend bool operator==(iterator_t const &iterator, std::default_sentinel_t const &) { return iterator.is_end(); }
+
+                    using iterator_concept = std::input_iterator_tag;
+                };
+                iterator_t begin() { return iterator_t{.handle = handle}; }
+                std::default_sentinel_t end() { return {}; }
+            };
+        } // namespace coroutine
+
         namespace augmented_deque
         {
             using namespace language;
             using namespace concepts;
             using namespace utility;
             using namespace memory;
+            using namespace functional;
+            using namespace iterator;
+            using namespace coroutine;
 
             template<typename pointer_element_t, typename projected_storage_t>
             struct add_projected_storage_member_t
@@ -1080,21 +1284,6 @@ namespace augmented_containers
                         sequence->projector_and_accumulator().update_projected_storage(*list_node->actual_projected_storage.p_projected_storage(), it_list_node, it_chunk_begin, it_chunk_end, chunk_size);
                     }
                 }
-                auto p_element_or_p_projected_storage_from_list_node(pointer_list_node_t list_node) const
-                {
-                    if constexpr(sequence_t::requested_stride == 1)
-                    {
-                        if constexpr(!std::is_same_v<projected_storage_t, void>)
-                            return list_node->actual_projected_storage.p_projected_storage();
-                        else
-                            return list_node->actual_projected_storage.p_element();
-                    }
-                    else
-                    {
-                        static_assert(!std::is_same_v<projected_storage_t, void>);
-                        return list_node->actual_projected_storage.p_projected_storage();
-                    }
-                }
                 void update_or_construct_tree_node_accumulated_storage_if_exists(pointer_tree_node_t tree_node, bool construct = false) const
                 {
                     if constexpr(!std::is_same_v<accumulated_storage_t, void>)
@@ -1103,7 +1292,7 @@ namespace augmented_containers
                         { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
                           {
                               if(tagged_ptr_bit0_is_set(tree_node->*p_child_left))
-                                  return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node->*p_child_left))))));
+                                  return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(tree_node->*p_child_left)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               else
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(tree_node->*p_child_left)->p_accumulated_storage()))));
                           }; };
@@ -1111,7 +1300,7 @@ namespace augmented_containers
                         { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
                           {
                               if(tagged_ptr_bit0_is_set(tree_node->*p_child_right))
-                                  return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node->*p_child_right))))));
+                                  return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(tree_node->*p_child_right)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               else
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(tree_node->*p_child_right)->p_accumulated_storage()))));
                           }; };
@@ -1145,7 +1334,7 @@ namespace augmented_containers
                                           if(digit_front->digit_position != 0)
                                               return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_front->*p_tree_left)->p_accumulated_storage()))));
                                           else
-                                              return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_front->*p_tree_left))))));
+                                              return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_front->*p_tree_left)->actual_projected_storage.p_projected_storage_or_p_element()))));
                                       }
                                       else
                                           return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1163,7 +1352,7 @@ namespace augmented_containers
                                           if(digit_back->digit_position != 0)
                                               return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_back->*p_tree_right)->p_accumulated_storage()))));
                                           else
-                                              return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_back->*p_tree_right))))));
+                                              return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_back->*p_tree_right)->actual_projected_storage.p_projected_storage_or_p_element()))));
                                       }
                                       else
                                           return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1201,7 +1390,7 @@ namespace augmented_containers
                                   if(digit_node_right->digit_position != 0)
                                       return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_right->*p_tree_left)->p_accumulated_storage()))));
                                   else
-                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_node_right->*p_tree_left))))));
+                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_node_right->*p_tree_left)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               }
                               else
                                   return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1214,7 +1403,7 @@ namespace augmented_containers
                                   if(digit_node_right->digit_position != 0)
                                       return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_right->*p_tree_right)->p_accumulated_storage()))));
                                   else
-                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_node_right->*p_tree_right))))));
+                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_node_right->*p_tree_right)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               }
                               else
                                   return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1241,7 +1430,7 @@ namespace augmented_containers
                                   if(digit_node_left->digit_position != 0)
                                       return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_left->*p_tree_left)->p_accumulated_storage()))));
                                   else
-                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_node_left->*p_tree_left))))));
+                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_node_left->*p_tree_left)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               }
                               else
                                   return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1254,7 +1443,7 @@ namespace augmented_containers
                                   if(digit_node_left->digit_position != 0)
                                       return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_left->*p_tree_right)->p_accumulated_storage()))));
                                   else
-                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(digit_node_left->*p_tree_right))))));
+                                      return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(digit_node_left->*p_tree_right)->actual_projected_storage.p_projected_storage_or_p_element()))));
                               }
                               else
                                   return_accumulated_tuple(accumulated_tuple_so_far);
@@ -1711,7 +1900,7 @@ namespace augmented_containers
                     assert(static_cast<pointer_navigator_t>(list_node_range_back) != static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
                     next_or_prev_impl_t next{&navigator_t::next}, prev{&navigator_t::prev};
                     if(list_node_range_front == list_node_range_back)
-                        return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(list_node_range_front))));
+                        return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*list_node_range_front->actual_projected_storage.p_projected_storage_or_p_element())));
                     else
                     {
                         enum { status_waiting_for_collision = 0,
@@ -1736,7 +1925,7 @@ namespace augmented_containers
                                     if(tagged_ptr_bit0_is_set(tree_node_front_parent))
                                     {
                                         if(tagged_ptr_bit0_is_set(tree_node_front))
-                                            return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_front))), std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_node_back)))));
+                                            return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(tree_node_front)->actual_projected_storage.p_projected_storage_or_p_element()), std::cref(*p_tree_node_to_p_list_node(tree_node_back)->actual_projected_storage.p_projected_storage_or_p_element())));
                                         else
                                             return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(*tree_node_front->p_accumulated_storage()), std::ref(*tree_node_back->p_accumulated_storage())));
                                     }
@@ -1772,7 +1961,7 @@ namespace augmented_containers
                                     else std::unreachable();
                                     if(tagged_ptr_bit0_is_set(tree_to_be_accumulated))
                                     {
-                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(p_tree_node_to_p_list_node(tree_to_be_accumulated)))))));
+                                        accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(tree_to_be_accumulated)->actual_projected_storage.p_projected_storage_or_p_element())))));
                                         return tree_node_front = tree_to_be_accumulated, this_(this_, std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
                                     }
                                     else
@@ -1867,7 +2056,617 @@ namespace augmented_containers
                                 return get_accumulated_tuple_front();
                             }
                         };
-                        return recursive_polymorphic_lambda(recursive_polymorphic_lambda, std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(list_node_range_front))), std::make_tuple(std::cref(*p_element_or_p_projected_storage_from_list_node(list_node_range_back))));
+                        return recursive_polymorphic_lambda(recursive_polymorphic_lambda, std::make_tuple(std::cref(*list_node_range_front->actual_projected_storage.p_projected_storage_or_p_element())), std::make_tuple(std::cref(*list_node_range_back->actual_projected_storage.p_projected_storage_or_p_element())));
+                    }
+                }
+
+                template<invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
+                pointer_navigator_t find_by_monotonic_predicate(monotonic_predicate_t const &monotonic_predicate) const
+                {
+                    if(sequence->digit_middle() == tagged_ptr_bit0_unsetted(sequence->digit_node_end)) // sequence is empty
+                        return sequence->list_node_end;
+                    else
+                    {
+                        if(!monotonic_predicate(*tagged_ptr_bit0_unsetted(sequence->digit_node_end)->p_accumulated_storage())) // turning point is not inside sequence
+                            return sequence->list_node_end;
+                        else
+                        {
+                            auto branch_based_on_predicate = [&](auto down, auto next)
+                            {
+                                return [&, down, next](accumulated_storage_t &accumulated_storage_so_far, accumulated_storage_t &accumulated_storage_so_far_including_node, auto node) -> pointer_navigator_t
+                                {
+                                    if(monotonic_predicate(accumulated_storage_so_far_including_node))
+                                        return down(accumulated_storage_so_far, node);
+                                    else
+                                        return next(accumulated_storage_so_far_including_node); };
+                            };
+                            auto recursive_polymorphic_lambda = [this, branch_based_on_predicate](auto &this_, accumulated_storage_t &accumulated_storage_so_far, auto node) -> pointer_navigator_t
+                            {
+                                if constexpr(std::is_same_v<decltype(node), pointer_digit_node_t>)
+                                {
+                                    pointer_digit_node_t digit_node = node;
+                                    bool is_left_or_right = tagged_ptr_bit0_is_set(digit_node->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node->next)->digit_position < digit_node->digit_position;
+                                    if(!is_left_or_right)
+                                    {
+                                        pointer_digit_node_t digit_node_left = digit_node;
+                                        auto get_left_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                          {
+                                              if(digit_node_left->tree_left != nullptr)
+                                              {
+                                                  if(digit_node_left->digit_position != 0)
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_node_left->tree_left->p_accumulated_storage())))), digit_node_left->tree_left);
+                                                  else
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_node_left->tree_left)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_node_left->tree_left));
+                                              }
+                                              else
+                                                  return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                          }; };
+                                        auto get_middle_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                          {
+                                              if(digit_node_left->tree_right != nullptr)
+                                              {
+                                                  if(digit_node_left->digit_position != 0)
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_node_left->tree_right->p_accumulated_storage())))), digit_node_left->tree_right);
+                                                  else
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_node_left->tree_right)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_node_left->tree_right));
+                                              }
+                                              else
+                                                  return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                          }; };
+                                        auto get_right_operand = [&](auto return_accumulated_storage)
+                                        {
+                                            return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                            {
+                                                next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                                if(sequence->digit_middle() != digit_node_left->*next)
+                                                    return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_left->*next)->p_accumulated_storage())))), digit_node_left->*next);
+                                                else
+                                                {
+                                                    if((digit_node_left->*next)->tree_left != nullptr)
+                                                        return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_left->*next)->tree_left->p_accumulated_storage())))), (digit_node_left->*next)->tree_left);
+                                                    else
+                                                        return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                                }
+                                            };
+                                        };
+                                        return get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                            get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                                get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                                    []([[maybe_unused]] accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                                    { std::unreachable(); }))))))(accumulated_storage_so_far);
+                                    }
+                                    else
+                                    {
+                                        pointer_digit_node_t digit_node_right = digit_node;
+                                        auto get_left_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                          {
+                                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                              if(sequence->digit_middle() != digit_node_right->*prev)
+                                                  return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_right->*prev)->p_accumulated_storage())))), digit_node_right->*prev);
+                                              else
+                                              {
+                                                  if((digit_node_right->*prev)->tree_right != nullptr)
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_right->*prev)->tree_right->p_accumulated_storage())))), (digit_node_right->*prev)->tree_right);
+                                                  else
+                                                      return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                              }
+                                          }; };
+                                        auto get_middle_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                          {
+                                              if(digit_node_right->tree_left != nullptr)
+                                              {
+                                                  if(digit_node_right->digit_position != 0)
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_node_right->tree_left->p_accumulated_storage())))), digit_node_right->tree_left);
+                                                  else
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_node_right->tree_left)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_node_right->tree_left));
+                                              }
+                                              else
+                                                  return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                          }; };
+                                        auto get_right_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                          {
+                                              if(digit_node_right->tree_right != nullptr)
+                                              {
+                                                  if(digit_node_right->digit_position != 0)
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_node_right->tree_right->p_accumulated_storage())))), digit_node_right->tree_right);
+                                                  else
+                                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_node_right->tree_right)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_node_right->tree_right));
+                                              }
+                                              else
+                                                  return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                          }; };
+                                        return get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                            get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                                get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                                    []([[maybe_unused]] accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                                    { std::unreachable(); }))))))(accumulated_storage_so_far);
+                                    }
+                                }
+                                else if constexpr(std::is_same_v<decltype(node), pointer_tree_node_t>)
+                                {
+                                    pointer_tree_node_t tree_node = node;
+                                    auto get_left_operand = [&](auto return_accumulated_storage)
+                                    { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                      {
+                                          if(tagged_ptr_bit0_is_set(tree_node->child_left))
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(tree_node->child_left)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(tree_node->child_left));
+                                          else
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*tree_node->child_left->p_accumulated_storage())))), tree_node->child_left);
+                                      }; };
+                                    auto get_right_operand = [&](auto return_accumulated_storage)
+                                    { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                      {
+                                          if(tagged_ptr_bit0_is_set(tree_node->child_right))
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(tree_node->child_right)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(tree_node->child_right));
+                                          else
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*tree_node->child_right->p_accumulated_storage())))), tree_node->child_right);
+                                      }; };
+                                    return get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                        get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2),
+                                            []([[maybe_unused]] accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                            { std::unreachable(); }))))(accumulated_storage_so_far);
+                                }
+                                else if constexpr(std::is_same_v<decltype(node), pointer_list_node_t>)
+                                {
+                                    pointer_list_node_t list_node = node;
+                                    return list_node;
+                                }
+                                else
+                                {
+                                    std::unreachable();
+                                }
+                            };
+
+                            auto get_left_operand = [&](auto return_accumulated_storage)
+                            { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                              {
+                                  pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_front()));
+                                  if(digit_front != sequence->digit_middle())
+                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_front->p_accumulated_storage())))), static_cast<pointer_digit_node_t>(digit_front));
+                                  else
+                                  {
+                                      if(digit_front->tree_left != nullptr)
+                                      {
+                                          if(digit_front->digit_position != 0)
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_front->tree_left)->p_accumulated_storage())))), digit_front->tree_left);
+                                          else
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_front->tree_left)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_front->tree_left));
+                                      }
+                                      else
+                                          return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                  }
+                              }; };
+                            auto get_right_operand = [&](auto return_accumulated_storage)
+                            { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                              {
+                                  pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_back()));
+                                  if(sequence->digit_middle() != digit_back)
+                                      return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*digit_back->p_accumulated_storage())))), static_cast<pointer_digit_node_t>(digit_back));
+                                  else
+                                  {
+                                      if(digit_back->tree_right != nullptr)
+                                      {
+                                          if(digit_back->digit_position != 0)
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_back->tree_right)->p_accumulated_storage())))), digit_back->tree_right);
+                                          else
+                                              return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::cref(*p_tree_node_to_p_list_node(digit_back->tree_right)->actual_projected_storage.p_projected_storage_or_p_element())))), p_tree_node_to_p_list_node(digit_back->tree_right));
+                                      }
+                                      else
+                                          return return_accumulated_storage(accumulated_storage_so_far, accumulated_storage_so_far, nullptr);
+                                  }
+                              }; };
+                            accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple()));
+                            return get_left_operand(branch_based_on_predicate(std::bind(recursive_polymorphic_lambda, recursive_polymorphic_lambda, std::placeholders::_1, std::placeholders::_2),
+                                get_right_operand(branch_based_on_predicate(std::bind(recursive_polymorphic_lambda, recursive_polymorphic_lambda, std::placeholders::_1, std::placeholders::_2),
+                                    []([[maybe_unused]] accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
+                                    { std::unreachable(); }))))(intermediate_accumulated_storage);
+                        }
+                    }
+                }
+
+                template</*std::output_iterator<pointer_navigator_t>*/ typename iterator_output_pointer_list_node_t, typename heap_predicate_t>
+                    requires(invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, typename sequence_t::projected_storage_or_element_t const &>)
+                void find_by_heap_predicate(iterator_output_pointer_list_node_t iterator_output_pointer_list_node, heap_predicate_t const &heap_predicate) const
+                {
+                    if(sequence->digit_middle() == tagged_ptr_bit0_unsetted(sequence->digit_node_end)) // sequence is empty
+                        return;
+                    else
+                    {
+                        if(!heap_predicate(*tagged_ptr_bit0_unsetted(sequence->digit_node_end)->p_accumulated_storage())) // all elements are less than the value inside the predicate
+                            return;
+                        else
+                        {
+                            auto branch_based_on_predicate = [&](auto down)
+                            {
+                                return [&, down](auto &accumulated_storage_or_projected_storage_or_element_covered_by_node, auto node) -> void
+                                {
+                                    if(heap_predicate(accumulated_storage_or_projected_storage_or_element_covered_by_node))
+                                        down(node); };
+                            };
+                            auto polymorphic_lambda = [this, branch_based_on_predicate, &iterator_output_pointer_list_node, &heap_predicate](auto &this_, auto node) -> void
+                            {
+                                if constexpr(std::is_same_v<decltype(node), pointer_digit_node_t>)
+                                {
+                                    pointer_digit_node_t digit_node = node;
+                                    bool is_left_or_right = tagged_ptr_bit0_is_set(digit_node->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node->next)->digit_position < digit_node->digit_position;
+                                    if(!is_left_or_right)
+                                    {
+                                        pointer_digit_node_t digit_node_left = digit_node;
+                                        auto get_left_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage]() -> void
+                                          {
+                                              if(digit_node_left->tree_left != nullptr)
+                                              {
+                                                  if(digit_node_left->digit_position != 0)
+                                                      return_accumulated_storage(*digit_node_left->tree_left->p_accumulated_storage(), digit_node_left->tree_left);
+                                                  else
+                                                      return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_left->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_left->tree_left));
+                                              }
+                                              else
+                                                  ;
+                                          }; };
+                                        auto get_middle_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage]() -> void
+                                          {
+                                              if(digit_node_left->tree_right != nullptr)
+                                              {
+                                                  if(digit_node_left->digit_position != 0)
+                                                      return_accumulated_storage(*digit_node_left->tree_right->p_accumulated_storage(), digit_node_left->tree_right);
+                                                  else
+                                                      return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_left->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_left->tree_right));
+                                              }
+                                              else
+                                                  ;
+                                          }; };
+                                        auto get_right_operand = [&](auto return_accumulated_storage)
+                                        {
+                                            return [&, return_accumulated_storage]() -> void
+                                            {
+                                                next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                                if(sequence->digit_middle() != digit_node_left->*next)
+                                                    return_accumulated_storage(*(digit_node_left->*next)->p_accumulated_storage(), digit_node_left->*next);
+                                                else
+                                                {
+                                                    if((digit_node_left->*next)->tree_left != nullptr)
+                                                        return_accumulated_storage(*(digit_node_left->*next)->tree_left->p_accumulated_storage(), (digit_node_left->*next)->tree_left);
+                                                    else
+                                                        ;
+                                                }
+                                            };
+                                        };
+                                        get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                        get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                        get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                    }
+                                    else
+                                    {
+                                        pointer_digit_node_t digit_node_right = digit_node;
+                                        auto get_left_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage]() -> void
+                                          {
+                                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                              if(sequence->digit_middle() != digit_node_right->*prev)
+                                                  return_accumulated_storage(*(digit_node_right->*prev)->p_accumulated_storage(), digit_node_right->*prev);
+                                              else
+                                              {
+                                                  if((digit_node_right->*prev)->tree_right != nullptr)
+                                                      return_accumulated_storage(*(digit_node_right->*prev)->tree_right->p_accumulated_storage(), (digit_node_right->*prev)->tree_right);
+                                                  else
+                                                      ;
+                                              }
+                                          }; };
+                                        auto get_middle_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage]() -> void
+                                          {
+                                              if(digit_node_right->tree_left != nullptr)
+                                              {
+                                                  if(digit_node_right->digit_position != 0)
+                                                      return_accumulated_storage(*digit_node_right->tree_left->p_accumulated_storage(), digit_node_right->tree_left);
+                                                  else
+                                                      return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_right->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_right->tree_left));
+                                              }
+                                              else
+                                                  ;
+                                          }; };
+                                        auto get_right_operand = [&](auto return_accumulated_storage)
+                                        { return [&, return_accumulated_storage]() -> void
+                                          {
+                                              if(digit_node_right->tree_right != nullptr)
+                                              {
+                                                  if(digit_node_right->digit_position != 0)
+                                                      return_accumulated_storage(*digit_node_right->tree_right->p_accumulated_storage(), digit_node_right->tree_right);
+                                                  else
+                                                      return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_right->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_right->tree_right));
+                                              }
+                                              else
+                                                  ;
+                                          }; };
+                                        get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                        get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                        get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                    }
+                                }
+                                else if constexpr(std::is_same_v<decltype(node), pointer_tree_node_t>)
+                                {
+                                    pointer_tree_node_t tree_node = node;
+                                    auto get_left_operand = [&](auto return_accumulated_storage)
+                                    { return [&, return_accumulated_storage]() -> void
+                                      {
+                                          if(tagged_ptr_bit0_is_set(tree_node->child_left))
+                                              return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(tree_node->child_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(tree_node->child_left));
+                                          else
+                                              return_accumulated_storage(*tree_node->child_left->p_accumulated_storage(), tree_node->child_left);
+                                      }; };
+                                    auto get_right_operand = [&](auto return_accumulated_storage)
+                                    { return [&, return_accumulated_storage]() -> void
+                                      {
+                                          if(tagged_ptr_bit0_is_set(tree_node->child_right))
+                                              return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(tree_node->child_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(tree_node->child_right));
+                                          else
+                                              return_accumulated_storage(*tree_node->child_right->p_accumulated_storage(), tree_node->child_right);
+                                      }; };
+                                    get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                    get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)))();
+                                }
+                                else if constexpr(std::is_same_v<decltype(node), pointer_list_node_t>)
+                                {
+                                    pointer_list_node_t list_node = node;
+                                    *iterator_output_pointer_list_node++ = list_node;
+                                }
+                                else
+                                {
+                                    std::unreachable();
+                                }
+                            };
+                            auto get_left_operand = [&](auto return_accumulated_storage)
+                            { return [&, return_accumulated_storage]() -> void
+                              {
+                                  pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_front()));
+                                  if(digit_front != sequence->digit_middle())
+                                      return_accumulated_storage(*digit_front->p_accumulated_storage(), static_cast<pointer_digit_node_t>(digit_front));
+                                  else
+                                  {
+                                      if(digit_front->tree_left != nullptr)
+                                      {
+                                          if(digit_front->digit_position != 0)
+                                              return_accumulated_storage(*(digit_front->tree_left)->p_accumulated_storage(), digit_front->tree_left);
+                                          else
+                                              return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_front->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_front->tree_left));
+                                      }
+                                      else
+                                          ;
+                                  }
+                              }; };
+                            auto get_right_operand = [&](auto return_accumulated_storage)
+                            { return [&, return_accumulated_storage]() -> void
+                              {
+                                  pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(sequence->digit_back()));
+                                  if(sequence->digit_middle() != digit_back)
+                                      return_accumulated_storage(*digit_back->p_accumulated_storage(), static_cast<pointer_digit_node_t>(digit_back));
+                                  else
+                                  {
+                                      if(digit_back->tree_right != nullptr)
+                                      {
+                                          if(digit_back->digit_position != 0)
+                                              return_accumulated_storage(*(digit_back->tree_right)->p_accumulated_storage(), digit_back->tree_right);
+                                          else
+                                              return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_back->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_back->tree_right));
+                                      }
+                                      else
+                                          ;
+                                  }
+                              }; };
+                            get_left_operand(branch_based_on_predicate(std::bind(polymorphic_lambda, polymorphic_lambda, std::placeholders::_1)))();
+                            get_right_operand(branch_based_on_predicate(std::bind(polymorphic_lambda, polymorphic_lambda, std::placeholders::_1)))();
+                        }
+                    }
+                }
+
+                template<typename heap_predicate_t>
+                    requires(invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, typename sequence_t::projected_storage_or_element_t const &>)
+                generator_t<pointer_navigator_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate) const
+                {
+                    if(sequence->digit_middle() == tagged_ptr_bit0_unsetted(sequence->digit_node_end)) // sequence is empty
+                        co_return;
+                    else
+                    {
+                        if(!heap_predicate(*tagged_ptr_bit0_unsetted(sequence->digit_node_end)->p_accumulated_storage())) // all elements are less than the value inside the predicate
+                            co_return;
+                        else
+                        {
+                            auto branch_based_on_predicate = [&](auto down)
+                            {
+                                return [&heap_predicate, down](auto &accumulated_storage_or_projected_storage_or_element_covered_by_node, auto node) -> generator_t<pointer_navigator_t>
+                                {
+                                    return [](auto &accumulated_storage_or_projected_storage_or_element_covered_by_node, auto node, auto &heap_predicate, auto down) -> generator_t<pointer_navigator_t>
+                                    {
+                                        if(heap_predicate(accumulated_storage_or_projected_storage_or_element_covered_by_node))
+                                            co_yield down(node);
+                                    }(accumulated_storage_or_projected_storage_or_element_covered_by_node, node, heap_predicate, down);
+                                };
+                            };
+                            auto polymorphic_lambda = [this, branch_based_on_predicate, &heap_predicate](auto &this_, auto node) -> generator_t<pointer_navigator_t>
+                            { return [](auto &this_, auto node, auto that, auto &branch_based_on_predicate, auto &heap_predicate) -> generator_t<pointer_navigator_t>
+                              {
+                                  if constexpr(std::is_same_v<decltype(node), pointer_digit_node_t>)
+                                  {
+                                      pointer_digit_node_t digit_node = node;
+                                      bool is_left_or_right = tagged_ptr_bit0_is_set(digit_node->next) || pointer_traits_static_cast<pointer_digit_node_t>(digit_node->next)->digit_position < digit_node->digit_position;
+                                      if(!is_left_or_right)
+                                      {
+                                          pointer_digit_node_t digit_node_left = digit_node;
+                                          auto get_left_operand = [&](auto return_accumulated_storage)
+                                          { return [](pointer_digit_node_t digit_node_left, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                            {
+                                                if(digit_node_left->tree_left != nullptr)
+                                                {
+                                                    if(digit_node_left->digit_position != 0)
+                                                        co_yield return_accumulated_storage(*digit_node_left->tree_left->p_accumulated_storage(), digit_node_left->tree_left);
+                                                    else
+                                                        co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_left->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_left->tree_left));
+                                                }
+                                                else
+                                                    ;
+                                            }(digit_node_left, return_accumulated_storage); };
+                                          auto get_middle_operand = [&](auto return_accumulated_storage)
+                                          { return [](pointer_digit_node_t digit_node_left, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                            {
+                                                if(digit_node_left->tree_right != nullptr)
+                                                {
+                                                    if(digit_node_left->digit_position != 0)
+                                                        co_yield return_accumulated_storage(*digit_node_left->tree_right->p_accumulated_storage(), digit_node_left->tree_right);
+                                                    else
+                                                        co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_left->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_left->tree_right));
+                                                }
+                                                else
+                                                    ;
+                                            }(digit_node_left, return_accumulated_storage); };
+                                          auto get_right_operand = [&](auto return_accumulated_storage)
+                                          {
+                                              return [](pointer_digit_node_t digit_node_left, auto return_accumulated_storage, auto that) -> generator_t<pointer_navigator_t>
+                                              {
+                                                  next_or_prev_impl_t next{that->p_next}, prev{that->p_prev};
+                                                  if(that->sequence->digit_middle() != digit_node_left->*next)
+                                                      co_yield return_accumulated_storage(*(digit_node_left->*next)->p_accumulated_storage(), digit_node_left->*next);
+                                                  else
+                                                  {
+                                                      if((digit_node_left->*next)->tree_left != nullptr)
+                                                          co_yield return_accumulated_storage(*(digit_node_left->*next)->tree_left->p_accumulated_storage(), (digit_node_left->*next)->tree_left);
+                                                      else
+                                                          ;
+                                                  }
+                                              }(digit_node_left, return_accumulated_storage, that);
+                                          };
+                                          co_yield get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                          co_yield get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                          co_yield get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                      }
+                                      else
+                                      {
+                                          pointer_digit_node_t digit_node_right = digit_node;
+                                          auto get_left_operand = [&](auto return_accumulated_storage)
+                                          { return [](pointer_digit_node_t digit_node_right, auto return_accumulated_storage, auto that) -> generator_t<pointer_navigator_t>
+                                            {
+                                                next_or_prev_impl_t next{that->p_next}, prev{that->p_prev};
+                                                if(that->sequence->digit_middle() != digit_node_right->*prev)
+                                                    co_yield return_accumulated_storage(*(digit_node_right->*prev)->p_accumulated_storage(), digit_node_right->*prev);
+                                                else
+                                                {
+                                                    if((digit_node_right->*prev)->tree_right != nullptr)
+                                                        co_yield return_accumulated_storage(*(digit_node_right->*prev)->tree_right->p_accumulated_storage(), (digit_node_right->*prev)->tree_right);
+                                                    else
+                                                        ;
+                                                }
+                                            }(digit_node_right, return_accumulated_storage, that); };
+                                          auto get_middle_operand = [&](auto return_accumulated_storage)
+                                          { return [](pointer_digit_node_t digit_node_right, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                            {
+                                                if(digit_node_right->tree_left != nullptr)
+                                                {
+                                                    if(digit_node_right->digit_position != 0)
+                                                        co_yield return_accumulated_storage(*digit_node_right->tree_left->p_accumulated_storage(), digit_node_right->tree_left);
+                                                    else
+                                                        co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_right->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_right->tree_left));
+                                                }
+                                                else
+                                                    ;
+                                            }(digit_node_right, return_accumulated_storage); };
+                                          auto get_right_operand = [&](auto return_accumulated_storage)
+                                          { return [](pointer_digit_node_t digit_node_right, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                            {
+                                                if(digit_node_right->tree_right != nullptr)
+                                                {
+                                                    if(digit_node_right->digit_position != 0)
+                                                        co_yield return_accumulated_storage(*digit_node_right->tree_right->p_accumulated_storage(), digit_node_right->tree_right);
+                                                    else
+                                                        co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_node_right->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_node_right->tree_right));
+                                                }
+                                                else
+                                                    ;
+                                            }(digit_node_right, return_accumulated_storage); };
+                                          co_yield get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                          co_yield get_middle_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                          co_yield get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                      }
+                                  }
+                                  else if constexpr(std::is_same_v<decltype(node), pointer_tree_node_t>)
+                                  {
+                                      pointer_tree_node_t tree_node = node;
+                                      auto get_left_operand = [&](auto return_accumulated_storage)
+                                      { return [](pointer_tree_node_t tree_node, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                        {
+                                            if(tagged_ptr_bit0_is_set(tree_node->child_left))
+                                                co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(tree_node->child_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(tree_node->child_left));
+                                            else
+                                                co_yield return_accumulated_storage(*tree_node->child_left->p_accumulated_storage(), tree_node->child_left);
+                                        }(tree_node, return_accumulated_storage); };
+                                      auto get_right_operand = [&](auto return_accumulated_storage)
+                                      { return [](pointer_tree_node_t tree_node, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                                        {
+                                            if(tagged_ptr_bit0_is_set(tree_node->child_right))
+                                                co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(tree_node->child_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(tree_node->child_right));
+                                            else
+                                                co_yield return_accumulated_storage(*tree_node->child_right->p_accumulated_storage(), tree_node->child_right);
+                                        }(tree_node, return_accumulated_storage); };
+                                      co_yield get_left_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                      co_yield get_right_operand(branch_based_on_predicate(std::bind(this_, this_, std::placeholders::_1)));
+                                  }
+                                  else if constexpr(std::is_same_v<decltype(node), pointer_list_node_t>)
+                                  {
+                                      pointer_list_node_t list_node = node;
+                                      co_yield list_node;
+                                  }
+                                  else
+                                  {
+                                      std::unreachable();
+                                  }
+                              }(this_, node, this, branch_based_on_predicate, heap_predicate); };
+                            auto get_left_operand = [&](auto return_accumulated_storage)
+                            { return [](auto that, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                              {
+                                  pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(that->sequence->digit_front()));
+                                  if(digit_front != that->sequence->digit_middle())
+                                      co_yield return_accumulated_storage(*digit_front->p_accumulated_storage(), static_cast<pointer_digit_node_t>(digit_front));
+                                  else
+                                  {
+                                      if(digit_front->tree_left != nullptr)
+                                      {
+                                          if(digit_front->digit_position != 0)
+                                              co_yield return_accumulated_storage(*(digit_front->tree_left)->p_accumulated_storage(), digit_front->tree_left);
+                                          else
+                                              co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_front->tree_left)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_front->tree_left));
+                                      }
+                                      else
+                                          ;
+                                  }
+                              }(this, return_accumulated_storage); };
+                            auto get_right_operand = [&](auto return_accumulated_storage)
+                            { return [](auto that, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
+                              {
+                                  pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>(that->sequence->digit_back()));
+                                  if(that->sequence->digit_middle() != digit_back)
+                                      co_yield return_accumulated_storage(*digit_back->p_accumulated_storage(), static_cast<pointer_digit_node_t>(digit_back));
+                                  else
+                                  {
+                                      if(digit_back->tree_right != nullptr)
+                                      {
+                                          if(digit_back->digit_position != 0)
+                                              co_yield return_accumulated_storage(*(digit_back->tree_right)->p_accumulated_storage(), digit_back->tree_right);
+                                          else
+                                              co_yield return_accumulated_storage(std::as_const(*p_tree_node_to_p_list_node(digit_back->tree_right)->actual_projected_storage.p_projected_storage_or_p_element()), p_tree_node_to_p_list_node(digit_back->tree_right));
+                                      }
+                                      else
+                                          ;
+                                  }
+                              }(this, return_accumulated_storage); };
+                            co_yield get_left_operand(branch_based_on_predicate(std::bind(polymorphic_lambda, polymorphic_lambda, std::placeholders::_1)));
+                            co_yield get_right_operand(branch_based_on_predicate(std::bind(polymorphic_lambda, polymorphic_lambda, std::placeholders::_1)));
+                        }
                     }
                 }
             };
@@ -2000,8 +2799,8 @@ namespace augmented_containers
         {
             if constexpr(index == 0)
             {
-                if constexpr(requires { accumulate_binary_functor.monoidal(); })
-                    return accumulate_binary_functor(accumulate_binary_functor.monoidal(), std::get<index>(t));
+                if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                    return accumulate_binary_functor(accumulate_binary_functor.identity_element(), std::get<index>(t));
                 else
                     return std::get<index>(t);
             }
@@ -2026,8 +2825,8 @@ namespace augmented_containers
             {
                 if constexpr(sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.monoidal(); })
-                        return accumulated_storage_t(accumulate_binary_functor.monoidal());
+                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                        return accumulated_storage_t(accumulate_binary_functor.identity_element());
                     else
                         return accumulated_storage_t();
                 }
@@ -2040,8 +2839,8 @@ namespace augmented_containers
                 using allocator_accumulated_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<accumulated_storage_t>;
                 if constexpr(sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.monoidal(); })
-                        std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage), accumulate_binary_functor.monoidal());
+                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                        std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage), accumulate_binary_functor.identity_element());
                     else
                         std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage));
                 }
@@ -2079,8 +2878,8 @@ namespace augmented_containers
                 };
                 if constexpr(sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.monoidal(); })
-                        return compare_and_update(accumulated_storage_t(accumulate_binary_functor.monoidal()));
+                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                        return compare_and_update(accumulated_storage_t(accumulate_binary_functor.identity_element()));
                     else
                         return compare_and_update(accumulated_storage_t());
                 }
@@ -2157,20 +2956,20 @@ namespace augmented_containers
             }
         };
 
-        template<typename monoidal_c>
-        struct add_monoidal_member
+        template<typename identity_element_c>
+        struct add_identity_element_member
         {
-            static constexpr typename monoidal_c::value_type monoidal()
+            static constexpr typename identity_element_c::value_type identity_element()
             {
-                return monoidal_c::value;
+                return identity_element_c::value;
             }
         };
         template<>
-        struct add_monoidal_member<void>
+        struct add_identity_element_member<void>
         {
         };
-        template<typename element_t_, typename homogeneous_binary_functor_t, typename monoidal_c = void>
-        struct accumulating_binary_functor_wrapping_homogeneous_binary_functor_t: homogeneous_binary_functor_t, add_monoidal_member<monoidal_c>
+        template<typename element_t_, typename homogeneous_binary_functor_t, typename identity_element_c = void>
+        struct accumulating_binary_functor_wrapping_homogeneous_binary_functor_t: homogeneous_binary_functor_t, add_identity_element_member<identity_element_c>
         {
             using accumulated_storage_t = element_t_;
         };
@@ -2179,7 +2978,7 @@ namespace augmented_containers
         {
             using accumulated_storage_t = sequence_t_;
 
-            sequence_t_ monoidal() const { return sequence_t_(); }
+            sequence_t_ identity_element() const { return sequence_t_(); }
             sequence_t_ operator()(sequence_t_ lhs, element_t_ const &rhs) const
             {
                 lhs.push_back(rhs);
@@ -2238,7 +3037,7 @@ namespace augmented_containers
         static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_and_t<bool>::accumulated_storage_t, bool>);
         /**/ static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_and_t<bool>::accumulator_t, accumulator_wrapping_accumulating_binary_functor_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_and<bool>, std::true_type>>>);
         /**/ static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_and_t<bool>::accumulator_t::accumulated_storage_t, bool>);
-        /**/ static_assert(std::type_identity_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_and<bool>, std::true_type> const>().monoidal() == true);
+        /**/ static_assert(std::type_identity_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_and<bool>, std::true_type> const>().identity_element() == true);
         template<typename element_t>
         using example_stride1_chunk1_projector_skipped_and_accumulator_logical_or_t = projector_and_accumulator_wrapping_projecting_and_accumulating_functors_t<
             void,
@@ -2250,7 +3049,7 @@ namespace augmented_containers
         static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_or_t<bool>::accumulated_storage_t, bool>);
         /**/ static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_or_t<bool>::accumulator_t, accumulator_wrapping_accumulating_binary_functor_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_or<bool>, std::false_type>>>);
         /**/ static_assert(std::is_same_v<example_stride1_chunk1_projector_skipped_and_accumulator_logical_or_t<bool>::accumulator_t::accumulated_storage_t, bool>);
-        /**/ static_assert(std::type_identity_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_or<bool>, std::false_type> const>().monoidal() == false);
+        /**/ static_assert(std::type_identity_t<accumulating_binary_functor_wrapping_homogeneous_binary_functor_t<bool, std::logical_or<bool>, std::false_type> const>().identity_element() == false);
 
         template<typename element_t, typename sequence_t>
         using example_stride1_chunk1_projector_skipped_and_accumulator_sequence_t = projector_and_accumulator_wrapping_projecting_and_accumulating_functors_t<
@@ -2345,10 +3144,13 @@ namespace augmented_containers
             using stride1_sequence_t = augmented_deque_t::stride1_sequence_t;
 
             using projected_storage_t = typename projector_and_accumulator_t::projected_storage_t;
+            using projected_storage_or_element_t = std::conditional_t<!std::is_same_v<projected_storage_t, void>, projected_storage_t, element_t>;
+            using pointer_projected_storage_or_pointer_element_t = typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_or_element_t>;
             using accumulated_storage_t = typename projector_and_accumulator_t::accumulated_storage_t;
             static_assert((requested_stride_ == 1 && (!std::is_same_v<projected_storage_t, void> || !std::is_same_v<accumulated_storage_t, void>)) || (requested_stride_ != 1 && !std::is_same_v<projected_storage_t, void>));
             struct sequence_config_t
             {
+                using element_t = augmented_deque_t::element_t;
                 using allocator_element_t = augmented_deque_t::allocator_element_t;
                 using pointer_element_t = augmented_deque_t::pointer_element_t;
 
@@ -2359,10 +3161,19 @@ namespace augmented_containers
                 using stride1_sequence_t = augmented_deque_sequence_t::stride1_sequence_t;
 
                 using projected_storage_t = augmented_deque_sequence_t::projected_storage_t;
+                using projected_storage_or_element_t = augmented_deque_sequence_t::projected_storage_or_element_t;
+                using pointer_projected_storage_or_pointer_element_t = augmented_deque_sequence_t::pointer_projected_storage_or_pointer_element_t;
                 using accumulated_storage_t = augmented_deque_sequence_t::accumulated_storage_t;
                 struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<pointer_element_t, projected_storage_t>
                 {
                     typename std::pointer_traits<pointer_element_t>::template rebind<typename stride1_sequence_t::list_node_t> child;
+
+                    pointer_element_t p_element() { return child->actual_projected_storage.p_element(); }
+                    pointer_projected_storage_or_pointer_element_t p_projected_storage_or_p_element()
+                    {
+                        if constexpr(!std::is_same_v<projected_storage_t, void>) return this->p_projected_storage();
+                        else return p_element();
+                    }
                 };
                 struct actual_projected_storage_end_t
                 {
@@ -2769,6 +3580,91 @@ namespace augmented_containers
                     }
                 }
             }
+
+            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
+            iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate)
+            {
+                return iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                                                        .find_by_monotonic_predicate(monotonic_predicate)};
+            }
+            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
+            const_iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate) const
+            {
+                return const_iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                                                              .find_by_monotonic_predicate(monotonic_predicate)};
+            }
+
+            template<typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
+                requires(/*std::output_iterator<iterator_output_const_iterator_projected_storage_t, const_iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                .wrapped_iterator =
+#endif
+                                                    iterator_output_const_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                .transformer =
+#endif
+                                                    [](pointer_navigator_t value)
+                                                { return const_iterator_projected_storage_t{value}; },
+                                            },
+                        heap_predicate);
+            }
+            template<typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
+                requires(/*std::output_iterator<iterator_output_iterator_projected_storage_t, iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                .wrapped_iterator =
+#endif
+                                                    iterator_output_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                .transformer =
+#endif
+                                                    [](pointer_navigator_t value)
+                                                { return iterator_projected_storage_t{value}; },
+                                            },
+                        heap_predicate);
+            }
+
+            template<typename heap_predicate_t>
+                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            detail::coroutine::generator_t<const_iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate) const
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity};
+                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
+                    co_yield const_iterator_projected_storage_t{value};
+            }
+            template<typename heap_predicate_t>
+                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            detail::coroutine::generator_t<iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate)
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity};
+                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
+                    co_yield iterator_projected_storage_t{value};
+            }
         };
         template<typename projector_and_accumulator_t_>
         struct augmented_deque_sequence_t<0, 1, projector_and_accumulator_t_>: detail::augmented_deque::add_stride_member<1>
@@ -2778,6 +3674,8 @@ namespace augmented_containers
             using projector_and_accumulator_t = projector_and_accumulator_t_;
 
             using projected_storage_t = typename projector_and_accumulator_t::projected_storage_t;
+            using projected_storage_or_element_t = std::conditional_t<!std::is_same_v<projected_storage_t, void>, projected_storage_t, element_t>;
+            using pointer_projected_storage_or_pointer_element_t = typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_or_element_t>;
             using accumulated_storage_t = typename projector_and_accumulator_t::accumulated_storage_t;
             struct sequence_config_t
             {
@@ -2803,12 +3701,20 @@ namespace augmented_containers
                 using pointers_to_other_strides_sequence_list_node_end_t = detail::utility::map_transform_t<other_strides_stride_to_projector_and_accumulator_map_t, stride_to_projector_and_accumulator_item_to_pointer_to_sequence_list_node_end_t>;
 
                 using projected_storage_t = augmented_deque_sequence_t::projected_storage_t;
+                using projected_storage_or_element_t = augmented_deque_sequence_t::projected_storage_or_element_t;
+                using pointer_projected_storage_or_pointer_element_t = augmented_deque_sequence_t::pointer_projected_storage_or_pointer_element_t;
                 using accumulated_storage_t = augmented_deque_sequence_t::accumulated_storage_t;
                 struct actual_projected_storage_t: detail::augmented_deque::add_projected_storage_member_t<pointer_element_t, projected_storage_t>
                 {
+                    pointers_to_other_strides_sequence_list_node_t parents;
+
                     alignas(element_t) std::byte element_buffer[sizeof(element_t)]; // element_t element;
                     pointer_element_t p_element() { return std::pointer_traits<pointer_element_t>::pointer_to(*reinterpret_cast<element_t *>(&element_buffer)); }
-                    pointers_to_other_strides_sequence_list_node_t parents;
+                    pointer_projected_storage_or_pointer_element_t p_projected_storage_or_p_element()
+                    {
+                        if constexpr(!std::is_same_v<projected_storage_t, void>) return this->p_projected_storage();
+                        else return p_element();
+                    }
                 };
                 struct actual_projected_storage_end_t
                 {
@@ -3052,10 +3958,95 @@ namespace augmented_containers
                 assert(const_iterator_element_begin <= const_iterator_element_end);
                 return read_range(allocator_element, augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_end));
             }
+
+            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
+            iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate)
+            {
+                return iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                                                        .find_by_monotonic_predicate(monotonic_predicate)};
+            }
+            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
+            const_iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate) const
+            {
+                return const_iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                                                              .find_by_monotonic_predicate(monotonic_predicate)};
+            }
+
+            template<typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
+                requires(/*std::output_iterator<iterator_output_const_iterator_projected_storage_t, const_iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                .wrapped_iterator =
+#endif
+                                                    iterator_output_const_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                .transformer =
+#endif
+                                                    [](pointer_navigator_t value)
+                                                { return const_iterator_projected_storage_t{value}; },
+                                            },
+                        heap_predicate);
+            }
+            template<typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
+                requires(/*std::output_iterator<iterator_output_iterator_projected_storage_t, iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity}
+                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                .wrapped_iterator =
+#endif
+                                                    iterator_output_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                .transformer =
+#endif
+                                                    [](pointer_navigator_t value)
+                                                { return iterator_projected_storage_t{value}; },
+                                            },
+                        heap_predicate);
+            }
+
+            template<typename heap_predicate_t>
+                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            detail::coroutine::generator_t<const_iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate) const
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity};
+                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
+                    co_yield const_iterator_projected_storage_t{value};
+            }
+            template<typename heap_predicate_t>
+                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
+            detail::coroutine::generator_t<iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate)
+            {
+                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
+                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
+                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
+                    detail::augmented_deque::tuple_identity};
+                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
+                    co_yield iterator_projected_storage_t{value};
+            }
         };
 
-        allocator_element_t allocator;
-        allocator_type get_allocator() const noexcept { return allocator; }
+        allocator_element_t allocator_element;
+        allocator_type get_allocator() const noexcept { return allocator_element; }
         stride1_sequence_t stride1_sequence;
         other_stride_sequences_t other_stride_sequences;
 
@@ -3090,10 +4081,10 @@ namespace augmented_containers
 
         void create_end_nodes()
         {
-            stride1_sequence.create_end_nodes(this->allocator);
+            stride1_sequence.create_end_nodes(this->allocator_element);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).create_end_nodes(this->allocator));
+                (..., std::get<I>(other_stride_sequences).create_end_nodes(this->allocator_element));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
 
@@ -3105,10 +4096,10 @@ namespace augmented_containers
         }
         void destroy_end_nodes()
         {
-            stride1_sequence.destroy_end_nodes(this->allocator);
+            stride1_sequence.destroy_end_nodes(this->allocator_element);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).destroy_end_nodes(this->allocator));
+                (..., std::get<I>(other_stride_sequences).destroy_end_nodes(this->allocator_element));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
@@ -3146,18 +4137,18 @@ namespace augmented_containers
         }
 
         augmented_deque_t() /* allocator is default initialized */ { create_end_nodes(); } // default constructor
-        void clear()
+        void clear() &
         {
             while(!empty())
                 this->pop_back();
         }
-        explicit augmented_deque_t(allocator_element_t const &allocator) // default constructor with allocator
-            : allocator(allocator)
+        explicit augmented_deque_t(allocator_element_t const &allocator_element) // default constructor with allocator
+            : allocator_element(allocator_element)
         {
             create_end_nodes();
         }
-        explicit augmented_deque_t(size_type count, allocator_element_t const &allocator = allocator_element_t()) // count default-inserted constructor (with allocator)?
-            : augmented_deque_t(allocator)
+        explicit augmented_deque_t(size_type count, allocator_element_t const &allocator_element = allocator_element_t()) // count default-inserted constructor (with allocator)?
+            : augmented_deque_t(allocator_element)
         {
 #ifdef __EMSCRIPTEN__
             for(size_type index = 0; index != count; ++index) this->emplace_back();
@@ -3166,8 +4157,8 @@ namespace augmented_containers
                 { this->emplace_back(); });
 #endif
         }
-        explicit augmented_deque_t(size_type count, element_t const &value, allocator_element_t const &allocator = allocator_element_t()) // count copy-inserted constructor (with allocator)?
-            : augmented_deque_t(allocator)
+        explicit augmented_deque_t(size_type count, element_t const &value, allocator_element_t const &allocator_element = allocator_element_t()) // count copy-inserted constructor (with allocator)?
+            : augmented_deque_t(allocator_element)
         {
 #ifdef __EMSCRIPTEN__
             for(size_type index = 0; index != count; ++index) this->emplace_back(value);
@@ -3188,8 +4179,8 @@ namespace augmented_containers
 #endif
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
-        augmented_deque_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator = allocator_element_t()) // comparable range constructor (with allocator)?
-            : augmented_deque_t(allocator)
+        augmented_deque_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator_element = allocator_element_t()) // comparable range constructor (with allocator)?
+            : augmented_deque_t(allocator_element)
         {
 #ifdef __EMSCRIPTEN__
             std::for_each(iterator, sentinel
@@ -3214,8 +4205,8 @@ namespace augmented_containers
                 [this]<typename other_element_t>(other_element_t &&other_element)
                 { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
-        augmented_deque_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator = allocator_element_t()) // std::initializer_list constructor (with allocator)?
-            : augmented_deque_t(allocator)
+        augmented_deque_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator_element = allocator_element_t()) // std::initializer_list constructor (with allocator)?
+            : augmented_deque_t(allocator_element)
         {
 #ifdef __EMSCRIPTEN__
             for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
@@ -3246,8 +4237,8 @@ namespace augmented_containers
                 { this->emplace_back(other_element); });
 #endif
         }
-        augmented_deque_t(augmented_deque_t const &other, std::type_identity_t<allocator_element_t> const &allocator) // copy constructor with allocator
-            : augmented_deque_t(allocator)
+        augmented_deque_t(augmented_deque_t const &other, std::type_identity_t<allocator_element_t> const &allocator_element) // copy constructor with allocator
+            : augmented_deque_t(allocator_element)
         {
 #ifdef __EMSCRIPTEN__
             std::for_each(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()
@@ -3259,18 +4250,18 @@ namespace augmented_containers
                 { this->emplace_back(other_element); });
         }
         augmented_deque_t(augmented_deque_t const &other) // copy constructor
-            : augmented_deque_t(other, std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.allocator))
+            : augmented_deque_t(other, std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.allocator_element))
         {}
         augmented_deque_t &operator=(augmented_deque_t const &other) & // copy assignment operator
         {
             while(!empty())
                 this->pop_back();
-            if(this->allocator != other.allocator)
+            if(this->allocator_element != other.allocator_element)
             {
                 if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value)
                 {
                     destroy_end_nodes();
-                    this->allocator = other.allocator;
+                    this->allocator_element = other.allocator_element;
                     create_end_nodes();
                 }
             }
@@ -3285,7 +4276,7 @@ namespace augmented_containers
         }
 
         augmented_deque_t(augmented_deque_t &&other) // move constructor
-            : allocator(([&]()
+            : allocator_element(([&]()
                   {
                             stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
                             [&]<std::size_t... I>(std::index_sequence<I...>)
@@ -3294,12 +4285,12 @@ namespace augmented_containers
                             }
                             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
                             other.create_end_nodes(); }(),
-                  std::move(other.allocator)))
+                  std::move(other.allocator_element)))
         {}
-        augmented_deque_t(augmented_deque_t &&other, std::type_identity_t<allocator_element_t> const &allocator) // move constructor with allocator
-            : allocator(allocator)
+        augmented_deque_t(augmented_deque_t &&other, std::type_identity_t<allocator_element_t> const &allocator_element) // move constructor with allocator
+            : allocator_element(allocator_element)
         {
-            if(allocator == other.allocator)
+            if(allocator_element == other.allocator_element)
             {
                 stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
                 [&]<std::size_t... I>(std::index_sequence<I...>)
@@ -3326,14 +4317,14 @@ namespace augmented_containers
         {
             while(!empty())
                 this->pop_back();
-            if(this->allocator == other.allocator)
+            if(this->allocator_element == other.allocator_element)
                 swap_end_nodes(other);
             else
             {
                 if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value)
                 {
                     destroy_end_nodes();
-                    this->allocator = std::move(other.allocator);
+                    this->allocator_element = std::move(other.allocator_element);
                     create_end_nodes();
                     swap_end_nodes(other);
                 }
@@ -3350,7 +4341,7 @@ namespace augmented_containers
         }
         void swap(augmented_deque_t &other)
         {
-            if(this->allocator == other.allocator)
+            if(this->allocator_element == other.allocator_element)
                 swap_end_nodes(other);
             else
             {
@@ -3361,13 +4352,13 @@ namespace augmented_containers
 #else
                     std::ranges::swap
 #endif
-                        (this->allocator, other.allocator);
+                        (this->allocator_element, other.allocator_element);
                     swap_end_nodes(other);
                 }
                 else
                 {
-                    augmented_deque_t temp_this(other, this->allocator);
-                    augmented_deque_t temp_other(*this, other.allocator);
+                    augmented_deque_t temp_this(other, this->allocator_element);
+                    augmented_deque_t temp_other(*this, other.allocator_element);
                     swap_end_nodes(temp_this);
                     other.swap_end_nodes(temp_other);
                 }
@@ -3395,20 +4386,20 @@ namespace augmented_containers
         template<typename... args_t>
         void emplace_back(args_t... args)
         {
-            stride1_sequence.emplace_back(this->allocator, std::forward<args_t>(args)...);
+            stride1_sequence.emplace_back(this->allocator_element, std::forward<args_t>(args)...);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).push_back(this->allocator, stride1_sequence_t::list_node_t::untagged_prev(stride1_sequence.list_node_end)));
+                (..., std::get<I>(other_stride_sequences).push_back(this->allocator_element, stride1_sequence_t::list_node_t::untagged_prev(stride1_sequence.list_node_end)));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
         template<typename... args_t>
         void emplace_front(args_t... args)
         {
-            stride1_sequence.emplace_front(this->allocator, std::forward<args_t>(args)...);
+            stride1_sequence.emplace_front(this->allocator_element, std::forward<args_t>(args)...);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).push_front(this->allocator, stride1_sequence_t::list_node_t::untagged_next(stride1_sequence.list_node_end)));
+                (..., std::get<I>(other_stride_sequences).push_front(this->allocator_element, stride1_sequence_t::list_node_t::untagged_next(stride1_sequence.list_node_end)));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
@@ -3417,19 +4408,19 @@ namespace augmented_containers
 
         void pop_back()
         {
-            stride1_sequence.pop_back(this->allocator);
+            stride1_sequence.pop_back(this->allocator_element);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).pop_back(this->allocator, stride1_sequence.list_node_end));
+                (..., std::get<I>(other_stride_sequences).pop_back(this->allocator_element, stride1_sequence.list_node_end));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
         void pop_front()
         {
-            stride1_sequence.pop_front(this->allocator);
+            stride1_sequence.pop_front(this->allocator_element);
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).pop_front(this->allocator, stride1_sequence.list_node_end));
+                (..., std::get<I>(other_stride_sequences).pop_front(this->allocator_element, stride1_sequence.list_node_end));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
@@ -3499,10 +4490,10 @@ namespace augmented_containers
 
         void update_range(typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_begin, typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_end)
         {
-            stride1_sequence.update_range(this->allocator, to_iterator_projected_storage<0>(const_iterator_element_begin), to_iterator_projected_storage<0>(const_iterator_element_end));
+            stride1_sequence.update_range(this->allocator_element, to_iterator_projected_storage<0>(const_iterator_element_begin), to_iterator_projected_storage<0>(const_iterator_element_end));
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., std::get<I>(other_stride_sequences).update_range(this->allocator, to_iterator_projected_storage<I + 1>(const_iterator_element_begin), to_iterator_projected_storage<I + 1>(const_iterator_element_end)));
+                (..., std::get<I>(other_stride_sequences).update_range(this->allocator_element, to_iterator_projected_storage<I + 1>(const_iterator_element_begin), to_iterator_projected_storage<I + 1>(const_iterator_element_end)));
             }
             (std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());
         }
@@ -3511,7 +4502,48 @@ namespace augmented_containers
             requires(I < sequences_count) decltype(auto)
         read_range(typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_begin, typename stride1_sequence_t::const_iterator_element_t const &const_iterator_element_end) const
         {
-            return this->sequence<I>().read_range(this->allocator, const_iterator_element_begin, const_iterator_element_end);
+            return this->sequence<I>().read_range(this->allocator_element, const_iterator_element_begin, const_iterator_element_end);
+        }
+
+
+        template<size_t I, detail::concepts::invocable_r<bool, typename sequence_t<I>::accumulated_storage_t const &> monotonic_predicate_t>
+            requires(I < sequences_count)
+        typename sequence_t<I>::iterator_projected_storage_t find_by_monotonic_predicate(monotonic_predicate_t const &monotonic_predicate)
+        {
+            return sequence<I>().find_by_monotonic_predicate(this->allocator_element, monotonic_predicate);
+        }
+        template<size_t I, detail::concepts::invocable_r<bool, typename sequence_t<I>::accumulated_storage_t const &> monotonic_predicate_t>
+            requires(I < sequences_count)
+        typename sequence_t<I>::const_iterator_projected_storage_t find_by_monotonic_predicate(monotonic_predicate_t const &monotonic_predicate) const
+        {
+            return sequence<I>().find_by_monotonic_predicate(this->allocator_element, monotonic_predicate);
+        }
+
+        template<size_t I, /*std::output_iterator<typename sequence_t<I>::const_iterator_projected_storage_t>*/ typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
+            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
+        void find_by_heap_predicate(iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
+        {
+            sequence<I>().find_by_heap_predicate(this->allocator_element, iterator_output_const_iterator_projected_storage, heap_predicate);
+        }
+        template<size_t I, /*std::output_iterator<typename sequence_t<I>::iterator_projected_storage_t>*/ typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
+            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
+        void find_by_heap_predicate(iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
+        {
+            sequence<I>().find_by_heap_predicate(this->allocator_element, iterator_output_iterator_projected_storage, heap_predicate);
+        }
+
+
+        template<size_t I, typename heap_predicate_t>
+            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
+        detail::coroutine::generator_t<typename sequence_t<I>::const_iterator_projected_storage_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate) const
+        {
+            return sequence<I>().find_by_heap_predicate_generator(this->allocator_element, heap_predicate);
+        }
+        template<size_t I, typename heap_predicate_t>
+            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
+        detail::coroutine::generator_t<typename sequence_t<I>::iterator_projected_storage_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate)
+        {
+            return sequence<I>().find_by_heap_predicate_generator(this->allocator_element, heap_predicate);
         }
     };
 
