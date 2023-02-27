@@ -606,7 +606,7 @@ namespace augmented_containers
             template<typename iterator_t>
             using non_const_iterator_t = typename non_const_iterator<iterator_t>::type;
 
-            template<bool is_const_template_parameter, typename sequence_config_t, typename derived_t>
+            template<bool is_const_, typename sequence_config_t, typename derived_t>
             struct iterator_list_node_t
             {
                 using navigator_t = circular_doubly_linked_list_node_navigator_t<typename sequence_config_t::allocator_element_t>;
@@ -638,7 +638,7 @@ namespace augmented_containers
                     return tagged_ptr_bit0_is_set(current_list_node);
                 }
 
-                static constexpr bool is_const = is_const_template_parameter;
+                static constexpr bool is_const = is_const_;
                 using non_const_iterator_t = non_const_iterator_t<derived_t>;
                 using const_iterator_t = const_iterator_t<derived_t>;
                 non_const_iterator_t to_non_const() const { return {current_list_node}; }
@@ -1170,23 +1170,26 @@ namespace augmented_containers
             {
             };
 
-            constexpr inline struct tuple_identity_functor_t
+            template<bool is_reversed>
+            struct tuple_identity_or_reversed_functor_t
             {
                 template<typename tuple_t>
-                auto operator()(tuple_t tuple) const { return tuple; }
-            } tuple_identity;
-            constexpr inline struct tuple_reversed_functor_t
-            {
+                    requires(!is_reversed)
+                auto operator()(tuple_t tuple) const
+                {
+                    return tuple;
+                }
                 template<typename tuple_t>
+                    requires(is_reversed)
                 auto operator()(tuple_t tuple) const
                 {
                     return [&]<std::size_t... I>(std::index_sequence<I...>) { return std::tuple<std::tuple_element_t<std::tuple_size_v<tuple_t> - 1 - I, tuple_t>...>(std::get<std::tuple_size_v<tuple_t> - 1 - I>(tuple)...); }
                     (std::make_index_sequence<std::tuple_size_v<tuple_t>>());
                 }
-            } tuple_reversed;
+            };
 
-            template<typename allocator_element_t, typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
-            struct sequence_push_or_pop_impl_t
+            template<bool is_const_, bool is_reversed_, typename allocator_element_t, typename sequence_t>
+            struct sequence_functor_t
             {
                 using navigator_t = circular_doubly_linked_list_node_navigator_t<typename sequence_t::sequence_config_t::allocator_element_t>;
                 using digit_node_t = typename sequence_t::digit_node_t;
@@ -1210,16 +1213,16 @@ namespace augmented_containers
                 static pointer_digit_node_t p_tree_node_to_p_digit_node(pointer_tree_node_t p) { return pointer_traits_reinterpret_cast<pointer_digit_node_t>(tagged_ptr_bit0_unsetted(p)); }
 
                 allocator_element_t const &allocator_element;
-                sequence_possibly_const_t *sequence;
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void);
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void);
-                pointer_navigator_t(navigator_t::*p_prev);
-                pointer_navigator_t(navigator_t::*p_next);
-                pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_left);
-                pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_right);
-                pointer_tree_node_t(sequence_t::tree_node_t::*p_child_left);
-                pointer_tree_node_t(sequence_t::tree_node_t::*p_child_right);
-                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed;
+                conditional_const_t<is_const_, sequence_t> *sequence;
+                static constexpr typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void) = !is_reversed_ ? static_cast<typename sequence_t::digit_proxy_t (sequence_t::*)(void)>(&sequence_t::digit_front) : static_cast<typename sequence_t::digit_proxy_t (sequence_t::*)(void)>(&sequence_t::digit_back);
+                static constexpr typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void) = !is_reversed_ ? static_cast<typename sequence_t::digit_proxy_t (sequence_t::*)(void)>(&sequence_t::digit_back) : static_cast<typename sequence_t::digit_proxy_t (sequence_t::*)(void)>(&sequence_t::digit_front);
+                static constexpr pointer_navigator_t(navigator_t::*p_prev) = !is_reversed_ ? &navigator_t::prev : &navigator_t::next;
+                static constexpr pointer_navigator_t(navigator_t::*p_next) = !is_reversed_ ? &navigator_t::next : &navigator_t::prev;
+                static constexpr pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_left) = !is_reversed_ ? &digit_node_t::tree_left : &digit_node_t::tree_right;
+                static constexpr pointer_tree_node_t(sequence_t::digit_node_t::*p_tree_right) = !is_reversed_ ? &digit_node_t::tree_right : &digit_node_t::tree_left;
+                static constexpr pointer_tree_node_t(sequence_t::tree_node_t::*p_child_left) = !is_reversed_ ? &tree_node_t::child_left : &tree_node_t::child_right;
+                static constexpr pointer_tree_node_t(sequence_t::tree_node_t::*p_child_right) = !is_reversed_ ? &tree_node_t::child_right : &tree_node_t::child_left;
+                static constexpr tuple_identity_or_reversed_functor_t<is_reversed_> tuple_identity_or_reversed;
 
                 struct next_or_prev_impl_t
                 {
@@ -2670,20 +2673,15 @@ namespace augmented_containers
                     }
                 }
             };
-#ifdef __EMSCRIPTEN__
-            template<typename allocator_element_t, typename sequence_possibly_const_t, typename sequence_t, typename tuple_identity_or_reversed_functor_t>
-            sequence_push_or_pop_impl_t(allocator_element_t const &allocator_element,
-                sequence_possibly_const_t *sequence,
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_front)(void),
-                typename sequence_t::digit_proxy_t (sequence_t::*p_digit_back)(void),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::navigator_t>(sequence_t::navigator_t::*p_prev),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::navigator_t>(sequence_t::navigator_t::*p_next),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::digit_node_t::*p_tree_left),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::digit_node_t::*p_tree_right),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::tree_node_t::*p_child_left),
-                typename std::pointer_traits<typename sequence_t::sequence_config_t::pointer_element_t>::template rebind<typename sequence_t::tree_node_t>(sequence_t::tree_node_t::*p_child_right),
-                tuple_identity_or_reversed_functor_t tuple_identity_or_reversed) -> sequence_push_or_pop_impl_t<allocator_element_t, sequence_possibly_const_t, sequence_t, tuple_identity_or_reversed_functor_t>;
-#endif
+
+            template<bool is_reversed_, typename allocator_element_t, typename sequence_possibly_const_t>
+            static sequence_functor_t<std::is_const_v<std::remove_pointer_t<sequence_possibly_const_t>>, is_reversed_, allocator_element_t, std::remove_const_t<std::remove_pointer_t<sequence_possibly_const_t>>> make_sequence_functor(allocator_element_t const &allocator_element, sequence_possibly_const_t *sequence)
+            {
+                return sequence_functor_t<std::is_const_v<std::remove_pointer_t<sequence_possibly_const_t>>, is_reversed_, allocator_element_t, std::remove_const_t<std::remove_pointer_t<sequence_possibly_const_t>>>{
+                    .allocator_element = allocator_element,
+                    .sequence = sequence,
+                };
+            }
 
             template<std::size_t requested_stride_>
             struct add_stride_member
@@ -3245,9 +3243,9 @@ namespace augmented_containers
                     return *this;
                 }
             };
-            auto digit_front()
+            digit_proxy_t digit_front()
             {
-                return digit_proxy_t{
+                return {
                     .this_ = this,
                     .next_or_prev = &navigator_t::next,
                 };
@@ -3269,9 +3267,9 @@ namespace augmented_containers
                 } proxy{.this_ = this};
                 return proxy;
             }
-            auto digit_back()
+            digit_proxy_t digit_back()
             {
-                return digit_proxy_t{
+                return {
                     .this_ = this,
                     .next_or_prev = &navigator_t::prev,
                 };
@@ -3297,10 +3295,7 @@ namespace augmented_containers
 
             void push_back(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_t> p_stride1_sequence_list_node)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
+                auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
                 auto push_back_and_get_p_list_node = [&](pointer_tree_node_t parent)
                 {
                     ++list_node_count();
@@ -3315,7 +3310,7 @@ namespace augmented_containers
                     assert(list_back_element_count() == 0);
                     ++list_front_element_count();
                     ++list_back_element_count();
-                    push_back_impl_functor.push_impl(push_back_and_get_p_list_node);
+                    sequence_functor_forward.push_impl(push_back_and_get_p_list_node);
                 }
                 else
                 {
@@ -3329,25 +3324,18 @@ namespace augmented_containers
                         ++list_back_element_count();
                         std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_node_t::untagged_prev(list_node_end);
 
-                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
-                            &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                            &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                            detail::augmented_deque::tuple_identity};
-                        update_range_impl_functor.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
+                        sequence_functor_forward.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
                     }
                     else
                     {
                         list_back_element_count() = 1;
-                        push_back_impl_functor.push_impl(push_back_and_get_p_list_node);
+                        sequence_functor_forward.push_impl(push_back_and_get_p_list_node);
                     }
                 }
             }
             void push_front(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_t> p_stride1_sequence_list_node)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front,
-                    &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
-                    detail::augmented_deque::tuple_reversed};
+                auto sequence_functor_backward = detail::augmented_deque::make_sequence_functor<true>(allocator_element, this);
                 auto push_back_and_get_p_list_node = [&](pointer_tree_node_t parent)
                 {
                     ++list_node_count();
@@ -3362,7 +3350,7 @@ namespace augmented_containers
                     assert(list_back_element_count() == 0);
                     ++list_front_element_count();
                     ++list_back_element_count();
-                    push_front_impl_functor.push_impl(push_back_and_get_p_list_node);
+                    sequence_functor_backward.push_impl(push_back_and_get_p_list_node);
                 }
                 else
                 {
@@ -3377,23 +3365,19 @@ namespace augmented_containers
                         list_node_t::untagged_next(list_node_end)->actual_projected_storage.child = p_stride1_sequence_list_node;
                         std::get<sequence_index - 1>(p_stride1_sequence_list_node->actual_projected_storage.parents) = list_node_t::untagged_next(list_node_end);
 
-                        detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
-                            &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                            &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                            detail::augmented_deque::tuple_identity};
-                        update_range_impl_functor.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
+                        auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                        sequence_functor_forward.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
                     }
                     else
                     {
                         list_front_element_count() = 1;
-                        push_front_impl_functor.push_impl(push_back_and_get_p_list_node);
+                        sequence_functor_backward.push_impl(push_back_and_get_p_list_node);
                     }
                 }
             }
             void pop_back(allocator_element_t const &allocator_element, [[maybe_unused]] typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_end_t> p_stride1_sequence_list_node_end)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
+                auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
                 auto pop_list_node = [&]()
                 {
                     --list_node_count();
@@ -3411,11 +3395,7 @@ namespace augmented_containers
                     }
                     --list_back_element_count();
 
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    update_range_impl_functor.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
+                    sequence_functor_forward.update_range_impl(list_node_t::untagged_prev(list_node_end), list_node_t::untagged_prev(list_node_end));
                 }
                 else
                 {
@@ -3429,13 +3409,12 @@ namespace augmented_containers
                         list_back_element_count() = list_front_element_count();
                     else
                         list_back_element_count() = this->stride;
-                    pop_back_impl_functor.pop_impl(pop_list_node);
+                    sequence_functor_forward.pop_impl(pop_list_node);
                 }
             }
             void pop_front(allocator_element_t const &allocator_element, typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<typename stride1_sequence_t::sequence_config_t::list_node_end_t> p_stride1_sequence_list_node_end)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
+                auto sequence_functor_backward = detail::augmented_deque::make_sequence_functor<true>(allocator_element, this);
                 auto pop_list_node = [&]()
                 {
                     --list_node_count();
@@ -3454,11 +3433,8 @@ namespace augmented_containers
                     --list_front_element_count();
                     list_node_t::untagged_next(list_node_end)->actual_projected_storage.child = stride1_sequence_t::list_node_t::untagged_next(p_stride1_sequence_list_node_end);
 
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    update_range_impl_functor.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
+                    auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                    sequence_functor_forward.update_range_impl(list_node_t::untagged_next(list_node_end), list_node_t::untagged_next(list_node_end));
                 }
                 else
                 {
@@ -3472,7 +3448,7 @@ namespace augmented_containers
                         list_front_element_count() = list_back_element_count();
                     else
                         list_front_element_count() = this->stride;
-                    pop_front_impl_functor.pop_impl(pop_list_node);
+                    sequence_functor_backward.pop_impl(pop_list_node);
                 }
             }
 
@@ -3481,18 +3457,15 @@ namespace augmented_containers
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    push_back_impl_functor.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
+                    auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                    sequence_functor_forward.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
-                                                                                                                                                                                              std::prev
+                                                                                                                                                                                                std::prev
 #else
-                                                                                                                                                                                              std::ranges::prev
+                                                                                                                                                                                                std::ranges::prev
 #endif
-                                                                                                                                                                                              (const_iterator_projected_storage_end)
-                                                                                                                                                                                                  .current_list_node));
+                                                                                                                                                                                                (const_iterator_projected_storage_end)
+                                                                                                                                                                                                    .current_list_node));
                 }
             }
             accumulated_storage_t read_range(allocator_element_t const &allocator_element, const_iterator_projected_storage_t const &const_iterator_projected_storage_begin, const_iterator_projected_storage_t const &const_iterator_projected_storage_end) const
@@ -3500,18 +3473,15 @@ namespace augmented_containers
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    return push_back_impl_functor.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
+                    auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                    return sequence_functor_forward.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node), detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
-                                                                                                                                                                                                   std::prev
+                                                                                                                                                                                                     std::prev
 #else
-                                                                                                                                                                                                   std::ranges::prev
+                                                                                                                                                                                                     std::ranges::prev
 #endif
-                                                                                                                                                                                                   (const_iterator_projected_storage_end)
-                                                                                                                                                                                                       .current_list_node));
+                                                                                                                                                                                                     (const_iterator_projected_storage_end)
+                                                                                                                                                                                                         .current_list_node));
                 }
                 else
                     return projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple());
@@ -3579,91 +3549,6 @@ namespace augmented_containers
                         return get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                     }
                 }
-            }
-
-            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
-            iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate)
-            {
-                return iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                                                        .find_by_monotonic_predicate(monotonic_predicate)};
-            }
-            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
-            const_iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate) const
-            {
-                return const_iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                                                              .find_by_monotonic_predicate(monotonic_predicate)};
-            }
-
-            template<typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
-                requires(/*std::output_iterator<iterator_output_const_iterator_projected_storage_t, const_iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                .wrapped_iterator =
-#endif
-                                                    iterator_output_const_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                .transformer =
-#endif
-                                                    [](pointer_navigator_t value)
-                                                { return const_iterator_projected_storage_t{value}; },
-                                            },
-                        heap_predicate);
-            }
-            template<typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
-                requires(/*std::output_iterator<iterator_output_iterator_projected_storage_t, iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                .wrapped_iterator =
-#endif
-                                                    iterator_output_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                .transformer =
-#endif
-                                                    [](pointer_navigator_t value)
-                                                { return iterator_projected_storage_t{value}; },
-                                            },
-                        heap_predicate);
-            }
-
-            template<typename heap_predicate_t>
-                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            detail::coroutine::generator_t<const_iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate) const
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
-                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
-                    co_yield const_iterator_projected_storage_t{value};
-            }
-            template<typename heap_predicate_t>
-                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            detail::coroutine::generator_t<iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate)
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
-                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
-                    co_yield iterator_projected_storage_t{value};
             }
         };
         template<typename projector_and_accumulator_t_>
@@ -3811,9 +3696,9 @@ namespace augmented_containers
                     return *this;
                 }
             };
-            auto digit_front()
+            digit_proxy_t digit_front()
             {
-                return digit_proxy_t{
+                return {
                     .this_ = this,
                     .next_or_prev = &navigator_t::next,
                 };
@@ -3832,9 +3717,9 @@ namespace augmented_containers
                 } proxy{.this_ = this};
                 return proxy;
             }
-            auto digit_back()
+            digit_proxy_t digit_back()
             {
-                return digit_proxy_t{
+                return {
                     .this_ = this,
                     .next_or_prev = &navigator_t::prev,
                 };
@@ -3861,11 +3746,8 @@ namespace augmented_containers
             template<typename... args_t>
             void emplace_back(allocator_element_t const &allocator_element, args_t &&...args)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
-                push_back_impl_functor.push_impl([&](pointer_tree_node_t parent)
+                auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                sequence_functor_forward.push_impl([&](pointer_tree_node_t parent)
                     {
                         ++list_node_count();
                         pointer_list_node_t list_back = detail::memory::new_expression<list_node_t>(allocator_element, parent);
@@ -3876,11 +3758,8 @@ namespace augmented_containers
             template<typename... args_t>
             void emplace_front(allocator_element_t const &allocator_element, args_t &&...args)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_front_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front,
-                    &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left,
-                    detail::augmented_deque::tuple_reversed};
-                push_front_impl_functor.push_impl([&](pointer_tree_node_t parent)
+                auto sequence_functor_backward = detail::augmented_deque::make_sequence_functor<true>(allocator_element, this);
+                sequence_functor_backward.push_impl([&](pointer_tree_node_t parent)
                     {
                         ++list_node_count();
                         pointer_list_node_t list_front = detail::memory::new_expression<list_node_t>(allocator_element, parent);
@@ -3890,9 +3769,8 @@ namespace augmented_containers
             }
             void pop_back(allocator_element_t const &allocator_element)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back, &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right, detail::augmented_deque::tuple_identity};
-                pop_back_impl_functor.pop_impl([&]()
+                auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                sequence_functor_forward.pop_impl([&]()
                     {
                         --list_node_count();
                         pointer_list_node_t list_back = list_node_t::untagged_prev(list_node_end);
@@ -3901,9 +3779,8 @@ namespace augmented_containers
             }
             void pop_front(allocator_element_t const &allocator_element)
             {
-                detail::augmented_deque::sequence_push_or_pop_impl_t pop_front_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_back, &augmented_deque_sequence_t::digit_front, &navigator_t::next, &navigator_t::prev, &digit_node_t::tree_right, &digit_node_t::tree_left, &tree_node_t::child_right, &tree_node_t::child_left, detail::augmented_deque::tuple_reversed};
-                pop_front_impl_functor.pop_impl([&]()
+                auto sequence_functor_backward = detail::augmented_deque::make_sequence_functor<true>(allocator_element, this);
+                sequence_functor_backward.pop_impl([&]()
                     {
                         --list_node_count();
                         pointer_list_node_t list_front = list_node_t::untagged_next(list_node_end);
@@ -3916,11 +3793,8 @@ namespace augmented_containers
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t update_range_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    update_range_impl_functor.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
+                    auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                    sequence_functor_forward.update_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
                         detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
                             std::prev
@@ -3936,11 +3810,8 @@ namespace augmented_containers
                 assert(const_iterator_projected_storage_begin <= const_iterator_projected_storage_end);
                 if(const_iterator_projected_storage_begin != const_iterator_projected_storage_end)
                 {
-                    detail::augmented_deque::sequence_push_or_pop_impl_t read_range_impl_functor{allocator_element, this,
-                        &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                        &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                        detail::augmented_deque::tuple_identity};
-                    return read_range_impl_functor.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
+                    auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, this);
+                    return sequence_functor_forward.read_range_impl(detail::language::pointer_traits_static_cast<pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
                         detail::language::pointer_traits_static_cast<pointer_list_node_t>(
 #ifdef __EMSCRIPTEN__
                             std::prev
@@ -3957,91 +3828,6 @@ namespace augmented_containers
             {
                 assert(const_iterator_element_begin <= const_iterator_element_end);
                 return read_range(allocator_element, augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_begin), augmented_deque_t::to_iterator_projected_storage<sequence_index>(const_iterator_element_end));
-            }
-
-            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
-            iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate)
-            {
-                return iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                                                        .find_by_monotonic_predicate(monotonic_predicate)};
-            }
-            template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
-            const_iterator_projected_storage_t find_by_monotonic_predicate(allocator_element_t const &allocator_element, monotonic_predicate_t const &monotonic_predicate) const
-            {
-                return const_iterator_projected_storage_t{detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                                                              .find_by_monotonic_predicate(monotonic_predicate)};
-            }
-
-            template<typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
-                requires(/*std::output_iterator<iterator_output_const_iterator_projected_storage_t, const_iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                .wrapped_iterator =
-#endif
-                                                    iterator_output_const_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                .transformer =
-#endif
-                                                    [](pointer_navigator_t value)
-                                                { return const_iterator_projected_storage_t{value}; },
-                                            },
-                        heap_predicate);
-            }
-            template<typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
-                requires(/*std::output_iterator<iterator_output_iterator_projected_storage_t, iterator_projected_storage_t> && */ detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            void find_by_heap_predicate(allocator_element_t const &allocator_element, iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity}
-                    .find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                .wrapped_iterator =
-#endif
-                                                    iterator_output_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                .transformer =
-#endif
-                                                    [](pointer_navigator_t value)
-                                                { return iterator_projected_storage_t{value}; },
-                                            },
-                        heap_predicate);
-            }
-
-            template<typename heap_predicate_t>
-                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            detail::coroutine::generator_t<const_iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate) const
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
-                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
-                    co_yield const_iterator_projected_storage_t{value};
-            }
-            template<typename heap_predicate_t>
-                requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, projected_storage_or_element_t const &>)
-            detail::coroutine::generator_t<iterator_projected_storage_t> find_by_heap_predicate_generator(allocator_element_t const &allocator_element, heap_predicate_t heap_predicate)
-            {
-                detail::augmented_deque::sequence_push_or_pop_impl_t push_back_impl_functor{allocator_element, this,
-                    &augmented_deque_sequence_t::digit_front, &augmented_deque_sequence_t::digit_back,
-                    &navigator_t::prev, &navigator_t::next, &digit_node_t::tree_left, &digit_node_t::tree_right, &tree_node_t::child_left, &tree_node_t::child_right,
-                    detail::augmented_deque::tuple_identity};
-                for(pointer_navigator_t value : push_back_impl_functor.find_by_heap_predicate_generator(heap_predicate))
-                    co_yield iterator_projected_storage_t{value};
             }
         };
 
@@ -4510,40 +4296,69 @@ namespace augmented_containers
             requires(I < sequences_count)
         typename sequence_t<I>::iterator_projected_storage_t find_by_monotonic_predicate(monotonic_predicate_t const &monotonic_predicate)
         {
-            return sequence<I>().find_by_monotonic_predicate(this->allocator_element, monotonic_predicate);
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            return {sequence_functor_forward.find_by_monotonic_predicate(monotonic_predicate)};
         }
         template<size_t I, detail::concepts::invocable_r<bool, typename sequence_t<I>::accumulated_storage_t const &> monotonic_predicate_t>
             requires(I < sequences_count)
         typename sequence_t<I>::const_iterator_projected_storage_t find_by_monotonic_predicate(monotonic_predicate_t const &monotonic_predicate) const
         {
-            return sequence<I>().find_by_monotonic_predicate(this->allocator_element, monotonic_predicate);
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            return {sequence_functor_forward.find_by_monotonic_predicate(monotonic_predicate)};
         }
 
-        template<size_t I, /*std::output_iterator<typename sequence_t<I>::const_iterator_projected_storage_t>*/ typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
-            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
-        void find_by_heap_predicate(iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
-        {
-            sequence<I>().find_by_heap_predicate(this->allocator_element, iterator_output_const_iterator_projected_storage, heap_predicate);
-        }
         template<size_t I, /*std::output_iterator<typename sequence_t<I>::iterator_projected_storage_t>*/ typename iterator_output_iterator_projected_storage_t, typename heap_predicate_t>
             requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
         void find_by_heap_predicate(iterator_output_iterator_projected_storage_t iterator_output_iterator_projected_storage, heap_predicate_t const &heap_predicate)
         {
-            sequence<I>().find_by_heap_predicate(this->allocator_element, iterator_output_iterator_projected_storage, heap_predicate);
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            sequence_functor_forward.find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                                .wrapped_iterator =
+#endif
+                                                                    iterator_output_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                                .transformer =
+#endif
+                                                                    [](typename sequence_t<I>::pointer_navigator_t value)
+                                                                { return typename sequence_t<I>::iterator_projected_storage_t{value}; },
+                                                            },
+                heap_predicate);
         }
-
-
-        template<size_t I, typename heap_predicate_t>
+        template<size_t I, /*std::output_iterator<typename sequence_t<I>::const_iterator_projected_storage_t>*/ typename iterator_output_const_iterator_projected_storage_t, typename heap_predicate_t>
             requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
-        detail::coroutine::generator_t<typename sequence_t<I>::const_iterator_projected_storage_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate) const
+        void find_by_heap_predicate(iterator_output_const_iterator_projected_storage_t iterator_output_const_iterator_projected_storage, heap_predicate_t const &heap_predicate) const
         {
-            return sequence<I>().find_by_heap_predicate_generator(this->allocator_element, heap_predicate);
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            sequence_functor_forward.find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
+#ifndef __EMSCRIPTEN__
+                                                                .wrapped_iterator =
+#endif
+                                                                    iterator_output_const_iterator_projected_storage,
+#ifndef __EMSCRIPTEN__
+                                                                .transformer =
+#endif
+                                                                    [](typename sequence_t<I>::pointer_navigator_t value)
+                                                                { return typename sequence_t<I>::const_iterator_projected_storage_t{value}; },
+                                                            },
+                heap_predicate);
         }
+
         template<size_t I, typename heap_predicate_t>
             requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
         detail::coroutine::generator_t<typename sequence_t<I>::iterator_projected_storage_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate)
         {
-            return sequence<I>().find_by_heap_predicate_generator(this->allocator_element, heap_predicate);
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            for(typename sequence_t<I>::pointer_navigator_t value : sequence_functor_forward.find_by_heap_predicate_generator(heap_predicate))
+                co_yield typename sequence_t<I>::iterator_projected_storage_t{value};
+        }
+        template<size_t I, typename heap_predicate_t>
+            requires(I < sequences_count && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, typename sequence_t<I>::projected_storage_or_element_t const &>)
+        detail::coroutine::generator_t<typename sequence_t<I>::const_iterator_projected_storage_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate) const
+        {
+            auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
+            for(typename sequence_t<I>::pointer_navigator_t value : sequence_functor_forward.find_by_heap_predicate_generator(heap_predicate))
+                co_yield typename sequence_t<I>::const_iterator_projected_storage_t{value};
         }
     };
 
