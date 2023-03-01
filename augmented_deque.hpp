@@ -354,18 +354,18 @@ namespace augmented_containers
             using namespace coroutine;
 
             template<typename pointer_element_t, typename projected_storage_t>
-            struct add_projected_storage_member_t
+            struct alignas(std::max({alignof(projected_storage_t), static_cast<std::size_t>(0b10)})) add_projected_storage_member_t
             {
                 alignas(projected_storage_t) std::byte projected_storage_buffer[sizeof(projected_storage_t)]; // projected_storage_t projected_storage;
                 typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_t> p_projected_storage() { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<projected_storage_t>>::pointer_to(*reinterpret_cast<projected_storage_t *>(&projected_storage_buffer)); }
             };
             template<typename pointer_element_t>
-            struct add_projected_storage_member_t<pointer_element_t, void>
+            struct alignas(std::max({static_cast<std::size_t>(0b10)})) add_projected_storage_member_t<pointer_element_t, void>
             {
             };
 
             template<typename pointer_element_t, typename accumulated_storage_t, typename derived_t>
-            struct add_accumulated_storage_member_t
+            struct alignas(std::max({alignof(accumulated_storage_t), static_cast<std::size_t>(0b10)})) add_accumulated_storage_member_t
             {
                 alignas(accumulated_storage_t) std::byte accumulated_storage_buffer[sizeof(accumulated_storage_t)]; // accumulated_storage_t accumulated_storage;
                 typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> p_accumulated_storage() { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t>>::pointer_to(*reinterpret_cast<accumulated_storage_t *>(&accumulated_storage_buffer)); }
@@ -374,7 +374,7 @@ namespace augmented_containers
                 static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> pointer) { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t>>::pointer_to(*reinterpret_cast<derived_t *>(reinterpret_cast<std::byte *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer))); }
             };
             template<typename pointer_element_t, typename derived_t>
-            struct add_accumulated_storage_member_t<pointer_element_t, void, derived_t>
+            struct alignas(std::max({static_cast<std::size_t>(0b10)})) add_accumulated_storage_member_t<pointer_element_t, void, derived_t>
             {
             };
 
@@ -1906,12 +1906,12 @@ namespace augmented_containers
                                     if(tagged_ptr_bit0_is_set(tree_to_be_accumulated))
                                     {
                                         accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::cref(*p_tree_node_to_p_list_node(tree_to_be_accumulated)->actual_projected_storage.p_projected_storage_or_p_element())))));
-                                        return tree_node_front = tree_to_be_accumulated, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
+                                        return tree_node_front = tree_to_be_accumulated, this_(this_, std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
                                     }
                                     else
                                     {
                                         accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_to_be_accumulated->p_accumulated_storage())))));
-                                        return tree_node_front = tree_to_be_accumulated, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
+                                        return tree_node_front = tree_to_be_accumulated, this_(this_, std::make_tuple(std::ref(intermediate_accumulated_storage)), accumulated_tuple_so_far_back);
                                     }
                                 }
                             }
@@ -1920,25 +1920,25 @@ namespace augmented_containers
                                 auto get_accumulated_tuple_back = [&](auto accumulated_tuple_so_far_front) -> accumulated_storage_t
                                 {
                                     if(status_back == status_waiting_at_digit_node)
-                                        return std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
+                                        return this_(this_, accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
                                     else
                                     {
                                         if(tagged_ptr_bit0_is_set(tree_node_back_parent))
                                         {
                                             status_back = status_waiting_at_digit_node;
                                             digit_node_back = p_tree_node_to_p_digit_node(tree_node_back_parent);
-                                            return std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
+                                            return this_(this_, accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
                                         }
                                         else
                                         {
                                             if(status_back == status_waiting_for_collision)
                                             {
                                                 if(tree_node_back == tree_node_back_parent->child_right)
-                                                    return tree_node_back = tree_node_back_parent, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_node_back->p_accumulated_storage())));
+                                                    return tree_node_back = tree_node_back_parent, this_(this_, accumulated_tuple_so_far_front, std::make_tuple(std::ref(*tree_node_back->p_accumulated_storage())));
                                                 else if(tree_node_back == tree_node_back_parent->child_left)
                                                 {
                                                     status_back = status_accumulating_piplings;
-                                                    return tree_node_back = tree_node_back_parent, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
+                                                    return tree_node_back = tree_node_back_parent, this_(this_, accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
                                                 }
                                                 else std::unreachable();
                                             }
@@ -1947,10 +1947,10 @@ namespace augmented_containers
                                                 if(tree_node_back == tree_node_back_parent->child_right)
                                                 {
                                                     accumulated_storage_t intermediate_accumulated_storage(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::tuple_cat(std::make_tuple(std::ref(*tree_node_back_parent->child_left->p_accumulated_storage())), accumulated_tuple_so_far_back)));
-                                                    return tree_node_back = tree_node_back_parent, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, std::make_tuple(std::ref(intermediate_accumulated_storage)));
+                                                    return tree_node_back = tree_node_back_parent, this_(this_, accumulated_tuple_so_far_front, std::make_tuple(std::ref(intermediate_accumulated_storage)));
                                                 }
                                                 else if(tree_node_back == tree_node_back_parent->child_left)
-                                                    return tree_node_back = tree_node_back_parent, std::bind(this_, this_, std::placeholders::_1, std::placeholders::_2)(accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
+                                                    return tree_node_back = tree_node_back_parent, this_(this_, accumulated_tuple_so_far_front, accumulated_tuple_so_far_back);
                                                 else std::unreachable();
                                             }
                                             else std::unreachable();
@@ -2000,7 +2000,7 @@ namespace augmented_containers
                                 return get_accumulated_tuple_front();
                             }
                         };
-                        return std::bind(recursive_polymorphic_lambda, recursive_polymorphic_lambda, std::placeholders::_1, std::placeholders::_2)(std::make_tuple(std::cref(*list_node_range_front->actual_projected_storage.p_projected_storage_or_p_element())), std::make_tuple(std::cref(*list_node_range_back->actual_projected_storage.p_projected_storage_or_p_element())));
+                        return recursive_polymorphic_lambda(recursive_polymorphic_lambda, std::make_tuple(std::cref(*list_node_range_front->actual_projected_storage.p_projected_storage_or_p_element())), std::make_tuple(std::cref(*list_node_range_back->actual_projected_storage.p_projected_storage_or_p_element())));
                     }
                 }
 
