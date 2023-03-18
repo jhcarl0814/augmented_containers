@@ -27,3 +27,8 @@ This library provides a stronger version of `sequence containers` (let container
 - augmented deque
   - [ ] formalize `projector` and `accumulator` concepts
   - [ ] add the api section to doc
+
+## Waiting On
+
+  - `explicit object parameter (deducing this)` compilers' support
+  - `homogeneous variadic function parameters` (P1219)
