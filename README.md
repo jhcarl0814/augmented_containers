@@ -26,11 +26,13 @@ This library provides a stronger version of `sequence containers` (let container
 ## Todo
 
 - augmented deque and augmented sequence
+  - [ ] node types change from "depend on `struct config_t`" to "depend on size of buffer and size management strategy" to prepare for `splice`, `merge` and `extract` operations and reduce code bloat
   - [ ] `ctor(range)`, `insert(range)`, `insert_range(range)`, `append_range(range)`, `prepend_range(range)` change from inserting one by one to bulk loading
   - [ ] `assign` and `operator=` reuse existing nodes if `move/copy assignable`
-  - [ ] formalize `projector` and `accumulator` concepts
-  - [ ] add the api section to doc
+  - [ ] sort out and make clear requirements of `projector` and `accumulator`
+  - [ ] add api section to doc
 - augmented sequence
+  - [ ] change from raw pointer to pointer type suggested by user-supplied allocator
   - [ ] `erase(range)` change from erasing one by one to spliting and concatenating
 
 ## Waiting On
