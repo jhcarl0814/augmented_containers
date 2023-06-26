@@ -1,6 +1,7 @@
 ﻿#ifndef AUGMENTED_DEQUE_HPP
 #define AUGMENTED_DEQUE_HPP
 
+#include <utility>
 #include <tuple>
 #include <functional>
 #include <cassert>
@@ -1215,13 +1216,7 @@ namespace augmented_containers
                     else
                     {
                         static_assert(!std::is_same_v<projected_storage_t, void>);
-                        typename sequence_t::iterator_projected_storage_t it_list_node{list_node}, it_list_node_next =
-#ifdef __EMSCRIPTEN__
-                                                                                                       std::next
-#else
-                                                                                                       std::ranges::next
-#endif
-                            (it_list_node);
+                        typename sequence_t::iterator_projected_storage_t it_list_node{list_node}, it_list_node_next = std::ranges::next(it_list_node);
                         typename sequence_t::stride1_sequence_t::iterator_element_t it_chunk_begin{list_node->actual_projected_storage.child},
                             it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_t>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
                         std::size_t chunk_size = 1;
@@ -1239,13 +1234,7 @@ namespace augmented_containers
                     else
                     {
                         static_assert(!std::is_same_v<projected_storage_t, void>);
-                        typename sequence_t::iterator_projected_storage_t it_list_node{list_node}, it_list_node_next =
-#ifdef __EMSCRIPTEN__
-                                                                                                       std::next
-#else
-                                                                                                       std::ranges::next
-#endif
-                            (it_list_node);
+                        typename sequence_t::iterator_projected_storage_t it_list_node{list_node}, it_list_node_next = std::ranges::next(it_list_node);
                         typename sequence_t::stride1_sequence_t::iterator_element_t it_chunk_begin{list_node->actual_projected_storage.child},
                             it_chunk_end{it_list_node_next == sequence->end_projected_storage() ? pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_end_t>(tagged_ptr_bit0_unsetted(it_list_node_next.current_list_node))->actual_projected_storage_end.child) : pointer_traits_static_cast<pointer_navigator_t>(pointer_traits_static_cast<pointer_list_node_t>(it_list_node_next.current_list_node)->actual_projected_storage.child)};
                         std::size_t chunk_size;
@@ -2878,21 +2867,9 @@ namespace augmented_containers
             {
                 assert(it_chunk_begin != it_chunk_end);
                 if constexpr(!min_or_max)
-                    return *
-#ifdef __EMSCRIPTEN__
-                        std::min_element
-#else
-                        std::ranges::min_element
-#endif
-                        (it_chunk_begin, it_chunk_end, binary_functor);
+                    return *std::ranges::min_element(it_chunk_begin, it_chunk_end, binary_functor);
                 else
-                    return *
-#ifdef __EMSCRIPTEN__
-                        std::max_element
-#else
-                        std::ranges::max_element
-#endif
-                        (it_chunk_begin, it_chunk_end, binary_functor);
+                    return *std::ranges::max_element(it_chunk_begin, it_chunk_end, binary_functor);
             }
         };
 
@@ -2902,13 +2879,7 @@ namespace augmented_containers
         {
             element_t operator()(element_t const &lhs, element_t const &rhs) const
             {
-                return
-#ifdef __EMSCRIPTEN__
-                    std::min
-#else
-                    std::ranges::min
-#endif
-                    (lhs, rhs);
+                return std::ranges::min(lhs, rhs);
             }
         };
         template<typename element_t>
@@ -2916,13 +2887,7 @@ namespace augmented_containers
         {
             element_t operator()(element_t const &lhs, element_t const &rhs) const
             {
-                return
-#ifdef __EMSCRIPTEN__
-                    std::max
-#else
-                    std::ranges::max
-#endif
-                    (lhs, rhs);
+                return std::ranges::max(lhs, rhs);
             }
         };
 
@@ -2956,11 +2921,7 @@ namespace augmented_containers
             }
             sequence_t_ operator()(sequence_t_ lhs, sequence_t_ &rhs) const
             {
-#ifdef __EMSCRIPTEN__
-                std::copy(rhs.begin(), rhs.end(), std::back_inserter(lhs));
-#else
                 std::ranges::copy(rhs, std::back_inserter(lhs));
-#endif
                 return lhs;
             }
         };
@@ -3699,13 +3660,7 @@ namespace augmented_containers
         {
             [&]<std::size_t... I>(std::index_sequence<I...>)
             {
-                (..., (
-#ifdef __EMSCRIPTEN__
-                          std::swap
-#else
-                          std::ranges::swap
-#endif
-                          (std::tie(sequence<I>().list_node_end, sequence<I>().digit_node_end), std::tie(other.sequence<I>().list_node_end, other.sequence<I>().digit_node_end))));
+                (..., (std::ranges::swap(std::tie(sequence<I>().list_node_end, sequence<I>().digit_node_end), std::tie(other.sequence<I>().list_node_end, other.sequence<I>().digit_node_end))));
             }
             (std::make_index_sequence<sequences_count>());
         }
@@ -3724,100 +3679,58 @@ namespace augmented_containers
         explicit augmented_deque_t(size_type count, allocator_element_t const &allocator_element = allocator_element_t()) // count default-inserted constructor (with allocator)?
             : augmented_deque_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back();
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this]([[maybe_unused]] size_type index)
                 { this->emplace_back(); });
-#endif
         }
         explicit augmented_deque_t(size_type count, element_t const &value, allocator_element_t const &allocator_element = allocator_element_t()) // count copy-inserted constructor (with allocator)?
             : augmented_deque_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
                 { this->emplace_back(value); });
-#endif
         }
         void assign(size_type count, element_t const &value) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
                 { this->emplace_back(value); });
-#endif
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
         augmented_deque_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator_element = allocator_element_t()) // comparable range constructor (with allocator)?
             : augmented_deque_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            std::for_each(iterator, sentinel
-#else
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
-#endif
-                ,
-                [this]<typename other_element_t>(other_element_t &&other_element)
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
                 { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
         void assign(iterator_t iterator, sentinel_t sentinel) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            std::for_each(iterator, sentinel
-#else
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
-#endif
-                ,
-                [this]<typename other_element_t>(other_element_t &&other_element)
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
                 { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
         augmented_deque_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator_element = allocator_element_t()) // std::initializer_list constructor (with allocator)?
             : augmented_deque_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
         }
         augmented_deque_t &operator=(std::initializer_list<element_t> initializer_list) & // std::initializer_list assignment operator
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
             return *this;
         }
         void assign(std::initializer_list<element_t> initializer_list) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
         }
         augmented_deque_t(augmented_deque_t const &other, std::type_identity_t<allocator_element_t> const &allocator_element) // copy constructor with allocator
             : augmented_deque_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            std::for_each(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()
-#else
-            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element())
-#endif
-                                                                    ,
-                [this](element_t const &other_element)
+            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()), [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
         }
         augmented_deque_t(augmented_deque_t const &other) // copy constructor
@@ -3837,13 +3750,7 @@ namespace augmented_containers
                     create_end_nodes();
                 }
             }
-#ifdef __EMSCRIPTEN__
-            std::for_each(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()
-#else
-            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element())
-#endif
-                                                                    ,
-                [this](element_t const &other_element)
+            std::ranges::for_each(std::ranges::subrange(other.sequence<0>().cbegin_element(), other.sequence<0>().cend_element()), [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
             return *this;
         }
@@ -3876,13 +3783,7 @@ namespace augmented_containers
             else
             {
                 create_end_nodes();
-#ifdef __EMSCRIPTEN__
-                std::for_each(other.sequence<0>().begin_element(), other.sequence<0>().end_element()
-#else
-                std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element())
-#endif
-                                                                       ,
-                    [this](element_t &other_element)
+                std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element()), [this](element_t &other_element)
                     { this->emplace_back(std::move(other_element)); });
             }
         }
@@ -3903,13 +3804,7 @@ namespace augmented_containers
                     swap_end_nodes(other);
                 }
                 else
-#ifdef __EMSCRIPTEN__
-                    std::for_each(other.sequence<0>().begin_element(), other.sequence<0>().end_element()
-#else
-                    std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element())
-#endif
-                                                                           ,
-                        [this](element_t &other_element)
+                    std::ranges::for_each(std::ranges::subrange(other.sequence<0>().begin_element(), other.sequence<0>().end_element()), [this](element_t &other_element)
                         { this->emplace_back(std::move(other_element)); });
             }
             return *this;
@@ -3922,12 +3817,7 @@ namespace augmented_containers
             {
                 if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value)
                 {
-#ifdef __EMSCRIPTEN__
-                    std::swap
-#else
-                    std::ranges::swap
-#endif
-                        (this->allocator_element, other.allocator_element);
+                    std::ranges::swap(this->allocator_element, other.allocator_element);
                     swap_end_nodes(other);
                 }
                 else
@@ -4002,11 +3892,7 @@ namespace augmented_containers
         friend void swap(augmented_deque_t &lhs, augmented_deque_t &rhs) { lhs.swap(rhs); }
         friend bool operator==(augmented_deque_t const &lhs, augmented_deque_t const &rhs)
         {
-#ifdef __EMSCRIPTEN__
-            return std::equal(lhs.stride1_sequence.begin_element(), lhs.stride1_sequence.end_element(), rhs.stride1_sequence.begin_element(), rhs.stride1_sequence.end_element());
-#else
             return std::ranges::equal(std::ranges::subrange(lhs.stride1_sequence.begin_element(), lhs.stride1_sequence.end_element()), std::ranges::subrange(rhs.stride1_sequence.begin_element(), rhs.stride1_sequence.end_element()));
-#endif
         }
         friend auto operator<=>(augmented_deque_t const &lhs, augmented_deque_t const &rhs)
         {
@@ -4074,14 +3960,7 @@ namespace augmented_containers
                               {
                                   auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
                                   sequence_functor_forward.update_range_impl(detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
-                                      detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(
-#ifdef __EMSCRIPTEN__
-                                          std::prev
-#else
-                                          std::ranges::prev
-#endif
-                                          (const_iterator_projected_storage_end)
-                                              .current_list_node));
+                                      detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(std::ranges::prev(const_iterator_projected_storage_end).current_list_node));
                               } }()));
             }
             (std::make_index_sequence<sequences_count>());
@@ -4097,14 +3976,7 @@ namespace augmented_containers
             {
                 auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
                 return sequence_functor_forward.read_range_impl(detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(const_iterator_projected_storage_begin.current_list_node),
-                    detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(
-#ifdef __EMSCRIPTEN__
-                        std::prev
-#else
-                        std::ranges::prev
-#endif
-                        (const_iterator_projected_storage_end)
-                            .current_list_node));
+                    detail::language::pointer_traits_static_cast<typename sequence_t<I>::pointer_list_node_t>(std::ranges::prev(const_iterator_projected_storage_end).current_list_node));
             }
             else
                 return sequence<I>().projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple());

@@ -1,6 +1,7 @@
 ﻿#ifndef AUGMENTED_RB2P_HPP
 #define AUGMENTED_RB2P_HPP
 
+#include <utility>
 #include <algorithm>
 #include <ranges>
 #include <memory>
@@ -9894,13 +9895,7 @@ namespace augmented_containers
         {
             element_t operator()(element_t const &lhs, element_t const &rhs) const
             {
-                return
-    #ifdef __EMSCRIPTEN__
-                    std::min
-    #else
-                    std::ranges::min
-    #endif
-                    (lhs, rhs);
+                return std::ranges::min(lhs, rhs);
             }
         };
         template<typename element_t>
@@ -9908,13 +9903,7 @@ namespace augmented_containers
         {
             element_t operator()(element_t const &lhs, element_t const &rhs) const
             {
-                return
-    #ifdef __EMSCRIPTEN__
-                    std::max
-    #else
-                    std::ranges::max
-    #endif
-                    (lhs, rhs);
+                return std::ranges::max(lhs, rhs);
             }
         };
 
@@ -9948,11 +9937,7 @@ namespace augmented_containers
             }
             sequence_t_ operator()(sequence_t_ lhs, sequence_t_ &rhs) const
             {
-    #ifdef __EMSCRIPTEN__
-                std::copy(rhs.begin(), rhs.end(), std::back_inserter(lhs));
-    #else
                 std::ranges::copy(rhs, std::back_inserter(lhs));
-    #endif
                 return lhs;
             }
         };
@@ -10076,12 +10061,7 @@ namespace augmented_containers
         void destroy_end_node() { delete node_end; }
         void swap_end_node(augmented_sequence_t &other)
         {
-#ifdef __EMSCRIPTEN__
-            std::swap
-#else
-            std::ranges::swap
-#endif
-                (this->node_end, other.node_end);
+            std::ranges::swap(this->node_end, other.node_end);
         }
 
         augmented_sequence_t() { create_end_node(); }
@@ -10119,100 +10099,58 @@ namespace augmented_containers
         explicit augmented_sequence_t(size_type count, allocator_element_t const &allocator_element = allocator_element_t()) // count default-inserted constructor (with allocator)?
             : augmented_sequence_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back();
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this]([[maybe_unused]] size_type index)
                 { this->emplace_back(); });
-#endif
         }
         explicit augmented_sequence_t(size_type count, element_t const &value, allocator_element_t const &allocator_element = allocator_element_t()) // count copy-inserted constructor (with allocator)?
             : augmented_sequence_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
                 { this->emplace_back(value); });
-#endif
         }
         void assign(size_type count, element_t const &value) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(size_type index = 0; index != count; ++index) this->emplace_back(value);
-#else
             std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
                 { this->emplace_back(value); });
-#endif
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
         augmented_sequence_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator_element = allocator_element_t()) // comparable range constructor (with allocator)?
             : augmented_sequence_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            std::for_each(iterator, sentinel
-#else
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
-#endif
-                ,
-                [this]<typename other_element_t>(other_element_t &&other_element)
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
                 { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
         void assign(iterator_t iterator, sentinel_t sentinel) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            std::for_each(iterator, sentinel
-#else
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel)
-#endif
-                ,
-                [this]<typename other_element_t>(other_element_t &&other_element)
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
                 { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
         augmented_sequence_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator_element = allocator_element_t()) // std::initializer_list constructor (with allocator)?
             : augmented_sequence_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
         }
         augmented_sequence_t &operator=(std::initializer_list<element_t> initializer_list) & // std::initializer_list assignment operator
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
             return *this;
         }
         void assign(std::initializer_list<element_t> initializer_list) &
         {
             this->clear();
-#ifdef __EMSCRIPTEN__
-            for(element_t const &other_element : initializer_list) this->emplace_back(other_element);
-#else
             std::ranges::for_each(initializer_list, [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
-#endif
         }
         augmented_sequence_t(augmented_sequence_t const &other, std::type_identity_t<allocator_element_t> const &allocator_element) // copy constructor with allocator
             : augmented_sequence_t(allocator_element)
         {
-#ifdef __EMSCRIPTEN__
-            std::for_each(other.cbegin(), other.cend()
-#else
-            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend())
-#endif
-                                              ,
-                [this](element_t const &other_element)
+            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
         }
         augmented_sequence_t(augmented_sequence_t const &other) // copy constructor
@@ -10232,13 +10170,7 @@ namespace augmented_containers
                     create_end_node();
                 }
             }
-#ifdef __EMSCRIPTEN__
-            std::for_each(other.cbegin(), other.cend()
-#else
-            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend())
-#endif
-                                              ,
-                [this](element_t const &other_element)
+            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element)
                 { this->emplace_back(other_element); });
             return *this;
         }
@@ -10261,13 +10193,7 @@ namespace augmented_containers
             else
             {
                 create_end_node();
-#ifdef __EMSCRIPTEN__
-                std::for_each(other.begin(), other.end()
-#else
-                std::ranges::for_each(std::ranges::subrange(other.begin(), other.end())
-#endif
-                                                 ,
-                    [this](element_t &other_element)
+                std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element)
                     { this->emplace_back(std::move(other_element)); });
             }
         }
@@ -10288,13 +10214,7 @@ namespace augmented_containers
                     swap_end_node(other);
                 }
                 else
-#ifdef __EMSCRIPTEN__
-                    std::for_each(other.begin(), other.end()
-#else
-                    std::ranges::for_each(std::ranges::subrange(other.begin(), other.end())
-#endif
-                                                     ,
-                        [this](element_t &other_element)
+                    std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element)
                         { this->emplace_back(std::move(other_element)); });
             }
             return *this;
@@ -10307,12 +10227,7 @@ namespace augmented_containers
             {
                 if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value)
                 {
-#ifdef __EMSCRIPTEN__
-                    std::swap
-#else
-                    std::ranges::swap
-#endif
-                        (this->allocator_element, other.allocator_element);
+                    std::ranges::swap(this->allocator_element, other.allocator_element);
                     swap_end_node(other);
                 }
                 else
@@ -10424,11 +10339,7 @@ namespace augmented_containers
         friend void swap(augmented_sequence_t &lhs, augmented_sequence_t &rhs) { lhs.swap(rhs); }
         friend bool operator==(augmented_sequence_t const &lhs, augmented_sequence_t const &rhs)
         {
-#ifdef __EMSCRIPTEN__
-            return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
-#else
             return std::ranges::equal(std::ranges::subrange(lhs.begin(), lhs.end()), std::ranges::subrange(rhs.begin(), rhs.end()));
-#endif
         }
         friend auto operator<=>(augmented_sequence_t const &lhs, augmented_sequence_t const &rhs)
         {
