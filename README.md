@@ -6,6 +6,7 @@ This library provides a stronger version of `sequence containers` (let container
 
 - augmented deque (under development) [https://jhcarl0814.github.io/augmented_containers_doc/augmented_deque.html](https://jhcarl0814.github.io/augmented_containers_doc/augmented_deque.html)
 - augmented sequence (under development) [https://jhcarl0814.github.io/augmented_containers_doc/augmented_sequence.html](https://jhcarl0814.github.io/augmented_containers_doc/augmented_sequence.html)
+- augmented graph (under development) [https://jhcarl0814.github.io/augmented_containers_doc/augmented_graph.html](https://jhcarl0814.github.io/augmented_containers_doc/augmented_graph.html)
 
 ## Requirements
 
@@ -17,11 +18,10 @@ This library provides a stronger version of `sequence containers` (let container
 - Under Development
   - augmented deque
   - augmented sequence
+  - augmented graph
 - Design Completed, Scheduled for Development
   - augmented \*\*\*\*\*
   - augmented \*\*\*/\*\*\*/\*\*\*\*\*\*\*\*/\*\*\*\*\*\*\*\*
-- Under Conception
-  - augmented \*\*\*\*\*
 
 ## Todo
 
@@ -31,8 +31,9 @@ This library provides a stronger version of `sequence containers` (let container
   - [ ] `assign` and `operator=` reuse existing nodes if `move/copy assignable`
   - [ ] sort out and make clear requirements of `projector` and `accumulator`
   - [ ] add api section to doc
-- augmented sequence
+- augmented sequence and augmented graph
   - [ ] change from raw pointer to pointer type suggested by user-supplied allocator
+- augmented sequence
   - [ ] `erase(range)` change from erasing one by one to spliting and concatenating
 
 ## Waiting On
