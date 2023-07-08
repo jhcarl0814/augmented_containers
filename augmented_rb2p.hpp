@@ -397,10 +397,12 @@ namespace augmented_containers
         } // namespace coroutine
 #endif // AUGMENTED_CONTAINERS_COROUTINE
 
+#ifndef AUGMENTED_CONTAINERS_FUNCTIONAL
+    #define AUGMENTED_CONTAINERS_FUNCTIONAL
         namespace functional
         {
 
-#ifdef __EMSCRIPTEN__
+    #ifdef __EMSCRIPTEN__
         }
     }
 }
@@ -424,7 +426,7 @@ namespace augmented_containers
     {
         namespace functional
         {
-#endif
+    #endif
             template<typename Sig, bool is_no_except = false> // https://www.reddit.com/r/cpp/comments/7svbj7/is_stdfunction_really_the_best_we_can_do_lukas/
             class function_view;
             template<typename R, typename... Args, bool is_no_except>
@@ -590,6 +592,7 @@ namespace augmented_containers
             template<typename F>
             function_view(F) -> function_view<typename get_signature_from_static_function_member<decltype(F::operator())>::type, get_signature_from_static_function_member<decltype(F::operator())>::is_no_except>;
         } // namespace functional
+#endif // AUGMENTED_CONTAINERS_FUNCTIONAL
 
         namespace augmented_sequence_rb2p
         {
