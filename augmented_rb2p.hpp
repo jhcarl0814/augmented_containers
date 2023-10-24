@@ -1,6 +1,7 @@
 ﻿#ifndef AUGMENTED_RB2P_HPP
 #define AUGMENTED_RB2P_HPP
 
+#include <cassert>
 #include <utility>
 #include <algorithm>
 #include <ranges>
