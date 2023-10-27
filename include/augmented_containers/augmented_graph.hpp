@@ -1347,7 +1347,8 @@ namespace augmented_containers
                             if(it_vertex1_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex1_vertexes_arc_base_level);
-                                assert(it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second);
+                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second;
+                                assert((static_cast<void>("it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second"), assert_result_of_expression_with_side_effect));
                             }
 
                             auto it_vertex2_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.find(cluster_to_be_erased->arc_forward.head);
@@ -1358,7 +1359,8 @@ namespace augmented_containers
                             if(it_vertex2_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex2_vertexes_arc_base_level);
-                                assert(it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second);
+                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second;
+                                assert((static_cast<void>("it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second"), assert_result_of_expression_with_side_effect));
                             }
                         }
                     }
@@ -1378,7 +1380,8 @@ namespace augmented_containers
                             if(it_vertex1_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex1_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_backward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
-                                assert(it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1);
+                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1;
+                                assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
                             if(it_vertex1_vertexes_arc_base_level->second.empty())
                                 connect_arc(&cluster_to_be_inserted->arc_backward, &cluster_to_be_inserted->arc_forward);
@@ -1401,7 +1404,8 @@ namespace augmented_containers
                             if(it_vertex2_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex2_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_forward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
-                                assert(it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1);
+                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1;
+                                assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
                             if(it_vertex2_vertexes_arc_base_level->second.empty())
                                 connect_arc(&cluster_to_be_inserted->arc_forward, &cluster_to_be_inserted->arc_backward);
