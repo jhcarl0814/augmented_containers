@@ -308,7 +308,14 @@ namespace augmented_containers
                                 if(exception)
                                     std::rethrow_exception(std::move(exception));
                             }
+    #ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+    #endif
                         } yield_awaitable{.generator = std::move(generator)};
+    #ifdef __clang__
+        #pragma clang diagnostic pop
+    #endif
                         return yield_awaitable;
                     }
                 };
@@ -1362,7 +1369,7 @@ namespace augmented_containers
                         auto get_left_operand = [&](auto return_accumulated_tuple)
                         { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
                           {
-                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                              next_or_prev_impl_t next [[maybe_unused]]{p_next}, prev{p_prev};
                               if(sequence->digit_middle() != digit_node_right->*p_prev)
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_right->*prev)->p_accumulated_storage()))));
                               else
@@ -1442,7 +1449,7 @@ namespace augmented_containers
                         auto get_right_operand = [&](auto return_accumulated_tuple)
                         { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
                           {
-                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                              next_or_prev_impl_t next{p_next}, prev [[maybe_unused]]{p_prev};
                               if(sequence->digit_middle() != digit_node_left->*p_next)
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*(digit_node_left->*next)->p_accumulated_storage()))));
                               else
@@ -1460,7 +1467,7 @@ namespace augmented_containers
                 }
                 void push_impl(invocable_r<pointer_list_node_t, pointer_tree_node_t /*parent*/> auto push_back_and_get_p_list_node) const
                 {
-                    next_or_prev_impl_t next{p_next}, prev{p_prev};
+                    next_or_prev_impl_t next [[maybe_unused]]{p_next}, prev{p_prev};
                     pointer_digit_node_t digit_back = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)()));
                     pointer_digit_node_t digit_front = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
                     {
@@ -1605,7 +1612,7 @@ namespace augmented_containers
                     assert(sequence->list_node_count() != 0); // 0
                     pop_list_node();
                     pointer_digit_node_t const digit_back_const = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_back)()));
-                    pointer_digit_node_t const digit_front_const = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
+                    pointer_digit_node_t const digit_front_const [[maybe_unused]] = pointer_traits_static_cast<pointer_digit_node_t>(static_cast<pointer_navigator_t>((sequence->*p_digit_front)()));
                     if(digit_back_const->digit_position == 0) // .*[12] -> .*[01]
                     {
                         auto delete_digit_position0 = [&]()
@@ -1889,7 +1896,7 @@ namespace augmented_containers
                     assert(static_cast<pointer_navigator_t>(list_node_range_front) != static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
                     assert(!tagged_ptr_bit0_is_setted(list_node_range_back));
                     assert(static_cast<pointer_navigator_t>(list_node_range_back) != static_cast<pointer_navigator_t>(tagged_ptr_bit0_unsetted(sequence->list_node_end)));
-                    next_or_prev_impl_t next{&navigator_t::next}, prev{&navigator_t::prev};
+                    next_or_prev_impl_t next{&navigator_t::next}, prev [[maybe_unused]]{&navigator_t::prev};
                     if(list_node_range_front == list_node_range_back)
                         return sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*list_node_range_front->actual_projected_storage.p_projected_storage_or_p_element())));
                     else
@@ -2110,7 +2117,7 @@ namespace augmented_containers
                                         {
                                             return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
                                             {
-                                                next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                                next_or_prev_impl_t next{p_next}, prev [[maybe_unused]]{p_prev};
                                                 if(sequence->digit_middle() != digit_node_left->*next)
                                                     return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_left->*next)->p_accumulated_storage())))), digit_node_left->*next);
                                                 else
@@ -2134,7 +2141,7 @@ namespace augmented_containers
                                         auto get_left_operand = [&](auto return_accumulated_storage)
                                         { return [&, return_accumulated_storage](accumulated_storage_t &accumulated_storage_so_far) -> pointer_navigator_t
                                           {
-                                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                              next_or_prev_impl_t next [[maybe_unused]]{p_next}, prev{p_prev};
                                               if(sequence->digit_middle() != digit_node_right->*prev)
                                                   return return_accumulated_storage(accumulated_storage_so_far, unmove(sequence->projector_and_accumulator().construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(accumulated_storage_so_far), std::ref(*(digit_node_right->*prev)->p_accumulated_storage())))), digit_node_right->*prev);
                                               else
@@ -2279,7 +2286,7 @@ namespace augmented_containers
                                     if(heap_predicate(accumulated_storage_or_projected_storage_or_element_covered_by_node))
                                         down(node); };
                             };
-                            auto recursive_polymorphic_lambda = [this, branch_based_on_predicate, &iterator_output_pointer_list_node, &heap_predicate](auto &this_, auto node) -> void
+                            auto recursive_polymorphic_lambda = [this, branch_based_on_predicate, &iterator_output_pointer_list_node](auto &this_, auto node) -> void
                             {
                                 if constexpr(std::is_same_v<decltype(node), pointer_digit_node_t>)
                                 {
@@ -2318,7 +2325,7 @@ namespace augmented_containers
                                         {
                                             return [&, return_accumulated_storage]() -> void
                                             {
-                                                next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                                next_or_prev_impl_t next{p_next}, prev [[maybe_unused]]{p_prev};
                                                 if(sequence->digit_middle() != digit_node_left->*next)
                                                     return_accumulated_storage(*(digit_node_left->*next)->p_accumulated_storage(), digit_node_left->*next);
                                                 else
@@ -2340,7 +2347,7 @@ namespace augmented_containers
                                         auto get_left_operand = [&](auto return_accumulated_storage)
                                         { return [&, return_accumulated_storage]() -> void
                                           {
-                                              next_or_prev_impl_t next{p_next}, prev{p_prev};
+                                              next_or_prev_impl_t next [[maybe_unused]]{p_next}, prev{p_prev};
                                               if(sequence->digit_middle() != digit_node_right->*prev)
                                                   return_accumulated_storage(*(digit_node_right->*prev)->p_accumulated_storage(), digit_node_right->*prev);
                                               else
@@ -2481,8 +2488,8 @@ namespace augmented_containers
                                     }(accumulated_storage_or_projected_storage_or_element_covered_by_node, node, heap_predicate, down);
                                 };
                             };
-                            auto recursive_polymorphic_lambda = [this, branch_based_on_predicate, &heap_predicate](auto &this_, auto node) -> generator_t<pointer_navigator_t>
-                            { return [](auto &this_, auto node, auto that, auto &branch_based_on_predicate, auto &heap_predicate) -> generator_t<pointer_navigator_t>
+                            auto recursive_polymorphic_lambda = [this, branch_based_on_predicate](auto &this_, auto node) -> generator_t<pointer_navigator_t>
+                            { return [](auto &this_, auto node, auto that, auto &branch_based_on_predicate) -> generator_t<pointer_navigator_t>
                               {
                                   if constexpr(std::is_same_v<decltype(node), pointer_digit_node_t>)
                                   {
@@ -2521,7 +2528,7 @@ namespace augmented_containers
                                           {
                                               return [](pointer_digit_node_t digit_node_left, auto return_accumulated_storage, auto that) -> generator_t<pointer_navigator_t>
                                               {
-                                                  next_or_prev_impl_t next{that->p_next}, prev{that->p_prev};
+                                                  next_or_prev_impl_t next{that->p_next}, prev [[maybe_unused]]{that->p_prev};
                                                   if(that->sequence->digit_middle() != digit_node_left->*next)
                                                       co_yield return_accumulated_storage(*(digit_node_left->*next)->p_accumulated_storage(), digit_node_left->*next);
                                                   else
@@ -2543,7 +2550,7 @@ namespace augmented_containers
                                           auto get_left_operand = [&](auto return_accumulated_storage)
                                           { return [](pointer_digit_node_t digit_node_right, auto return_accumulated_storage, auto that) -> generator_t<pointer_navigator_t>
                                             {
-                                                next_or_prev_impl_t next{that->p_next}, prev{that->p_prev};
+                                                next_or_prev_impl_t next [[maybe_unused]]{that->p_next}, prev{that->p_prev};
                                                 if(that->sequence->digit_middle() != digit_node_right->*prev)
                                                     co_yield return_accumulated_storage(*(digit_node_right->*prev)->p_accumulated_storage(), digit_node_right->*prev);
                                                 else
@@ -2616,7 +2623,7 @@ namespace augmented_containers
                                   {
                                       std::unreachable();
                                   }
-                              }(this_, node, this, branch_based_on_predicate, heap_predicate); };
+                              }(this_, node, this, branch_based_on_predicate); };
                             auto get_left_operand = [&](auto return_accumulated_storage)
                             { return [](auto that, auto return_accumulated_storage) -> generator_t<pointer_navigator_t>
                               {

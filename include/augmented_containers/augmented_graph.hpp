@@ -221,6 +221,7 @@ namespace augmented_containers
     #ifdef __clang__
         #pragma clang diagnostic push
         #pragma clang diagnostic ignored "-Wnull-dereference"
+        #pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
     #endif
                 return static_cast<std::size_t>(static_cast<std::byte *>(static_cast<void *>(&std::get<I>(*static_cast<tuple_t *>(nullptr)))) - static_cast<std::byte *>(nullptr));
     #ifdef __clang__
@@ -387,7 +388,14 @@ namespace augmented_containers
                                 if(exception)
                                     std::rethrow_exception(std::move(exception));
                             }
+    #ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+    #endif
                         } yield_awaitable{.generator = std::move(generator)};
+    #ifdef __clang__
+        #pragma clang diagnostic pop
+    #endif
                         return yield_awaitable;
                     }
                 };
@@ -1015,9 +1023,13 @@ namespace augmented_containers
                             this_->child_left_ = tagged_ptr_bit0_is_setted(this_->child_left_) ? tagged_ptr_bit0_setted(other) : other;
                             return *this;
                         }
+                        proxy_child_left_t(cluster_tree_node_t *this_)
+                            : this_(this_)
+                        {}
+                        proxy_child_left_t(proxy_child_left_t const &other) = default;
                         proxy_child_left_t &operator=(proxy_child_left_t const &other) { return this->operator=(other.operator cluster_tree_node_t *()); }
                     };
-                    proxy_child_left_t child_left() { return proxy_child_left_t{.this_ = this}; }
+                    proxy_child_left_t child_left() { return {this}; }
                     struct proxy_is_marked_t
                     {
                         cluster_tree_node_t *this_;
@@ -1041,9 +1053,13 @@ namespace augmented_containers
                             this_->child_right_ = tagged_ptr_bit0_is_setted(this_->child_right_) ? tagged_ptr_bit0_setted(other) : other;
                             return *this;
                         }
+                        proxy_child_right_t(cluster_tree_node_t *this_)
+                            : this_(this_)
+                        {}
+                        proxy_child_right_t(proxy_child_right_t const &other) = default;
                         proxy_child_right_t &operator=(proxy_child_right_t const &other) { return this->operator=(other.operator cluster_tree_node_t *()); }
                     };
-                    proxy_child_right_t child_right() { return proxy_child_right_t{.this_ = this}; }
+                    proxy_child_right_t child_right() { return {this}; }
                     struct proxy_contraction_type_t
                     {
                         cluster_tree_node_t *this_;
@@ -1329,7 +1345,7 @@ namespace augmented_containers
                             clusters_to_be_erased_new.push_back(cluster_tree_node);
                         }
                     };
-                    auto if_not_null_and_list_node_delete_list_node = [this, &clusters_to_be_erased_new](cluster_tree_node_t *cluster_tree_node)
+                    auto if_not_null_and_list_node_delete_list_node = [this](cluster_tree_node_t *cluster_tree_node)
                     {
                         if(cluster_tree_node != nullptr && tagged_ptr_bit0_is_setted(cluster_tree_node))
                         {
@@ -1368,7 +1384,7 @@ namespace augmented_containers
                             if(it_vertex1_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex1_vertexes_arc_base_level);
-                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second;
+                                [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second;
                                 assert((static_cast<void>("it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second"), assert_result_of_expression_with_side_effect));
                             }
 
@@ -1380,7 +1396,7 @@ namespace augmented_containers
                             if(it_vertex2_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex2_vertexes_arc_base_level);
-                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second;
+                                [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second;
                                 assert((static_cast<void>("it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second"), assert_result_of_expression_with_side_effect));
                             }
                         }
@@ -1401,7 +1417,7 @@ namespace augmented_containers
                             if(it_vertex1_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex1_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_backward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
-                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1;
+                                [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1;
                                 assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
                             if(it_vertex1_vertexes_arc_base_level->second.empty())
@@ -1425,7 +1441,7 @@ namespace augmented_containers
                             if(it_vertex2_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex2_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_forward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
-                                bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1;
+                                [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1;
                                 assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
                             if(it_vertex2_vertexes_arc_base_level->second.empty())
@@ -1899,10 +1915,10 @@ namespace augmented_containers
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_rake_source = cluster_tree_node->arc_backward.prev()->cluster_tree_node();
-                                            cluster_rake_source != cluster_tree_node &&
+                                    else if(cluster_tree_node_t *cluster_rake_source2 = cluster_tree_node->arc_backward.prev()->cluster_tree_node();
+                                            cluster_rake_source2 != cluster_tree_node &&
                                             cluster_tree_node->arc_backward.prev()->twin() == cluster_tree_node->arc_backward.prev()->prev() &&
-                                            cluster_is_free(cluster_rake_source) &&
+                                            cluster_is_free(cluster_rake_source2) &&
                                             it_vertex_exposed1 != cluster_tree_node->arc_backward.prev()->twin()->head &&
                                             it_vertex_exposed2 != cluster_tree_node->arc_backward.prev()->twin()->head) // rake target
                                     {
@@ -1921,10 +1937,10 @@ namespace augmented_containers
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_rake_target = cluster_tree_node->arc_backward.next()->cluster_tree_node();
-                                            cluster_rake_target != cluster_tree_node &&
+                                    else if(cluster_tree_node_t *cluster_rake_target2 = cluster_tree_node->arc_backward.next()->cluster_tree_node();
+                                            cluster_rake_target2 != cluster_tree_node &&
                                             cluster_tree_node->arc_forward.next() == &cluster_tree_node->arc_backward &&
-                                            cluster_is_free(cluster_rake_target) &&
+                                            cluster_is_free(cluster_rake_target2) &&
                                             it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
                                             it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // rake source
                                     {
@@ -1943,10 +1959,10 @@ namespace augmented_containers
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_other = cluster_tree_node->arc_forward.next()->cluster_tree_node();
-                                            cluster_other != cluster_tree_node &&
+                                    else if(cluster_tree_node_t *cluster_other2 = cluster_tree_node->arc_forward.next()->cluster_tree_node();
+                                            cluster_other2 != cluster_tree_node &&
                                             cluster_tree_node->arc_forward.next()->twin() == cluster_tree_node->arc_backward.prev() &&
-                                            cluster_is_free(cluster_other) &&
+                                            cluster_is_free(cluster_other2) &&
                                             it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
                                             it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // compress
                                     {

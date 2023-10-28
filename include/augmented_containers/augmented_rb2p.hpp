@@ -321,7 +321,14 @@ namespace augmented_containers
                                 if(exception)
                                     std::rethrow_exception(std::move(exception));
                             }
+    #ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+    #endif
                         } yield_awaitable{.generator = std::move(generator)};
+    #ifdef __clang__
+        #pragma clang diagnostic pop
+    #endif
                         return yield_awaitable;
                     }
                 };
@@ -745,6 +752,10 @@ namespace augmented_containers
                     }
                     return *this;
                 }
+                proxy_my_list_begin_t(rb2p_node_navigator_all_t<allocator_element_t> *this_)
+                    : this_(this_)
+                {}
+                proxy_my_list_begin_t(proxy_my_list_begin_t const &other) = default;
                 proxy_my_list_begin_t &operator=(proxy_my_list_begin_t const &other) { return this->operator=(other.operator rb2p_node_navigator_all_t<allocator_element_t> *()); }
             };
 
@@ -781,6 +792,10 @@ namespace augmented_containers
                     }
                     return *this;
                 }
+                proxy_next_t(rb2p_node_navigator_all_t<allocator_element_t> *this_)
+                    : this_(this_)
+                {}
+                proxy_next_t(proxy_next_t const &other) = default;
                 proxy_next_t &operator=(proxy_next_t const &other) { return this->operator=(other.operator rb2p_node_navigator_all_t<allocator_element_t> *()); }
             };
 
@@ -2206,7 +2221,7 @@ namespace augmented_containers
                 typename config_t::pointer_element_t p_element() { return std::pointer_traits<typename config_t::pointer_element_t>::pointer_to(*reinterpret_cast<typename config_t::element_t *>(&element_buffer)); }
             };
             template<typename ostream_t, typename allocator_element_t_>
-            ostream_t &&operator<<(ostream_t &&ostream, rb2p_node_navigator_all_t<allocator_element_t_> &rb2p_node_navigator_all)
+            ostream_t &&operator<<(ostream_t &&ostream, [[maybe_unused]] rb2p_node_navigator_all_t<allocator_element_t_> &rb2p_node_navigator_all)
             {
                 //                struct config_t
                 //                {
@@ -3307,7 +3322,7 @@ namespace augmented_containers
                     accumulator_t const &accumulator = node_end->accumulator;
                     assert(node_ != nullptr);
                     assert(node_ != node_end); // node_end
-                    bool is_empty = empty(node_end);
+                    [[maybe_unused]] bool is_empty = empty(node_end);
                     assert(!is_empty);
                     navigator_except_node_end_t *node = static_cast<navigator_except_node_end_t *>(node_);
                     bool will_be_empty = one_provided_not_empty(node_end);
@@ -3407,7 +3422,7 @@ namespace augmented_containers
                             }
                             else if(node_current == parent_inner_loop.rightmost_descendent_of_child_left)
                             {
-                                typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(node_current);
+                                [[maybe_unused]] typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(node_current);
                                 assert(child_outer_loop.this_ == parent_inner_loop.this_);
 
                                 typename navigator_t::loop_t child_parent_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(node_current);
@@ -3540,7 +3555,7 @@ namespace augmented_containers
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                typename navigator_t::loop_t child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
+                                                [[maybe_unused]] typename navigator_t::loop_t child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
                                                 assert(parent_outer_loop.this_ == child_left_outer_loop.this_);
 
                                                 assert(parent_outer_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys));
@@ -3670,7 +3685,7 @@ namespace augmented_containers
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                typename navigator_t::loop_t child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
+                                                [[maybe_unused]] typename navigator_t::loop_t child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
                                                 assert(parent_outer_loop.this_ == child_right_outer_loop.this_);
 
                                                 parent_outer_loop.rightmost_descendent_of_child_left = nullptr;
@@ -3693,7 +3708,7 @@ namespace augmented_containers
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                typename navigator_t::loop_t child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
+                                                [[maybe_unused]] typename navigator_t::loop_t child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
                                                 assert(parent_outer_loop.this_ == child_left_outer_loop.this_);
 
                                                 parent_outer_loop.leftmost_descendent_of_child_right = nullptr;
@@ -3953,7 +3968,7 @@ namespace augmented_containers
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                typename navigator_t::loop_t child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
+                                                [[maybe_unused]] typename navigator_t::loop_t child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
                                                 assert(parent_outer_loop.this_ == child_right_outer_loop.this_);
 
                                                 assert(parent_outer_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys));
@@ -5059,7 +5074,7 @@ namespace augmented_containers
                                                         key_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_right);
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end, key_left_outer_loop, key_left, key_from_parent, key_right, key_right_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_left_outer_loop*/, key_left, key_from_parent, key_right, key_right_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
                                                         {
                                                             if(child_after_merge_role == rb2p_node_role_e::root)
                                                             {
@@ -5152,7 +5167,7 @@ namespace augmented_containers
                                                     parent_inner_loop.child_left = key_left;
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_left, key_from_parent, key_right, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_left, key_from_parent /*, key_right*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
                                                         {
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
@@ -5199,7 +5214,7 @@ namespace augmented_containers
                                                         key_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_left);
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end, key_right_outer_loop, key_right, key_from_parent, key_left, key_left_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_right_outer_loop*/, key_right, key_from_parent, key_left, key_left_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
                                                         {
                                                             if(child_after_merge_role == rb2p_node_role_e::root)
                                                             {
@@ -5292,7 +5307,7 @@ namespace augmented_containers
                                                     parent_inner_loop.child_right = key_right;
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_right, key_from_parent, key_left, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_right, key_from_parent /*, key_left*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
                                                         {
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 

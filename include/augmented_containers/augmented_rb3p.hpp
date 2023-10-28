@@ -295,7 +295,14 @@ namespace augmented_containers
                                 if(exception)
                                     std::rethrow_exception(std::move(exception));
                             }
+    #ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+    #endif
                         } yield_awaitable{.generator = std::move(generator)};
+    #ifdef __clang__
+        #pragma clang diagnostic pop
+    #endif
                         return yield_awaitable;
                     }
                 };
@@ -430,6 +437,10 @@ namespace augmented_containers
                     this_->parent_ = !tagged_ptr_bit1_is_setted(this_->parent_) ? other : tagged_ptr_bit1_setted(other);
                     return *this;
                 }
+                proxy_parent_t(rb3p_node_navigator_t<allocator_element_t> *this_)
+                    : this_(this_)
+                {}
+                proxy_parent_t(proxy_parent_t const &other) = default;
                 proxy_parent_t &operator=(proxy_parent_t const &other) { return this->operator=(other.operator rb3p_node_navigator_t<allocator_element_t> *()); }
                 friend void swap(proxy_parent_t &lhs, proxy_parent_t &rhs)
                 {
@@ -453,6 +464,11 @@ namespace augmented_containers
                     this_->*p_child = other;
                     return *this;
                 }
+                proxy_child_t(rb3p_node_navigator_t<allocator_element_t> *this_, rb3p_node_navigator_t<allocator_element_t> *(rb3p_node_navigator_t<allocator_element_t>::*p_child))
+                    : this_(this_),
+                      p_child(p_child)
+                {}
+                proxy_child_t(proxy_child_t const &other) = default;
                 proxy_child_t &operator=(proxy_child_t const &other) { return this->operator=(other.operator rb3p_node_navigator_t<allocator_element_t> *()); }
                 friend void swap(proxy_child_t &lhs, proxy_child_t &rhs)
                 {
@@ -511,8 +527,8 @@ namespace augmented_containers
 
                 proxy_parent_t<allocator_element_t> parent() { return {this}; }
 
-                proxy_child_t<allocator_element_t> child_left() { return {.this_ = this, .p_child = &rb3p_node_navigator_t::child_left_}; }
-                proxy_child_t<allocator_element_t> child_right() { return {.this_ = this, .p_child = &rb3p_node_navigator_t::child_right_}; }
+                proxy_child_t<allocator_element_t> child_left() { return {this, &rb3p_node_navigator_t::child_left_}; }
+                proxy_child_t<allocator_element_t> child_right() { return {this, &rb3p_node_navigator_t::child_right_}; }
 
                 struct p_child_left_or_right_t
                 {
@@ -1570,7 +1586,7 @@ namespace augmented_containers
                     accumulator_t const &accumulator = tagged_ptr_bit0_unsetted(node_end)->accumulator;
                     assert(node != nullptr);
                     assert(node != node_end); // node_end
-                    bool is_empty = empty(node_end);
+                    [[maybe_unused]] bool is_empty = empty(node_end);
                     assert(!is_empty);
                     bool will_be_empty = one_provided_not_empty(node_end);
                     if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
