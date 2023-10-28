@@ -2474,7 +2474,17 @@ namespace augmented_containers
                 }
                 pointer to_pointer_element() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
                 pointer operator->() const & { return to_pointer_element(); }
-                static rb2p_iterator_t from_element_pointer(pointer ptr) { return {std::pointer_traits<pointer_navigator_t>::pointer_to(*reinterpret_cast<node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(node_t, element_buffer)))}; }
+                static rb2p_iterator_t from_element_pointer(pointer ptr)
+                {
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
+                    return {std::pointer_traits<pointer_navigator_t>::pointer_to(*reinterpret_cast<node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(node_t, element_buffer)))};
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
+                }
 
                 pointer_accumulated_storage_t to_pointer_accumulated_storage() const &
                     requires(!std::is_same_v<accumulated_storage_t, void>)
@@ -2486,7 +2496,14 @@ namespace augmented_containers
                 static rb2p_iterator_t from_accumulated_storage_pointer(pointer_accumulated_storage_t ptr)
                     requires(!std::is_same_v<accumulated_storage_t, void>)
                 {
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
                     return {std::pointer_traits<pointer_navigator_t>::pointer_to(*reinterpret_cast<node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(node_t, accumulated_storage_buffer)))};
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
                 }
 
                 // std::forward_iterator / std::sentinel_for / __WeaklyEqualityComparableWith, std::forward_iterator / std::incrementable / std::regular

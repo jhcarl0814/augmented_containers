@@ -412,7 +412,17 @@ namespace augmented_containers
                 typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> p_accumulated_storage() { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t>>::pointer_to(*reinterpret_cast<accumulated_storage_t *>(&accumulated_storage_buffer)); }
 
                 static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t const> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t const> pointer) { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t const>>::pointer_to(*reinterpret_cast<derived_t const *>(reinterpret_cast<std::byte const *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer))); }
-                static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> pointer) { return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t>>::pointer_to(*reinterpret_cast<derived_t *>(reinterpret_cast<std::byte *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer))); }
+                static typename std::pointer_traits<pointer_element_t>::template rebind<derived_t> from_accumulated_storage_pointer(typename std::pointer_traits<pointer_element_t>::template rebind<accumulated_storage_t> pointer)
+                {
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
+                    return std::pointer_traits<typename std::pointer_traits<pointer_element_t>::template rebind<derived_t>>::pointer_to(*reinterpret_cast<derived_t *>(reinterpret_cast<std::byte *>(std::to_address(pointer)) - offsetof(derived_t, accumulated_storage_buffer)));
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
+                }
             };
             template<typename pointer_element_t, typename derived_t>
             struct add_accumulated_storage_member_t<pointer_element_t, void, derived_t>
@@ -1085,7 +1095,17 @@ namespace augmented_containers
                 }
                 pointer to_pointer() const & { return std::pointer_traits<pointer>::pointer_to(operator*()); }
                 pointer operator->() const & { return to_pointer(); }
-                static iterator_element_t from_element_pointer(pointer ptr) { return {std::pointer_traits<typename base_t::pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage.element_buffer)))}; }
+                static iterator_element_t from_element_pointer(pointer ptr)
+                {
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
+                    return {std::pointer_traits<typename base_t::pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage.element_buffer)))};
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
+                }
 
                 // std::random_access_iterator
                 conditional_const_t<is_const, value_type> &operator[](std::ptrdiff_t offset) const & { return *(*this + offset); }
@@ -1131,7 +1151,14 @@ namespace augmented_containers
                     if constexpr(std::is_same_v<typename sequence_config_t::projected_storage_t, void>)
                         return {};
                     else
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
                         return {std::pointer_traits<typename base_t::pointer_navigator_t>::pointer_to(*reinterpret_cast<list_node_t *>(const_cast<std::byte *>(reinterpret_cast<conditional_const_t<is_const, std::byte> *>(std::to_address(ptr))) - offsetof(list_node_t, actual_projected_storage.projected_storage_buffer)))};
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
                 }
 
                 // std::random_access_iterator

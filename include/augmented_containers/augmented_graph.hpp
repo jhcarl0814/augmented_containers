@@ -218,7 +218,14 @@ namespace augmented_containers
             template<size_t I, typename tuple_t>
             constexpr std::size_t tuple_element_offset() // https://stackoverflow.com/questions/5358684/get-the-offset-of-a-tuple-element
             {
+    #ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wnull-dereference"
+    #endif
                 return static_cast<std::size_t>(static_cast<std::byte *>(static_cast<void *>(&std::get<I>(*static_cast<tuple_t *>(nullptr)))) - static_cast<std::byte *>(nullptr));
+    #ifdef __clang__
+        #pragma clang diagnostic pop
+    #endif
             }
         } // namespace tuple
 #endif // AUGMENTED_CONTAINERS_TUPLE
@@ -940,9 +947,23 @@ namespace augmented_containers
                     cluster_tree_node_t *cluster_tree_node()
                     {
                         if(!tagged_ptr_bit0_is_setted(this->prev_))
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
                             return reinterpret_cast<cluster_tree_node_t *>(reinterpret_cast<std::byte *>(this) - offsetof(cluster_tree_node_t, arc_backward));
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
                         else
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
                             return reinterpret_cast<cluster_tree_node_t *>(reinterpret_cast<std::byte *>(this) - offsetof(cluster_tree_node_t, arc_forward));
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
                     }
                     arc_t *twin()
                     {
@@ -2951,7 +2972,14 @@ namespace augmented_containers
             requires(I >= 0 && I < parts_count)
         static constexpr std::size_t part_offset()
         {
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
             return offsetof(augmented_graph_t, parts) + detail::tuple::tuple_element_offset<I, parts_t>();
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
         }
 
         it_vertex_t insert_vertex(vertex_t vertex)
