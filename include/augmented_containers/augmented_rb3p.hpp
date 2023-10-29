@@ -4062,14 +4062,8 @@ namespace augmented_containers
         {
             detail::augmented_sequence_rb3p::rb3p_functor_t<is_reversed, config_t>::find_by_heap_predicate(node_end,
                 detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                    .wrapped_iterator =
-#endif
-                        iterator_output_const_iterator,
-#ifndef __EMSCRIPTEN__
-                    .transformer =
-#endif
-                        [](navigator_t *value)
+                    .wrapped_iterator = iterator_output_const_iterator,
+                    .transformer = [](navigator_t *value)
                     { return const_iterator_t{value}; },
                 },
                 heap_predicate);
@@ -4080,14 +4074,8 @@ namespace augmented_containers
         {
             detail::augmented_sequence_rb3p::rb3p_functor_t<is_reversed, config_t>::find_by_heap_predicate(node_end,
                 detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                    .wrapped_iterator =
-#endif
-                        iterator_output_iterator,
-#ifndef __EMSCRIPTEN__
-                    .transformer =
-#endif
-                        [](navigator_t *value)
+                    .wrapped_iterator = iterator_output_iterator,
+                    .transformer = [](navigator_t *value)
                     { return iterator_t{value}; },
                 },
                 heap_predicate);

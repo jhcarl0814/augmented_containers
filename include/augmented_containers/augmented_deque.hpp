@@ -4108,14 +4108,8 @@ namespace augmented_containers
         {
             auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
             sequence_functor_forward.find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                                .wrapped_iterator =
-#endif
-                                                                    iterator_output_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                                .transformer =
-#endif
-                                                                    [](typename sequence_t<I>::pointer_navigator_t value)
+                                                                .wrapped_iterator = iterator_output_iterator_projected_storage,
+                                                                .transformer = [](typename sequence_t<I>::pointer_navigator_t value)
                                                                 { return typename sequence_t<I>::iterator_projected_storage_t{value}; },
                                                             },
                 heap_predicate);
@@ -4126,14 +4120,8 @@ namespace augmented_containers
         {
             auto sequence_functor_forward = detail::augmented_deque::make_sequence_functor<false>(allocator_element, &sequence<I>());
             sequence_functor_forward.find_by_heap_predicate(detail::iterator::transform_output_iterator_t{
-#ifndef __EMSCRIPTEN__
-                                                                .wrapped_iterator =
-#endif
-                                                                    iterator_output_const_iterator_projected_storage,
-#ifndef __EMSCRIPTEN__
-                                                                .transformer =
-#endif
-                                                                    [](typename sequence_t<I>::pointer_navigator_t value)
+                                                                .wrapped_iterator = iterator_output_const_iterator_projected_storage,
+                                                                .transformer = [](typename sequence_t<I>::pointer_navigator_t value)
                                                                 { return typename sequence_t<I>::const_iterator_projected_storage_t{value}; },
                                                             },
                 heap_predicate);
