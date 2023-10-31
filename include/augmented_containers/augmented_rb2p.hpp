@@ -1,31 +1,33 @@
 ﻿#ifndef AUGMENTED_RB2P_HPP
 #define AUGMENTED_RB2P_HPP
 
-#include <cassert>
-#include <utility>
 #include <algorithm>
-#include <ranges>
-#include <memory>
-#include <optional>
 #include <array>
-#include <unordered_set>
+#include <cassert>
 #include <coroutine>
 #include <functional>
-#include <variant>
-#include <vector>
 #include <iostream>
 #include <map>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <unordered_set>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace augmented_containers
 {
 #ifndef AUGMENTED_CONTAINERS_AUGMENTED_SEQUENCE_ENUM
     #define AUGMENTED_CONTAINERS_AUGMENTED_SEQUENCE_ENUM
-    enum class augmented_sequence_physical_representation_e { rb3p,
+    enum class augmented_sequence_physical_representation_e {
+        rb3p,
         rb2p,
         finger_tree,
     };
 
-    enum class augmented_sequence_size_management_e { no_size,
+    enum class augmented_sequence_size_management_e {
+        no_size,
         at_node_end,
         at_each_node_except_node_end,
     };
@@ -38,10 +40,7 @@ namespace augmented_containers
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_POINTER_TRAITS_CAST
     #define AUGMENTED_CONTAINERS_LANGUAGE_POINTER_TRAITS_CAST
             template<typename target_pointer_t, typename source_pointer_t>
-            target_pointer_t pointer_traits_static_cast(source_pointer_t source_pointer)
-            {
-                return std::pointer_traits<target_pointer_t>::pointer_to(*static_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer)));
-            }
+            target_pointer_t pointer_traits_static_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*static_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
 
             template<typename target_pointer_t, typename source_pointer_t>
             target_pointer_t pointer_traits_reinterpret_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
@@ -50,10 +49,7 @@ namespace augmented_containers
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT0
     #define AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT0
             template<typename pointer_t>
-            bool tagged_ptr_bit0_is_setted(pointer_t p)
-            {
-                return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b1) != 0;
-            };
+            bool tagged_ptr_bit0_is_setted(pointer_t p) { return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b1) != 0; }
             template<typename pointer_t>
             auto tagged_ptr_bit0_unsetted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b1)); }
             template<typename pointer_t>
@@ -67,10 +63,7 @@ namespace augmented_containers
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT1
     #define AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT1
             template<typename pointer_t>
-            bool tagged_ptr_bit1_is_setted(pointer_t p)
-            {
-                return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b10) != 0;
-            };
+            bool tagged_ptr_bit1_is_setted(pointer_t p) { return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b10) != 0; }
             template<typename pointer_t>
             auto tagged_ptr_bit1_unsetted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b10)); }
             template<typename pointer_t>
@@ -84,10 +77,7 @@ namespace augmented_containers
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT2
     #define AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT2
             template<typename pointer_t>
-            bool tagged_ptr_bit2_is_setted(pointer_t p)
-            {
-                return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b100) != 0;
-            };
+            bool tagged_ptr_bit2_is_setted(pointer_t p) { return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b100) != 0; }
             template<typename pointer_t>
             auto tagged_ptr_bit2_unsetted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b100)); }
             template<typename pointer_t>
@@ -98,17 +88,14 @@ namespace augmented_containers
             auto tagged_ptr_bit2_setted(pointer_t p) { return assert(!tagged_ptr_bit2_is_setted(p)), tagged_ptr_bit2_setted_relaxed(p); }
 
             template<typename pointer_t>
-            uintptr_t tagged_ptr_bit210_get(pointer_t p) { return reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b111; };
+            uintptr_t tagged_ptr_bit210_get(pointer_t p) { return reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b111; }
             template<typename pointer_t>
-            auto tagged_ptr_bit210_set(pointer_t p, uintptr_t bit210) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>((reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b111) | bit210)); };
+            auto tagged_ptr_bit210_set(pointer_t p, uintptr_t bit210) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>((reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b111) | bit210)); }
 #endif // AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT2
 
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
     #define AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
-            constexpr std::size_t zu(std::size_t v)
-            {
-                return v;
-            }
+            constexpr std::size_t zu(std::size_t v) { return v; }
             constexpr std::ptrdiff_t z(std::ptrdiff_t v) { return v; }
 #endif // AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
         } // namespace language
@@ -118,7 +105,7 @@ namespace augmented_containers
         namespace concepts
         {
             template<typename F, typename Ret, typename... Args>
-            concept invocable_r = std::invocable<F, Args...> && (std::same_as<Ret, void> || std::convertible_to<std::invoke_result_t<F, Args...>, Ret>)/*&& !
+            concept invocable_r = std::invocable<F, Args...> && (std::same_as<Ret, void> || std::convertible_to<std::invoke_result_t<F, Args...>, Ret>) /*&& !
             reference_converts_from_temporary_v<Ret, std::invoke_result_t<F, Args...>>*/
                 ; // https://stackoverflow.com/questions/61932900/c-template-function-specify-argument-type-of-callback-functor-lambda-while-st#comment109544863_61933163
         } // namespace concepts
@@ -132,7 +119,7 @@ namespace augmented_containers
             constexpr T &unmove(T &&t) { return static_cast<T &>(t); } //https://stackoverflow.com/a/67059296/8343353
 
             template<bool is_const = true, typename T = void>
-            using conditional_const_t = std::conditional_t<is_const, const T, T>;
+            using conditional_const_t = std::conditional_t<is_const, T const, T>;
 
             template<bool is_const = true, typename T = void>
             constexpr conditional_const_t<is_const, T> &conditional_as_const(T &_Val) noexcept { return _Val; }
@@ -143,13 +130,11 @@ namespace augmented_containers
             struct list_find_first_index
             {
                 template<std::size_t I>
-                struct iteration: std::conditional_t<std::is_same_v<typename std::tuple_element_t<I, list_t>, element_t>, std::type_identity<std::integral_constant<std::size_t, I>>, iteration<I + 1>>::type
-                {
-                };
+                struct iteration : std::conditional_t<std::is_same_v<typename std::tuple_element_t<I, list_t>, element_t>, std::type_identity<std::integral_constant<std::size_t, I>>, iteration<I + 1>>::type
+                {};
                 template<>
-                struct iteration<std::tuple_size_v<list_t>>: std::integral_constant<std::size_t, std::tuple_size_v<list_t>>
-                {
-                };
+                struct iteration<std::tuple_size_v<list_t>> : std::integral_constant<std::size_t, std::tuple_size_v<list_t>>
+                {};
                 using type = typename iteration<0>::type;
             };
             template<typename list_t, typename element_t>
@@ -161,9 +146,8 @@ namespace augmented_containers
                 template<typename list_t_>
                 struct iterations;
                 template<typename... elements_t>
-                struct iterations<std::tuple<elements_t...>>: std::type_identity<std::tuple<typename transformer_t<elements_t>::type...>>
-                {
-                };
+                struct iterations<std::tuple<elements_t...>> : std::type_identity<std::tuple<typename transformer_t<elements_t>::type...>>
+                {};
                 using type = typename iterations<list_t>::type;
             };
             template<typename list_t, template<typename element_t> typename transformer_t>
@@ -180,7 +164,7 @@ namespace augmented_containers
                 template<typename index_sequence_t>
                 struct impl;
                 template<std::size_t... I>
-                struct impl<std::index_sequence<I...>>: std::type_identity<std::tuple<std::tuple_element_t<1 + I, list_t>...>>
+                struct impl<std::index_sequence<I...>> : std::type_identity<std::tuple<std::tuple_element_t<1 + I, list_t>...>>
                 {};
                 using type = typename impl<std::make_index_sequence<std::tuple_size_v<list_t> - 1>>::type;
             };
@@ -193,9 +177,8 @@ namespace augmented_containers
                 template<typename map_t_, typename index_sequence_t>
                 struct iterations;
                 template<typename... elements_t, std::size_t... I>
-                struct iterations<std::tuple<elements_t...>, std::index_sequence<I...>>: std::type_identity<std::tuple<typename transformer_t<I, elements_t>::type...>>
-                {
-                };
+                struct iterations<std::tuple<elements_t...>, std::index_sequence<I...>> : std::type_identity<std::tuple<typename transformer_t<I, elements_t>::type...>>
+                {};
                 using type = typename iterations<map_t, std::make_index_sequence<std::tuple_size_v<map_t>>>::type;
             };
             template<typename map_t, template<std::size_t index, typename item_t> typename transformer_t>
@@ -259,9 +242,7 @@ namespace augmented_containers
                     std::coroutine_handle<promise_t> root_or_current;
                     std::exception_ptr *exception = nullptr;
 
-                    promise_t()
-                        : root_or_current(std::coroutine_handle<promise_t>::from_promise(*this))
-                    {}
+                    promise_t() : root_or_current(std::coroutine_handle<promise_t>::from_promise(*this)) {}
                     generator_t get_return_object() { return {std::coroutine_handle<promise_t>::from_promise(*this)}; }
                     std::suspend_never initial_suspend() { return {}; }
                     auto final_suspend() noexcept
@@ -271,7 +252,7 @@ namespace augmented_containers
                             bool await_ready() noexcept { return false; }
                             std::coroutine_handle<> await_suspend(std::coroutine_handle<promise_t> continuation) noexcept
                             {
-                                if(continuation.promise().continuation)
+                                if (continuation.promise().continuation)
                                 {
                                     continuation.promise().root_or_current.promise().root_or_current = continuation.promise().continuation;
                                     return continuation.promise().continuation;
@@ -285,7 +266,7 @@ namespace augmented_containers
                     void return_void() {}
                     void unhandled_exception()
                     {
-                        if(exception == nullptr) throw;
+                        if (exception == nullptr) throw;
                         else *exception = std::current_exception();
                     }
 
@@ -311,14 +292,14 @@ namespace augmented_containers
                                 generator.handle.promise().continuation = continuation;
                                 std::coroutine_handle<promise_t> root = continuation.promise().continuation == nullptr ? continuation : continuation.promise().root_or_current;
                                 root.promise().root_or_current = generator.handle.promise().root_or_current;
-                                for(std::coroutine_handle<promise_t> state = generator.handle.promise().root_or_current; state != continuation; state = state.promise().continuation)
+                                for (std::coroutine_handle<promise_t> state = generator.handle.promise().root_or_current; state != continuation; state = state.promise().continuation)
                                     state.promise().root_or_current = root;
                                 generator.handle.promise().exception = &exception;
                                 return std::noop_coroutine();
                             }
                             void await_resume() noexcept
                             {
-                                if(exception)
+                                if (exception)
                                     std::rethrow_exception(std::move(exception));
                             }
     #ifdef __clang__
@@ -334,26 +315,20 @@ namespace augmented_containers
                 };
                 using promise_type = promise_t;
                 std::coroutine_handle<promise_t> handle;
-                generator_t()
-                    : handle(nullptr)
-                {}
-                generator_t(std::coroutine_handle<promise_t> handle)
-                    : handle(handle)
-                {}
-                generator_t(generator_t &&other)
-                    : handle(std::exchange(other.handle, nullptr))
-                {}
+                generator_t() : handle(nullptr) {}
+                generator_t(std::coroutine_handle<promise_t> handle) : handle(handle) {}
+                generator_t(generator_t &&other) : handle(std::exchange(other.handle, nullptr)) {}
                 generator_t &operator=(generator_t &&other) &
                 {
-                    if(this == &other)
+                    if (this == &other)
                         return;
-                    if(handle) handle.destroy();
+                    if (handle) handle.destroy();
                     handle = std::exchange(other.handle, nullptr);
                     return *this;
                 }
                 ~generator_t()
                 {
-                    if(handle)
+                    if (handle)
                     {
                         //            if(handle.promise().continuation != nullptr)
                         //                handle.promise().root_or_current.promise().root_or_current = handle.promise().continuation;
@@ -417,11 +392,10 @@ namespace augmented_containers
 
 namespace std
 {
-    template<class R, class F, class... Args>
-        requires std::is_invocable_r_v<R, F, Args...>
+    template<class R, class F, class... Args> requires std::is_invocable_r_v<R, F, Args...>
     constexpr R invoke_r(F &&f, Args &&...args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>)
     {
-        if constexpr(std::is_void_v<R>)
+        if constexpr (std::is_void_v<R>)
             std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
         else
             return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
@@ -444,32 +418,24 @@ namespace augmented_containers
                 R(*f)
                 (void *, Args &&...) noexcept(is_no_except);
                 void *d;
-
               public:
                 function_view() noexcept = default;
-                function_view(std::nullptr_t) noexcept
-                    : f(nullptr),
-                      d(nullptr)
-                {}
-                function_view &operator=(std::nullptr_t) &noexcept
+                function_view(std::nullptr_t) noexcept : f(nullptr), d(nullptr) {}
+                function_view &operator=(std::nullptr_t) & noexcept
                 {
                     f = nullptr;
                     d = nullptr;
                     return *this;
-                };
+                }
                 function_view(function_view const &) noexcept = default;
-                function_view &operator=(function_view const &) &noexcept = default;
+                function_view &operator=(function_view const &) & noexcept = default;
 
-                template<typename T>
-                    requires(!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
+                template<typename T> requires (!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
                 function_view(T &&t) noexcept
-                    : f([](void *d, Args &&...args) noexcept(is_no_except) -> R
-                          { return std::invoke_r<R>(std::forward<T>(*static_cast<std::remove_reference_t<T> *>(d)), std::forward<Args>(args)...); }),
-                      d(std::addressof(t))
-                {}
-                template<typename T>
-                    requires(!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
-                function_view &operator=(T &&t) &noexcept
+                    : f([](void *d, Args &&...args) noexcept(is_no_except) -> R { return std::invoke_r<R>(std::forward<T>(*static_cast<std::remove_reference_t<T> *>(d)), std::forward<Args>(args)...); }),
+                      d(std::addressof(t)) {}
+                template<typename T> requires (!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
+                function_view &operator=(T &&t) & noexcept
                 {
                     *this = function_view(std::forward<T>(t));
                     return *this;
@@ -477,9 +443,8 @@ namespace augmented_containers
 
                 function_view(R (&t)(Args...) noexcept(is_no_except)) noexcept
                     : f(reinterpret_cast<R (*)(void *, Args...) noexcept(is_no_except)>(&t)),
-                      d(nullptr)
-                {}
-                function_view &operator=(R (&t)(Args...) noexcept(is_no_except)) &noexcept
+                      d(nullptr) {}
+                function_view &operator=(R (&t)(Args...) noexcept(is_no_except)) & noexcept
                 {
                     *this = function_view(t);
                     return *this;
@@ -489,7 +454,7 @@ namespace augmented_containers
                 R operator()(Args... args) const noexcept(is_no_except)
                 {
                     assert(f != nullptr);
-                    if(d != nullptr)
+                    if (d != nullptr)
                         return f(d, std::forward<Args>(args)...);
                     else
                         return (*reinterpret_cast<R (*)(Args...) noexcept(is_no_except)>(f))(std::forward<Args>(args)...);
@@ -621,12 +586,10 @@ namespace augmented_containers
             };
             template<typename pointer_element_t, typename derived_t>
             struct add_accumulated_storage_member_t<pointer_element_t, void, derived_t>
-            {
-            };
+            {};
             template<bool add>
             struct add_node_count_member_t
-            {
-            };
+            {};
             template<>
             struct add_node_count_member_t<true>
             {
@@ -679,7 +642,7 @@ namespace augmented_containers
 
                 operator bool() const
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         //                        return false;
@@ -692,7 +655,7 @@ namespace augmented_containers
                 }
                 proxy_color_t &operator=(bool other)
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         std::unreachable();
@@ -723,7 +686,7 @@ namespace augmented_containers
                 operator rb2p_node_navigator_all_t<allocator_element_t> *() const
                 {
                     auto my_list_begin_bit210_unsetted = tagged_ptr_bit210_set(this_->my_list_begin_, 0);
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         return my_list_begin_bit210_unsetted == this_ ? tagged_ptr_bit0_setted(my_list_begin_bit210_unsetted) : my_list_begin_bit210_unsetted;
@@ -736,10 +699,10 @@ namespace augmented_containers
                 rb2p_node_navigator_all_t<allocator_element_t> *operator->() const { return this->operator rb2p_node_navigator_all_t<allocator_element_t> *(); }
                 proxy_my_list_begin_t &operator=(rb2p_node_navigator_all_t<allocator_element_t> *other)
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
-                        if(tagged_ptr_bit0_is_setted(other))
+                        if (tagged_ptr_bit0_is_setted(other))
                             assert(tagged_ptr_bit0_unsetted(other) == this_);
                         else
                             assert(other != this_);
@@ -752,9 +715,7 @@ namespace augmented_containers
                     }
                     return *this;
                 }
-                proxy_my_list_begin_t(rb2p_node_navigator_all_t<allocator_element_t> *this_)
-                    : this_(this_)
-                {}
+                proxy_my_list_begin_t(rb2p_node_navigator_all_t<allocator_element_t> *this_) : this_(this_) {}
                 proxy_my_list_begin_t(proxy_my_list_begin_t const &other) = default;
                 proxy_my_list_begin_t &operator=(proxy_my_list_begin_t const &other) { return this->operator=(other.operator rb2p_node_navigator_all_t<allocator_element_t> *()); }
             };
@@ -766,22 +727,23 @@ namespace augmented_containers
 
                 operator rb2p_node_navigator_all_t<allocator_element_t> *() const
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         std::unreachable();
                         break;
                     default:
-                    {
-                        auto next_bit210_unsetted = tagged_ptr_bit210_set(static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(this_)->next_, 0);
-                        return tagged_ptr_bit0_is_setted(static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(this_)->next_) ? tagged_ptr_bit0_setted(next_bit210_unsetted) : next_bit210_unsetted;
-                    } break;
+                        {
+                            auto next_bit210_unsetted = tagged_ptr_bit210_set(static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(this_)->next_, 0);
+                            return tagged_ptr_bit0_is_setted(static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(this_)->next_) ? tagged_ptr_bit0_setted(next_bit210_unsetted) : next_bit210_unsetted;
+                        }
+                        break;
                     }
                 }
                 rb2p_node_navigator_all_t<allocator_element_t> *operator->() const { return this->operator rb2p_node_navigator_all_t<allocator_element_t> *(); }
                 proxy_next_t &operator=(rb2p_node_navigator_all_t<allocator_element_t> *other)
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         std::unreachable();
@@ -792,9 +754,7 @@ namespace augmented_containers
                     }
                     return *this;
                 }
-                proxy_next_t(rb2p_node_navigator_all_t<allocator_element_t> *this_)
-                    : this_(this_)
-                {}
+                proxy_next_t(rb2p_node_navigator_all_t<allocator_element_t> *this_) : this_(this_) {}
                 proxy_next_t(proxy_next_t const &other) = default;
                 proxy_next_t &operator=(proxy_next_t const &other) { return this->operator=(other.operator rb2p_node_navigator_all_t<allocator_element_t> *()); }
             };
@@ -806,10 +766,10 @@ namespace augmented_containers
 
                 operator rb2p_node_navigator_all_t<allocator_element_t> *() const
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
-                        if(tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
+                        if (tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                             return this_->my_list_begin();
@@ -817,7 +777,7 @@ namespace augmented_containers
                         else // return tagged root
                         {
                             rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                 assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
@@ -833,22 +793,23 @@ namespace augmented_containers
                         }
                         break;
                     case rb2p_node_role_e::root: // return tagged end
-                    {
-                        rb2p_node_navigator_all_t<allocator_element_t> *current = this_;
-                        if(!tagged_ptr_bit0_is_setted(current->next()))
                         {
-                            current = current->next();
-                            assert(current->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
-                            assert(tagged_ptr_bit0_is_setted(current->my_list_begin()));
-                            assert(tagged_ptr_bit0_unsetted(current->my_list_begin())->role() == rb2p_node_role_e::end);
-                            return current->my_list_begin();
+                            rb2p_node_navigator_all_t<allocator_element_t> *current = this_;
+                            if (!tagged_ptr_bit0_is_setted(current->next()))
+                            {
+                                current = current->next();
+                                assert(current->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
+                                assert(tagged_ptr_bit0_is_setted(current->my_list_begin()));
+                                assert(tagged_ptr_bit0_unsetted(current->my_list_begin())->role() == rb2p_node_role_e::end);
+                                return current->my_list_begin();
+                            }
+                            else
+                            {
+                                assert(tagged_ptr_bit0_unsetted(current->next())->role() == rb2p_node_role_e::end);
+                                return current->next();
+                            }
                         }
-                        else
-                        {
-                            assert(tagged_ptr_bit0_unsetted(current->next())->role() == rb2p_node_role_e::end);
-                            return current->next();
-                        }
-                    } break;
+                        break;
                     case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                     case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                     case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
@@ -858,7 +819,7 @@ namespace augmented_containers
                     case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
                     case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                     case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                        if(tagged_ptr_bit0_is_setted(this_->next()))
+                        if (tagged_ptr_bit0_is_setted(this_->next()))
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->next())->my_list_begin() == this_);
                             return tagged_ptr_bit0_unsetted(this_->next());
@@ -866,7 +827,7 @@ namespace augmented_containers
                         else
                         {
                             rb2p_node_navigator_all_t<allocator_element_t> *current = this_->next();
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                 assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
@@ -881,13 +842,13 @@ namespace augmented_containers
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                 assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
-                                if(current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
+                                if (current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
                                     return tagged_ptr_bit0_unsetted(current->next());
                                 else
                                 {
                                     assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                     current = current->my_list_begin();
-                                    switch(current->role())
+                                    switch (current->role())
                                     {
                                     case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                                     case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
@@ -933,7 +894,7 @@ namespace augmented_containers
 
                 operator rb2p_node_navigator_except_node_end_t<allocator_element_t> *() const
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         std::unreachable();
@@ -950,7 +911,7 @@ namespace augmented_containers
                     case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
                     case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                     case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                        if(tagged_ptr_bit0_is_setted(this_->next()))
+                        if (tagged_ptr_bit0_is_setted(this_->next()))
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->next())->my_list_begin() == this_);
                             return static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(tagged_ptr_bit0_unsetted(this_->next()));
@@ -958,7 +919,7 @@ namespace augmented_containers
                         else
                         {
                             rb2p_node_navigator_all_t<allocator_element_t> *current = this_->next();
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                 assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
@@ -973,13 +934,13 @@ namespace augmented_containers
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                 assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
-                                if(current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
+                                if (current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
                                     return static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(tagged_ptr_bit0_unsetted(current->next()));
                                 else
                                 {
                                     assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                     current = current->my_list_begin();
-                                    switch(current->role())
+                                    switch (current->role())
                                     {
                                     case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                                     case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
@@ -1025,12 +986,12 @@ namespace augmented_containers
                 bool child_left_or_right;
                 operator rb2p_node_navigator_all_t<allocator_element_t> *() const
                 {
-                    if(!child_left_or_right)
+                    if (!child_left_or_right)
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::end:
-                            if(tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
+                            if (tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
                             {
                                 assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                                 return this_->my_list_begin();
@@ -1038,7 +999,7 @@ namespace augmented_containers
                             else // return tagged rightmost descendent of root (or tagged root)
                             {
                                 rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
-                                switch(current->role())
+                                switch (current->role())
                                 {
                                 case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                     assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
@@ -1050,7 +1011,7 @@ namespace augmented_containers
                                     std::unreachable();
                                 }
                                 assert(current->role() == rb2p_node_role_e::root);
-                                if(!tagged_ptr_bit0_is_setted(current->next()))
+                                if (!tagged_ptr_bit0_is_setted(current->next()))
                                 {
                                     current = current->next();
                                     assert(current->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
@@ -1066,112 +1027,114 @@ namespace augmented_containers
                             }
                             break;
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_root: // return tagged end
-                        {
-                            rb2p_node_navigator_all_t<allocator_element_t> *current = this_;
-                            assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
-                            current = current->my_list_begin();
-                            assert(current->role() == rb2p_node_role_e::root);
-                            if(!tagged_ptr_bit0_is_setted(current->next()))
                             {
-                                current = current->next();
-                                assert(current->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
-                                assert(tagged_ptr_bit0_is_setted(current->my_list_begin()));
-                                assert(tagged_ptr_bit0_unsetted(current->my_list_begin())->role() == rb2p_node_role_e::end);
-                                return current->my_list_begin();
-                            }
-                            else
-                            {
-                                assert(tagged_ptr_bit0_unsetted(current->next())->role() == rb2p_node_role_e::end);
-                                return current->next();
-                            }
-                        } break;
-                        case rb2p_node_role_e::root:
-                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            if(this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
-                            {
-                                assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
-                                return this_->parent_all();
-                            }
-                            else // list is not empty
-                            {
-                                assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                                rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
-                                if(tagged_ptr_bit0_is_setted(current->next()))
+                                rb2p_node_navigator_all_t<allocator_element_t> *current = this_;
+                                assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
+                                current = current->my_list_begin();
+                                assert(current->role() == rb2p_node_role_e::root);
+                                if (!tagged_ptr_bit0_is_setted(current->next()))
                                 {
-                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                    switch(current->role())
-                                    {
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                        return current;
-                                        break;
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                        if(this_->role() == rb2p_node_role_e::root)
-                                            return this_->parent_all();
-                                        else
-                                            return nullptr;
-                                        break;
-                                    default:
-                                        std::unreachable();
-                                        break;
-                                    }
+                                    current = current->next();
+                                    assert(current->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
+                                    assert(tagged_ptr_bit0_is_setted(current->my_list_begin()));
+                                    assert(tagged_ptr_bit0_unsetted(current->my_list_begin())->role() == rb2p_node_role_e::end);
+                                    return current->my_list_begin();
                                 }
                                 else
                                 {
-                                    current = current->next();
-                                    switch(current->role())
+                                    assert(tagged_ptr_bit0_unsetted(current->next())->role() == rb2p_node_role_e::end);
+                                    return current->next();
+                                }
+                            }
+                            break;
+                        case rb2p_node_role_e::root:
+                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
+                            {
+                                if (this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
+                                {
+                                    assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
+                                    return this_->parent_all();
+                                }
+                                else // list is not empty
+                                {
+                                    assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                                    rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
+                                    if (tagged_ptr_bit0_is_setted(current->next()))
                                     {
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                        assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
-                                        current = current->my_list_begin();
-                                        assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
-                                        assert(tagged_ptr_bit0_is_setted(current->next()));
                                         assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                        return current;
-                                        break;
-                                    case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                        assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
-                                        if(current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next()) == this_)
-                                            return current;
-                                        else
+                                        switch (current->role())
                                         {
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                            return current;
+                                            break;
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
+                                            if (this_->role() == rb2p_node_role_e::root)
+                                                return this_->parent_all();
+                                            else
+                                                return nullptr;
+                                            break;
+                                        default:
+                                            std::unreachable();
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        current = current->next();
+                                        switch (current->role())
+                                        {
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                             assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                             current = current->my_list_begin();
-                                            switch(current->role())
-                                            {
-                                            case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                                            case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                            case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                                assert(tagged_ptr_bit0_is_setted(current->next()));
-                                                assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                            assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
+                                            assert(tagged_ptr_bit0_is_setted(current->next()));
+                                            assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                            return current;
+                                            break;
+                                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                            assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
+                                            if (current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next()) == this_)
                                                 return current;
-                                                break;
-                                            case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                            else
+                                            {
                                                 assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                                 current = current->my_list_begin();
-                                                assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
-                                                assert(tagged_ptr_bit0_is_setted(current->next()));
-                                                assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                                return current;
-                                                break;
-                                            default:
-                                                std::unreachable();
-                                                break;
+                                                switch (current->role())
+                                                {
+                                                case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                                                case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                                case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                                    assert(tagged_ptr_bit0_is_setted(current->next()));
+                                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                                    return current;
+                                                    break;
+                                                case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                                    assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
+                                                    current = current->my_list_begin();
+                                                    assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
+                                                    assert(tagged_ptr_bit0_is_setted(current->next()));
+                                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                                    return current;
+                                                    break;
+                                                default:
+                                                    std::unreachable();
+                                                    break;
+                                                }
                                             }
+                                            break;
+                                        default:
+                                            std::unreachable();
+                                            break;
                                         }
-                                        break;
-                                    default:
-                                        std::unreachable();
-                                        break;
                                     }
                                 }
                             }
-                        } break;
+                            break;
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
@@ -1184,10 +1147,10 @@ namespace augmented_containers
                     }
                     else
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::end:
-                            if(tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
+                            if (tagged_ptr_bit0_is_setted(this_->my_list_begin())) // return tagged end
                             {
                                 assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                                 return this_->my_list_begin();
@@ -1195,7 +1158,7 @@ namespace augmented_containers
                             else // return tagged leftmost descendent of root (or tagged root)
                             {
                                 rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
-                                switch(current->role())
+                                switch (current->role())
                                 {
                                 case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                 case rb2p_node_role_e::root:
@@ -1214,36 +1177,37 @@ namespace augmented_containers
                         case rb2p_node_role_e::root:
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                         case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            if(this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                             {
-                                assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
-                                return this_->parent_all();
-                            }
-                            else // list is not empty
-                            {
-                                assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                                rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
-                                switch(current->role())
+                                if (this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                                 {
-                                case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                                case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                    return current;
-                                    break;
-                                case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                    if(this_->role() == rb2p_node_role_e::root)
-                                        return this_->parent_all();
-                                    else
-                                        return nullptr;
-                                    break;
-                                default:
-                                    std::unreachable();
-                                    break;
+                                    assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
+                                    return this_->parent_all();
+                                }
+                                else // list is not empty
+                                {
+                                    assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                                    rb2p_node_navigator_all_t<allocator_element_t> *current = this_->my_list_begin();
+                                    switch (current->role())
+                                    {
+                                    case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
+                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
+                                        return current;
+                                        break;
+                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                        if (this_->role() == rb2p_node_role_e::root)
+                                            return this_->parent_all();
+                                        else
+                                            return nullptr;
+                                        break;
+                                    default:
+                                        std::unreachable();
+                                        break;
+                                    }
                                 }
                             }
-                        } break;
+                            break;
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
@@ -1266,9 +1230,9 @@ namespace augmented_containers
 
                 operator rb2p_node_navigator_except_node_end_t<allocator_element_t> *() const
                 {
-                    if(!child_left_or_right)
+                    if (!child_left_or_right)
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::end:
                             std::unreachable();
@@ -1276,87 +1240,88 @@ namespace augmented_containers
                         case rb2p_node_role_e::root:
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                         case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            if(this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                             {
-                                assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
-                                return nullptr;
-                            }
-                            else // list is not empty
-                            {
-                                assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                                rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(this_->my_list_begin()));
-                                if(tagged_ptr_bit0_is_setted(current->next()))
+                                if (this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                                 {
-                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                    switch(current->role())
-                                    {
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                        return current;
-                                        break;
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                        return nullptr;
-                                        break;
-                                    default:
-                                        std::unreachable();
-                                        break;
-                                    }
+                                    assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
+                                    return nullptr;
                                 }
-                                else
+                                else // list is not empty
                                 {
-                                    current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->next()));
-                                    switch(current->role())
+                                    assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                                    rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(this_->my_list_begin()));
+                                    if (tagged_ptr_bit0_is_setted(current->next()))
                                     {
-                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                        assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
-                                        current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->my_list_begin()));
-                                        assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
-                                        assert(tagged_ptr_bit0_is_setted(current->next()));
                                         assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                        return current;
-                                        break;
-                                    case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                        assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
-                                        if(current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next()) == this_)
-                                            return current;
-                                        else
+                                        switch (current->role())
                                         {
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                            return current;
+                                            break;
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
+                                            return nullptr;
+                                            break;
+                                        default:
+                                            std::unreachable();
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->next()));
+                                        switch (current->role())
+                                        {
+                                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                             assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                             current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->my_list_begin()));
-                                            switch(current->role())
-                                            {
-                                            case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                                            case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                            case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                                assert(tagged_ptr_bit0_is_setted(current->next()));
-                                                assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                            assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
+                                            assert(tagged_ptr_bit0_is_setted(current->next()));
+                                            assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                            return current;
+                                            break;
+                                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                        case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                            assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
+                                            if (current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next()) == this_)
                                                 return current;
-                                                break;
-                                            case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                            else
+                                            {
                                                 assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
                                                 current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->my_list_begin()));
-                                                assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
-                                                assert(tagged_ptr_bit0_is_setted(current->next()));
-                                                assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
-                                                return current;
-                                                break;
-                                            default:
-                                                std::unreachable();
-                                                break;
+                                                switch (current->role())
+                                                {
+                                                case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                                                case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                                case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                                    assert(tagged_ptr_bit0_is_setted(current->next()));
+                                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                                    return current;
+                                                    break;
+                                                case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                                    assert(!tagged_ptr_bit0_is_setted(current->my_list_begin()));
+                                                    current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(current->my_list_begin()));
+                                                    assert(current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
+                                                    assert(tagged_ptr_bit0_is_setted(current->next()));
+                                                    assert(tagged_ptr_bit0_unsetted(current->next()) == this_);
+                                                    return current;
+                                                    break;
+                                                default:
+                                                    std::unreachable();
+                                                    break;
+                                                }
                                             }
+                                            break;
+                                        default:
+                                            std::unreachable();
+                                            break;
                                         }
-                                        break;
-                                    default:
-                                        std::unreachable();
-                                        break;
                                     }
                                 }
                             }
-                        } break;
+                            break;
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
@@ -1370,7 +1335,7 @@ namespace augmented_containers
                     }
                     else
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::end:
                             std::unreachable();
@@ -1378,33 +1343,34 @@ namespace augmented_containers
                         case rb2p_node_role_e::root:
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                         case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            if(this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                             {
-                                assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
-                                return nullptr;
-                            }
-                            else // list is not empty
-                            {
-                                assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                                rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(this_->my_list_begin()));
-                                switch(current->role())
+                                if (this_->role() == rb2p_node_role_e::root && tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                                 {
-                                case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                                case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                                case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                    return current;
-                                    break;
-                                case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                                case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                    assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                                     return nullptr;
-                                    break;
-                                default:
-                                    std::unreachable();
-                                    break;
+                                }
+                                else // list is not empty
+                                {
+                                    assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                                    rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t<allocator_element_t> *>(this_->my_list_begin()));
+                                    switch (current->role())
+                                    {
+                                    case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
+                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                                    case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
+                                        return current;
+                                        break;
+                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
+                                    case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
+                                        return nullptr;
+                                        break;
+                                    default:
+                                        std::unreachable();
+                                        break;
+                                    }
                                 }
                             }
-                        } break;
+                            break;
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
@@ -1529,7 +1495,7 @@ namespace augmented_containers
                 struct p_child_left_or_right_all_t
                 {
                     bool child_left_or_right;
-                    friend decltype(auto) operator->*(rb2p_node_navigator_all_t *navigator, p_child_left_or_right_all_t const &p_child_left_or_right) { return !p_child_left_or_right.child_left_or_right ? navigator->child_left_all() : navigator->child_right_all(); }
+                    friend decltype(auto) operator->*(rb2p_node_navigator_all_t * navigator, p_child_left_or_right_all_t const &p_child_left_or_right) { return !p_child_left_or_right.child_left_or_right ? navigator->child_left_all() : navigator->child_right_all(); }
 
                     template<bool is_reversed>
                     static constexpr p_child_left_or_right_all_t make_p_child_left_or_right(bool child_left_or_right) { return {.child_left_or_right = !is_reversed ? child_left_or_right : !child_left_or_right}; }
@@ -1537,7 +1503,7 @@ namespace augmented_containers
                 struct p_child_left_or_right_except_node_end_t
                 {
                     bool child_left_or_right;
-                    friend decltype(auto) operator->*(rb2p_node_navigator_all_t *navigator, p_child_left_or_right_except_node_end_t const &p_child_left_or_right) { return !p_child_left_or_right.child_left_or_right ? navigator->child_left() : navigator->child_right(); }
+                    friend decltype(auto) operator->*(rb2p_node_navigator_all_t * navigator, p_child_left_or_right_except_node_end_t const &p_child_left_or_right) { return !p_child_left_or_right.child_left_or_right ? navigator->child_left() : navigator->child_right(); }
 
                     template<bool is_reversed>
                     static constexpr p_child_left_or_right_except_node_end_t make_p_child_left_or_right(bool child_left_or_right) { return {.child_left_or_right = !is_reversed ? child_left_or_right : !child_left_or_right}; }
@@ -1553,19 +1519,16 @@ namespace augmented_containers
                     bool is_left_or_right_child_of_parent;
                     bool is_end() const { return tagged_ptr_bit0_is_setted(parent); }
 
-                    parent_info_t()
-                        : parent(nullptr)
-                    {}
-                    parent_info_t(rb2p_node_navigator_all_t *this_)
-                        : parent(this_->parent_all())
+                    parent_info_t() : parent(nullptr) {}
+                    parent_info_t(rb2p_node_navigator_all_t *this_) : parent(this_->parent_all())
                     {
-                        if(!is_end())
+                        if (!is_end())
                         {
-                            if(parent->*p_child_left == this_) is_left_or_right_child_of_parent = false;
-                            else if(parent->*p_child_right == this_) is_left_or_right_child_of_parent = true;
+                            if (parent->*p_child_left == this_) is_left_or_right_child_of_parent = false;
+                            else if (parent->*p_child_right == this_) is_left_or_right_child_of_parent = true;
                             else std::unreachable();
                         }
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::root:
                             assert(tagged_ptr_bit0_is_setted(parent));
@@ -1586,7 +1549,7 @@ namespace augmented_containers
                             std::unreachable();
                             break;
                         }
-                    };
+                    }
                 };
 
                 template<typename node_end_t>
@@ -1619,11 +1582,11 @@ namespace augmented_containers
                         std::unordered_set<rb2p_node_navigator_all_t *> pointers;
                         assert(end != nullptr);
                         assert(pointers.insert(end).second);
-                        if(!leftmost_descendent_of_root_is_nullptr())
+                        if (!leftmost_descendent_of_root_is_nullptr())
                             assert(pointers.insert(leftmost_descendent_of_root).second);
-                        if(root != nullptr)
+                        if (root != nullptr)
                             assert(pointers.insert(root).second);
-                        if(!rightmost_descendent_of_root_is_nullptr())
+                        if (!rightmost_descendent_of_root_is_nullptr())
                             assert(pointers.insert(rightmost_descendent_of_root).second);
                     }
                     void link()
@@ -1631,7 +1594,7 @@ namespace augmented_containers
                         assert(index == -1);
                         assert(end != nullptr);
                         assert_unique();
-                        if(root == nullptr)
+                        if (root == nullptr)
                         {
                             assert(leftmost_descendent_of_root == nullptr);
                             assert(rightmost_descendent_of_root == nullptr);
@@ -1639,14 +1602,14 @@ namespace augmented_containers
                         }
                         else
                         {
-                            if(!leftmost_descendent_of_root_is_nullptr())
+                            if (!leftmost_descendent_of_root_is_nullptr())
                             {
                                 end->my_list_begin() = leftmost_descendent_of_root;
                                 leftmost_descendent_of_root->my_list_begin() = root;
                             }
                             else
                                 end->my_list_begin() = root;
-                            if(!rightmost_descendent_of_root_is_nullptr())
+                            if (!rightmost_descendent_of_root_is_nullptr())
                             {
                                 root->next() = rightmost_descendent_of_root;
                                 rightmost_descendent_of_root->my_list_begin() = tagged_ptr_bit0_setted(end);
@@ -1661,7 +1624,7 @@ namespace augmented_containers
                         assert(end != nullptr);
                         assert_unique();
                         rb2p_node_navigator_except_node_end_t<allocator_element_t> *node_old;
-                        switch(index)
+                        switch (index)
                         {
                         case 1:
                             node_old = std::exchange(leftmost_descendent_of_root, node_new);
@@ -1674,11 +1637,11 @@ namespace augmented_containers
                             node_old = std::exchange(root, node_new);
                             assert(node_old != nullptr);
                             root->role() = rb2p_node_role_e::root;
-                            if(leftmost_descendent_of_root != nullptr)
+                            if (leftmost_descendent_of_root != nullptr)
                                 leftmost_descendent_of_root->my_list_begin() = root;
                             else
                                 end->my_list_begin() = root;
-                            if(rightmost_descendent_of_root != nullptr)
+                            if (rightmost_descendent_of_root != nullptr)
                                 root->next() = rightmost_descendent_of_root;
                             else
                                 root->next() = tagged_ptr_bit0_setted(end);
@@ -1699,16 +1662,16 @@ namespace augmented_containers
                     }
                     void set_roles()
                     {
-                        if(!leftmost_descendent_of_root_is_nullptr())
+                        if (!leftmost_descendent_of_root_is_nullptr())
                             leftmost_descendent_of_root->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_root;
-                        if(root != nullptr)
+                        if (root != nullptr)
                             root->role() = rb2p_node_role_e::root;
-                        if(!rightmost_descendent_of_root_is_nullptr())
+                        if (!rightmost_descendent_of_root_is_nullptr())
                             rightmost_descendent_of_root->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_root;
                     }
                     void link_if_one()
                     {
-                        if(leftmost_descendent_of_root_is_nullptr() && root != nullptr && rightmost_descendent_of_root_is_nullptr())
+                        if (leftmost_descendent_of_root_is_nullptr() && root != nullptr && rightmost_descendent_of_root_is_nullptr())
                             loop_t{
                                 .this_ = root,
                             }
@@ -1738,16 +1701,16 @@ namespace augmented_containers
                         assert(this_ != nullptr);
                         assert(pointers.insert(this_).second);
 
-                        if(child_right != nullptr)
+                        if (child_right != nullptr)
                             assert(pointers.insert(child_right).second);
 
-                        if(!leftmost_descendent_of_child_right_is_nullptr())
+                        if (!leftmost_descendent_of_child_right_is_nullptr())
                             assert(pointers.insert(leftmost_descendent_of_child_right).second);
 
-                        if(!rightmost_descendent_of_child_left_is_nullptr())
+                        if (!rightmost_descendent_of_child_left_is_nullptr())
                             assert(pointers.insert(rightmost_descendent_of_child_left).second);
 
-                        if(child_left != nullptr)
+                        if (child_left != nullptr)
                             assert(pointers.insert(child_left).second);
                     }
                     void link() const
@@ -1755,18 +1718,18 @@ namespace augmented_containers
                         assert(index == -1);
                         assert(this_ != nullptr);
                         assert_unique();
-                        if(child_right == nullptr || child_left == nullptr)
+                        if (child_right == nullptr || child_left == nullptr)
                         {
                             assert(leftmost_descendent_of_child_right == nullptr);
                             assert(rightmost_descendent_of_child_left == nullptr);
-                            if(child_right == nullptr && child_left == nullptr)
+                            if (child_right == nullptr && child_left == nullptr)
                                 this_->my_list_begin() = tagged_ptr_bit0_setted(this_);
-                            else if(child_right != nullptr && child_left == nullptr)
+                            else if (child_right != nullptr && child_left == nullptr)
                             {
                                 this_->my_list_begin() = child_right;
                                 child_right->next() = tagged_ptr_bit0_setted(this_);
                             }
-                            else if(child_right == nullptr && child_left != nullptr)
+                            else if (child_right == nullptr && child_left != nullptr)
                             {
                                 this_->my_list_begin() = child_left;
                                 child_left->next() = tagged_ptr_bit0_setted(this_);
@@ -1776,19 +1739,19 @@ namespace augmented_containers
                         else
                         {
                             this_->my_list_begin() = child_right;
-                            if(leftmost_descendent_of_child_right_is_nullptr() && rightmost_descendent_of_child_left_is_nullptr())
+                            if (leftmost_descendent_of_child_right_is_nullptr() && rightmost_descendent_of_child_left_is_nullptr())
                                 child_right->next() = child_left;
-                            else if(!leftmost_descendent_of_child_right_is_nullptr() && rightmost_descendent_of_child_left_is_nullptr())
+                            else if (!leftmost_descendent_of_child_right_is_nullptr() && rightmost_descendent_of_child_left_is_nullptr())
                             {
                                 child_right->next() = leftmost_descendent_of_child_right;
                                 leftmost_descendent_of_child_right->my_list_begin() = child_left;
                             }
-                            else if(leftmost_descendent_of_child_right_is_nullptr() && !rightmost_descendent_of_child_left_is_nullptr())
+                            else if (leftmost_descendent_of_child_right_is_nullptr() && !rightmost_descendent_of_child_left_is_nullptr())
                             {
                                 child_right->next() = rightmost_descendent_of_child_left;
                                 rightmost_descendent_of_child_left->my_list_begin() = child_left;
                             }
-                            else if(!leftmost_descendent_of_child_right_is_nullptr() && !rightmost_descendent_of_child_left_is_nullptr())
+                            else if (!leftmost_descendent_of_child_right_is_nullptr() && !rightmost_descendent_of_child_left_is_nullptr())
                             {
                                 child_right->next() = leftmost_descendent_of_child_right;
                                 leftmost_descendent_of_child_right->my_list_begin() = rightmost_descendent_of_child_left;
@@ -1804,14 +1767,14 @@ namespace augmented_containers
                         assert(this_ != nullptr);
                         assert_unique();
                         rb2p_node_navigator_except_node_end_t<allocator_element_t> *node_old;
-                        switch(index)
+                        switch (index)
                         {
                         case 0:
                             node_old = std::exchange(this_, node_new);
                             assert(node_old != nullptr);
-                            if(child_right == nullptr)
+                            if (child_right == nullptr)
                             {
-                                if(child_left == nullptr)
+                                if (child_left == nullptr)
                                     this_->my_list_begin() = tagged_ptr_bit0_setted(this_);
                                 else
                                 {
@@ -1821,7 +1784,7 @@ namespace augmented_containers
                             }
                             else
                             {
-                                if(child_left == nullptr)
+                                if (child_left == nullptr)
                                 {
                                     this_->my_list_begin() = child_right;
                                     child_right->next() = tagged_ptr_bit0_setted(this_);
@@ -1837,11 +1800,11 @@ namespace augmented_containers
                             node_old = std::exchange(child_right, node_new);
                             assert(node_old != nullptr);
                             this_->my_list_begin() = child_right;
-                            if(!leftmost_descendent_of_child_right_is_nullptr())
+                            if (!leftmost_descendent_of_child_right_is_nullptr())
                                 child_right->next() = leftmost_descendent_of_child_right;
-                            else if(!rightmost_descendent_of_child_left_is_nullptr())
+                            else if (!rightmost_descendent_of_child_left_is_nullptr())
                                 child_right->next() = rightmost_descendent_of_child_left;
-                            else if(child_left != nullptr)
+                            else if (child_left != nullptr)
                                 child_right->next() = child_left;
                             else
                                 child_right->next() = tagged_ptr_bit0_setted(this_);
@@ -1851,7 +1814,7 @@ namespace augmented_containers
                             assert(node_old != nullptr);
                             assert(child_right != nullptr);
                             child_right->next() = leftmost_descendent_of_child_right;
-                            if(!rightmost_descendent_of_child_left_is_nullptr())
+                            if (!rightmost_descendent_of_child_left_is_nullptr())
                                 leftmost_descendent_of_child_right->my_list_begin() = rightmost_descendent_of_child_left;
                             else
                             {
@@ -1864,7 +1827,7 @@ namespace augmented_containers
                             assert(node_old != nullptr);
                             assert(child_left != nullptr);
                             rightmost_descendent_of_child_left->my_list_begin() = child_left;
-                            if(!leftmost_descendent_of_child_right_is_nullptr())
+                            if (!leftmost_descendent_of_child_right_is_nullptr())
                                 leftmost_descendent_of_child_right->my_list_begin() = rightmost_descendent_of_child_left;
                             else
                             {
@@ -1876,11 +1839,11 @@ namespace augmented_containers
                             node_old = std::exchange(child_left, node_new);
                             assert(node_old != nullptr);
                             child_left->next() = tagged_ptr_bit0_setted(this_);
-                            if(!rightmost_descendent_of_child_left_is_nullptr())
+                            if (!rightmost_descendent_of_child_left_is_nullptr())
                                 rightmost_descendent_of_child_left->my_list_begin() = child_left;
-                            else if(!leftmost_descendent_of_child_right_is_nullptr())
+                            else if (!leftmost_descendent_of_child_right_is_nullptr())
                                 leftmost_descendent_of_child_right->my_list_begin() = child_left;
-                            else if(child_right != nullptr)
+                            else if (child_right != nullptr)
                                 child_right->next() = child_left;
                             else
                                 this_->my_list_begin() = child_left;
@@ -1895,10 +1858,10 @@ namespace augmented_containers
                 };
                 static rb2p_node_navigator_all_t *get_loop_end_next(rb2p_node_navigator_all_t *this_) // return untagged next
                 {
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
-                        if(tagged_ptr_bit0_is_setted(this_->my_list_begin()))
+                        if (tagged_ptr_bit0_is_setted(this_->my_list_begin()))
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                             return this_;
@@ -1906,7 +1869,7 @@ namespace augmented_containers
                         else
                         {
                             rb2p_node_navigator_all_t *current = this_->my_list_begin();
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                             case rb2p_node_role_e::root:
@@ -1919,14 +1882,15 @@ namespace augmented_containers
                         }
                         break;
                     case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                    {
-                        assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                        rb2p_node_navigator_all_t *current = this_->my_list_begin();
-                        assert(current->role() == rb2p_node_role_e::root);
-                        return current;
-                    } break;
+                        {
+                            assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                            rb2p_node_navigator_all_t *current = this_->my_list_begin();
+                            assert(current->role() == rb2p_node_role_e::root);
+                            return current;
+                        }
+                        break;
                     case rb2p_node_role_e::root:
-                        if(tagged_ptr_bit0_is_setted(this_->next()))
+                        if (tagged_ptr_bit0_is_setted(this_->next()))
                         {
                             rb2p_node_navigator_all_t *current = tagged_ptr_bit0_unsetted(this_->next());
                             assert(current->role() == rb2p_node_role_e::end);
@@ -1940,12 +1904,13 @@ namespace augmented_containers
                         }
                         break;
                     case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                    {
-                        assert(tagged_ptr_bit0_is_setted(this_->my_list_begin()));
-                        rb2p_node_navigator_all_t *current = tagged_ptr_bit0_unsetted(this_->my_list_begin());
-                        assert(current->role() == rb2p_node_role_e::end);
-                        return current;
-                    } break;
+                        {
+                            assert(tagged_ptr_bit0_is_setted(this_->my_list_begin()));
+                            rb2p_node_navigator_all_t *current = tagged_ptr_bit0_unsetted(this_->my_list_begin());
+                            assert(current->role() == rb2p_node_role_e::end);
+                            return current;
+                        }
+                        break;
                     default:
                         std::unreachable();
                         break;
@@ -1954,7 +1919,7 @@ namespace augmented_containers
                 static loop_end_t get_loop_end(rb2p_node_navigator_all_t *this_)
                 {
                     loop_end_t result;
-                    switch(this_->role())
+                    switch (this_->role())
                     {
                     case rb2p_node_role_e::end:
                         result.index = 0;
@@ -1975,7 +1940,7 @@ namespace augmented_containers
                     rb2p_node_navigator_all_t *current = this_;
                     do
                     {
-                        switch(current->role())
+                        switch (current->role())
                         {
                         case rb2p_node_role_e::end:
                             result.end = current;
@@ -1995,16 +1960,16 @@ namespace augmented_containers
                         }
                         current = get_loop_end_next(current);
                     }
-                    while(current != this_);
+                    while (current != this_);
                     return result;
                 }
                 static std::tuple<int, rb2p_node_navigator_except_node_end_t<allocator_element_t> *> get_loop_next(int index, rb2p_node_navigator_except_node_end_t<allocator_element_t> *this_) // return untagged next
                 {
-                    switch(index)
+                    switch (index)
                     {
                     case 0:
                         assert(this_->role() == rb2p_node_role_e::root || this_->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || this_->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
-                        if(tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
+                        if (tagged_ptr_bit0_is_setted(this_->my_list_begin())) // list is empty
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->my_list_begin()) == this_);
                             return std::make_tuple(0, this_);
@@ -2012,7 +1977,7 @@ namespace augmented_containers
                         else // list is not empty
                         {
                             rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t *>(this_->my_list_begin()));
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
@@ -2035,7 +2000,7 @@ namespace augmented_containers
                         break;
                     case 1:
                         assert(this_->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || this_->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root || this_->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || (this_->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && this_->my_list_begin() != nullptr && !tagged_ptr_bit0_is_setted(this_->my_list_begin()) && this_->my_list_begin()->next() == tagged_ptr_bit0_setted(this_)));
-                        if(tagged_ptr_bit0_is_setted(this_->next()))
+                        if (tagged_ptr_bit0_is_setted(this_->next()))
                         {
                             assert(tagged_ptr_bit0_unsetted(this_->next())->my_list_begin() == this_);
                             return std::make_tuple(0, tagged_ptr_bit0_unsetted(static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t *>(this_->next()))));
@@ -2043,7 +2008,7 @@ namespace augmented_containers
                         else
                         {
                             rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t *>(this_->next()));
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                 return std::make_tuple(3, current);
@@ -2052,7 +2017,7 @@ namespace augmented_containers
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
                                 assert(current->next() == nullptr || tagged_ptr_bit0_is_setted(current->next()));
-                                if(current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
+                                if (current->next() != nullptr && tagged_ptr_bit0_unsetted(current->next())->my_list_begin() == this_)
                                     return std::make_tuple(4, current);
                                 else
                                     return std::make_tuple(2, current);
@@ -2068,7 +2033,7 @@ namespace augmented_containers
                         {
                             assert(!tagged_ptr_bit0_is_setted(this_->my_list_begin()));
                             rb2p_node_navigator_except_node_end_t<allocator_element_t> *current = static_cast<rb2p_node_navigator_except_node_end_t<allocator_element_t> *>(static_cast<rb2p_node_navigator_all_t *>(this_->my_list_begin()));
-                            switch(current->role())
+                            switch (current->role())
                             {
                             case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
@@ -2110,48 +2075,58 @@ namespace augmented_containers
                 {
                     loop_t result;
                     std::array<int, 5> indexes;
-                    if constexpr(loop_type == loop_type_e::ancestor)
+                    if constexpr (loop_type == loop_type_e::ancestor)
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                            indexes = {{2, 3, 4, 0, 1}};
+                            indexes = {
+                                {2, 3, 4, 0, 1}
+                            };
                             break;
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                            indexes = {{3, 4, 0, 1, 2}};
+                            indexes = {
+                                {3, 4, 0, 1, 2}
+                            };
                             break;
                         default:
                             std::unreachable();
                             break;
                         }
                     }
-                    else if constexpr(loop_type == loop_type_e::parent)
+                    else if constexpr (loop_type == loop_type_e::parent)
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                            indexes = {{4, 0, 1, 2, 3}};
+                            indexes = {
+                                {4, 0, 1, 2, 3}
+                            };
                             break;
                         case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                         case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                            indexes = {{1, 2, 3, 4, 0}};
+                            indexes = {
+                                {1, 2, 3, 4, 0}
+                            };
                             break;
                         default:
                             std::unreachable();
                             break;
                         }
                     }
-                    else if constexpr(loop_type == loop_type_e::my_list)
+                    else if constexpr (loop_type == loop_type_e::my_list)
                     {
-                        switch(this_->role())
+                        switch (this_->role())
                         {
                         case rb2p_node_role_e::root:
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
                         case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                            indexes = {{0, 1, 2, 3, 4}};
+                            indexes = {
+                                {0, 1, 2, 3, 4}
+                            };
                             break;
                         default:
                             std::unreachable();
@@ -2161,11 +2136,11 @@ namespace augmented_containers
                     else std::unreachable();
                     std::tuple<int, rb2p_node_navigator_except_node_end_t<allocator_element_t> *> current_index_and_node = std::make_tuple(indexes[0], this_);
                     result.index = indexes[0];
-                    for(int index : indexes)
+                    for (int index : indexes)
                     {
-                        if(index == std::get<0>(current_index_and_node))
+                        if (index == std::get<0>(current_index_and_node))
                         {
-                            switch(std::get<0>(current_index_and_node))
+                            switch (std::get<0>(current_index_and_node))
                             {
                             case 0:
                                 result.this_ = std::get<1>(current_index_and_node);
@@ -2196,12 +2171,12 @@ namespace augmented_containers
                 }
             };
             template<typename allocator_element_t>
-            struct rb2p_node_navigator_except_node_end_t: rb2p_node_navigator_all_t<allocator_element_t>
+            struct rb2p_node_navigator_except_node_end_t : rb2p_node_navigator_all_t<allocator_element_t>
             {
                 rb2p_node_navigator_all_t<allocator_element_t> *next_ = nullptr;
             };
             template<typename config_t>
-            struct rb2p_node_end_t: rb2p_node_navigator_all_t<typename config_t::allocator_element_t>, rb2p_node_navigator_all_t<typename config_t::allocator_element_t>::template node_end_functions_t<rb2p_node_end_t<config_t>>, add_node_count_member_t<static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end>
+            struct rb2p_node_end_t : rb2p_node_navigator_all_t<typename config_t::allocator_element_t>, rb2p_node_navigator_all_t<typename config_t::allocator_element_t>::template node_end_functions_t<rb2p_node_end_t<config_t>>, add_node_count_member_t<static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end>
             {
                 rb2p_node_end_t()
                 {
@@ -2214,7 +2189,7 @@ namespace augmented_containers
                 typename config_t::accumulator_t accumulator;
             };
             template<typename config_t>
-            struct rb2p_node_t: rb2p_node_navigator_except_node_end_t<typename config_t::allocator_element_t>, add_accumulated_storage_member_t<typename config_t::pointer_element_t, typename config_t::accumulated_storage_t, rb2p_node_t<config_t>>, add_node_count_member_t<(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)>
+            struct rb2p_node_t : rb2p_node_navigator_except_node_end_t<typename config_t::allocator_element_t>, add_accumulated_storage_member_t<typename config_t::pointer_element_t, typename config_t::accumulated_storage_t, rb2p_node_t<config_t>>, add_node_count_member_t<(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)>
             {
                 alignas(typename config_t::element_t) std::byte element_buffer[sizeof(typename config_t::element_t)]; // element_t element;
                 typename config_t::const_pointer_element_t p_element() const { return std::pointer_traits<typename config_t::const_pointer_element_t>::pointer_to(*reinterpret_cast<typename config_t::element_t const *>(&element_buffer)); }
@@ -2281,9 +2256,9 @@ namespace augmented_containers
                 {
                     constexpr bool is_reversed = rb2p_iterator_t::is_reversed ^ is_reversed_predecessor;
 
-                    if constexpr(!is_reversed) // predecessor
+                    if constexpr (!is_reversed) // predecessor
                     {
-                        switch(node->role())
+                        switch (node->role())
                         {
                         case rb2p_node_role_e::end:
                             return tagged_ptr_bit0_unsetted(node->*p_child_left_all);
@@ -2296,43 +2271,47 @@ namespace augmented_containers
                             return node->parent();
                             break;
                         case rb2p_node_role_e::root:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            do
-                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            while(!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4 || std::get<0>(current_index_and_node) == 0));
-                            if(std::get<0>(current_index_and_node) != 0)
-                                return std::get<1>(current_index_and_node);
-                            else
-                                return tagged_ptr_bit0_unsetted(node->*p_child_left_all);
-                        } break;
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
+                                do
+                                    current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                while (!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4 || std::get<0>(current_index_and_node) == 0));
+                                if (std::get<0>(current_index_and_node) != 0)
+                                    return std::get<1>(current_index_and_node);
+                                else
+                                    return tagged_ptr_bit0_unsetted(node->*p_child_left_all);
+                            }
+                            break;
                         case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            do
-                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            while(!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4));
-                            return std::get<1>(current_index_and_node);
-                        } break;
-                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            do
-                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            while(!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4 || std::get<0>(current_index_and_node) == 0));
-                            if(std::get<0>(current_index_and_node) != 0)
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
+                                do
+                                    current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                while (!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4));
                                 return std::get<1>(current_index_and_node);
-                            else
-                                return node->parent();
-                        } break;
+                            }
+                            break;
+                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
+                                do
+                                    current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                while (!(std::get<0>(current_index_and_node) == 3 || std::get<0>(current_index_and_node) == 4 || std::get<0>(current_index_and_node) == 0));
+                                if (std::get<0>(current_index_and_node) != 0)
+                                    return std::get<1>(current_index_and_node);
+                                else
+                                    return node->parent();
+                            }
+                            break;
                         case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(2, static_cast<navigator_except_node_end_t *>(node));
-                            do
-                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            while(std::get<0>(current_index_and_node) != 0);
-                            return std::get<1>(current_index_and_node);
-                        } break;
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(2, static_cast<navigator_except_node_end_t *>(node));
+                                do
+                                    current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                while (std::get<0>(current_index_and_node) != 0);
+                                return std::get<1>(current_index_and_node);
+                            }
+                            break;
                         default:
                             std::unreachable();
                             break;
@@ -2340,7 +2319,7 @@ namespace augmented_containers
                     }
                     else // successor
                     {
-                        switch(node->role())
+                        switch (node->role())
                         {
                         case rb2p_node_role_e::end:
                             return tagged_ptr_bit0_unsetted(node->*p_child_right_all);
@@ -2353,78 +2332,85 @@ namespace augmented_containers
                             return node->parent();
                             break;
                         case rb2p_node_role_e::root:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            switch(std::get<0>(current_index_and_node))
                             {
-                            case 1:
-                            {
-                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                                if(std::get<0>(current_index_and_node2) == 2)
-                                    return std::get<1>(current_index_and_node2);
-                                else
-                                    return std::get<1>(current_index_and_node);
-                            } break;
-                            case 4:
-                            case 0:
-                                return tagged_ptr_bit0_unsetted(node->*p_child_right_all);
-                                break;
-                            default:
-                                std::unreachable();
-                                break;
-                            }
-                        } break;
-                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            switch(std::get<0>(current_index_and_node))
-                            {
-                            case 1:
-                            {
-                                std::tuple<int, navigator_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                                if(std::get<0>(current_index_and_node2) == 2)
-                                    return std::get<1>(current_index_and_node2);
-                                else
-                                    return std::get<1>(current_index_and_node);
-                            } break;
-                            default:
-                                std::unreachable();
-                                break;
-                            }
-                        } break;
-                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
-                            current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            switch(std::get<0>(current_index_and_node))
-                            {
-                            case 1:
-                            {
-                                std::tuple<int, navigator_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                                if(std::get<0>(current_index_and_node2) == 2)
-                                    return std::get<1>(current_index_and_node2);
-                                else
-                                    return std::get<1>(current_index_and_node);
-                            } break;
-                            case 4:
-                            case 0:
-                                return node->parent();
-                                break;
-                            default:
-                                std::unreachable();
-                                break;
-                            }
-                        } break;
-                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
-                        {
-                            std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(3, static_cast<navigator_except_node_end_t *>(node));
-                            do
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
                                 current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
-                            while(std::get<0>(current_index_and_node) != 0);
-                            return std::get<1>(current_index_and_node);
-                        } break;
+                                switch (std::get<0>(current_index_and_node))
+                                {
+                                case 1:
+                                    {
+                                        std::tuple<int, navigator_except_node_end_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                        if (std::get<0>(current_index_and_node2) == 2)
+                                            return std::get<1>(current_index_and_node2);
+                                        else
+                                            return std::get<1>(current_index_and_node);
+                                    }
+                                    break;
+                                case 4:
+                                case 0:
+                                    return tagged_ptr_bit0_unsetted(node->*p_child_right_all);
+                                    break;
+                                default:
+                                    std::unreachable();
+                                    break;
+                                }
+                            }
+                            break;
+                        case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
+                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                switch (std::get<0>(current_index_and_node))
+                                {
+                                case 1:
+                                    {
+                                        std::tuple<int, navigator_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                        if (std::get<0>(current_index_and_node2) == 2)
+                                            return std::get<1>(current_index_and_node2);
+                                        else
+                                            return std::get<1>(current_index_and_node);
+                                    }
+                                    break;
+                                default:
+                                    std::unreachable();
+                                    break;
+                                }
+                            }
+                            break;
+                        case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(0, static_cast<navigator_except_node_end_t *>(node));
+                                current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                switch (std::get<0>(current_index_and_node))
+                                {
+                                case 1:
+                                    {
+                                        std::tuple<int, navigator_t *> current_index_and_node2 = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                        if (std::get<0>(current_index_and_node2) == 2)
+                                            return std::get<1>(current_index_and_node2);
+                                        else
+                                            return std::get<1>(current_index_and_node);
+                                    }
+                                    break;
+                                case 4:
+                                case 0:
+                                    return node->parent();
+                                    break;
+                                default:
+                                    std::unreachable();
+                                    break;
+                                }
+                            }
+                            break;
+                        case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
+                            {
+                                std::tuple<int, navigator_except_node_end_t *> current_index_and_node = std::make_tuple(3, static_cast<navigator_except_node_end_t *>(node));
+                                do
+                                    current_index_and_node = std::apply(navigator_t::get_loop_next, current_index_and_node);
+                                while (std::get<0>(current_index_and_node) != 0);
+                                return std::get<1>(current_index_and_node);
+                            }
+                            break;
                         default:
                             std::unreachable();
                             break;
@@ -2433,9 +2419,7 @@ namespace augmented_containers
                 }
 
                 navigator_t *current_node = nullptr;
-                rb2p_iterator_t(navigator_t *current_node)
-                    : current_node(current_node)
-                {}
+                rb2p_iterator_t(navigator_t *current_node) : current_node(current_node) {}
                 bool is_end() const
                 {
                     assert(current_node != nullptr);
@@ -2446,12 +2430,8 @@ namespace augmented_containers
                 using const_iterator_t = rb2p_iterator_t<true, is_reversed, config_t>;
                 non_const_iterator_t to_non_const() const { return {current_node}; }
                 const_iterator_t to_const() const { return {current_node}; }
-                rb2p_iterator_t(non_const_iterator_t const &rhs)
-                    requires(is_const) // https://quuxplusone.github.io/blog/2018/12/01/const-iterator-antipatterns/
-                    : current_node(rhs.current_node)
-                {}
-                const_iterator_t &operator=(non_const_iterator_t const &rhs) &
-                        requires(is_const)
+                rb2p_iterator_t(non_const_iterator_t const &rhs) requires (is_const) : current_node(rhs.current_node) {} // https://quuxplusone.github.io/blog/2018/12/01/const-iterator-antipatterns/
+                const_iterator_t &operator=(non_const_iterator_t const &rhs) & requires (is_const)
                 {
                     current_node = rhs.current_node;
                     return *this;
@@ -2501,15 +2481,13 @@ namespace augmented_containers
 #endif
                 }
 
-                pointer_accumulated_storage_t to_pointer_accumulated_storage() const &
-                    requires(!std::is_same_v<accumulated_storage_t, void>)
+                pointer_accumulated_storage_t to_pointer_accumulated_storage() const & requires (!std::is_same_v<accumulated_storage_t, void>)
                 {
                     assert(current_node != nullptr);
                     assert(current_node->role() != rb2p_node_role_e::end);
                     return std::pointer_traits<pointer_accumulated_storage_t>::pointer_to(conditional_as_const<is_const>(*static_cast<node_t *>(std::to_address(current_node))->p_accumulated_storage()));
                 }
-                static rb2p_iterator_t from_accumulated_storage_pointer(pointer_accumulated_storage_t ptr)
-                    requires(!std::is_same_v<accumulated_storage_t, void>)
+                static rb2p_iterator_t from_accumulated_storage_pointer(pointer_accumulated_storage_t ptr) requires (!std::is_same_v<accumulated_storage_t, void>)
                 {
 #ifdef __clang__
     #pragma clang diagnostic push
@@ -2522,31 +2500,18 @@ namespace augmented_containers
                 }
 
                 // std::forward_iterator / std::sentinel_for / __WeaklyEqualityComparableWith, std::forward_iterator / std::incrementable / std::regular
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(is_const)
+                template<std::bool_constant<is_const> * = nullptr> requires (is_const)
                 friend bool operator==(const_iterator_t const &lhs, const_iterator_t const &rhs)
                 {
                     assert((lhs.current_node != nullptr) == (rhs.current_node != nullptr));
                     return lhs.current_node == rhs.current_node;
                 }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(!is_const)
-                friend bool operator==(const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs == rhs.to_const();
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(!is_const)
-                friend bool operator==(non_const_iterator_t const &lhs, const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() == rhs;
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(!is_const)
-                friend bool operator==(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() == rhs.to_const();
-                }
+                template<std::bool_constant<is_const> * = nullptr> requires (!is_const)
+                friend bool operator==(const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs == rhs.to_const(); }
+                template<std::bool_constant<is_const> * = nullptr> requires (!is_const)
+                friend bool operator==(non_const_iterator_t const &lhs, const_iterator_t const &rhs) { return lhs.to_const() == rhs; }
+                template<std::bool_constant<is_const> * = nullptr> requires (!is_const)
+                friend bool operator==(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs.to_const() == rhs.to_const(); }
                 friend bool operator==(rb2p_iterator_t const &lhs, [[maybe_unused]] std::default_sentinel_t const &rhs)
                 {
                     assert(lhs.current_node != nullptr);
@@ -2568,39 +2533,37 @@ namespace augmented_containers
                 }
 
                 static constexpr bool support_random_access = static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end;
-                static std::size_t size_from_node_end(node_end_t *node_end)
-                    requires(support_random_access)
+                static std::size_t size_from_node_end(node_end_t *node_end) requires (support_random_access)
                 {
-                    if(node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end))
+                    if (node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end))
                         return 0;
                     else
                         return static_cast<node_t *>(tagged_ptr_bit0_unsetted(node_end->parent_all()))->node_count;
                 }
 
                 // std::random_access_iterator / std::totally_ordered / __PartiallyOrderedWith
-                std::tuple<std::size_t, std::size_t> index_impl() const &
-                    requires(support_random_access)
+                std::tuple<std::size_t, std::size_t> index_impl() const & requires (support_random_access)
                 {
                     assert(current_node != nullptr);
-                    if(current_node->role() == rb2p_node_role_e::end)
+                    if (current_node->role() == rb2p_node_role_e::end)
                         return std::make_tuple(size_from_node_end(static_cast<node_end_t *>(current_node)), size_from_node_end(static_cast<node_end_t *>(current_node)));
                     else
                     {
                         navigator_t *current_node = this->current_node;
                         std::size_t current_index = 0;
-                        while(true)
+                        while (true)
                         {
-                            if(current_node->*p_child_left != nullptr)
+                            if (current_node->*p_child_left != nullptr)
                                 current_index += static_cast<node_t *>(static_cast<navigator_t *>(current_node->*p_child_left))->node_count;
-                            while(true)
+                            while (true)
                             {
                                 typename navigator_t::template parent_info_t<is_reversed> parent_info(current_node);
-                                if(parent_info.is_end())
+                                if (parent_info.is_end())
                                     goto reached_root;
                                 else
                                 {
                                     current_node = parent_info.parent;
-                                    if(parent_info.is_left_or_right_child_of_parent)
+                                    if (parent_info.is_left_or_right_child_of_parent)
                                     {
                                         ++current_index;
                                         break;
@@ -2608,108 +2571,77 @@ namespace augmented_containers
                                 }
                             }
                         }
-                    reached_root:;
+reached_root:;
                         return std::make_tuple(current_index, static_cast<node_t *>(current_node)->node_count);
                     }
                 }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && is_const)
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && is_const)
                 friend std::strong_ordering operator<=>(const_iterator_t const &lhs, const_iterator_t const &rhs)
                 {
                     return std::get<0>(lhs.index_impl()) <=> std::get<0>(rhs.index_impl());
                 }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::strong_ordering operator<=>(const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs <=> rhs.to_const();
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::strong_ordering operator<=>(non_const_iterator_t const &lhs, const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() <=> rhs;
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::strong_ordering operator<=>(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() <=> rhs.to_const();
-                }
-                friend std::strong_ordering operator<=>(rb2p_iterator_t const &lhs, [[maybe_unused]] std::default_sentinel_t const &rhs)
-                    requires(support_random_access)
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::strong_ordering operator<=>(const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs <=> rhs.to_const(); }
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::strong_ordering operator<=>(non_const_iterator_t const &lhs, const_iterator_t const &rhs) { return lhs.to_const() <=> rhs; }
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::strong_ordering operator<=>(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs.to_const() <=> rhs.to_const(); }
+                friend std::strong_ordering operator<=>(rb2p_iterator_t const &lhs, [[maybe_unused]] std::default_sentinel_t const &rhs) requires (support_random_access)
                 {
                     assert(lhs.current_node != nullptr);
-                    if(lhs.current_node->role() == rb2p_node_role_e::end)
+                    if (lhs.current_node->role() == rb2p_node_role_e::end)
                         return std::strong_ordering::equal;
                     else
                         return std::strong_ordering::less;
                 }
-                std::size_t index() const &
-                    requires(support_random_access)
+                std::size_t index() const & requires (support_random_access)
                 {
                     assert(current_node != nullptr);
                     return std::get<0>(index_impl());
                 }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && is_const)
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && is_const)
                 friend std::ptrdiff_t operator-(const_iterator_t const &lhs, const_iterator_t const &rhs)
                 {
                     assert(lhs.current_node != nullptr);
                     assert(rhs.current_node != nullptr);
                     return static_cast<std::ptrdiff_t>(std::get<0>(lhs.index_impl())) - static_cast<std::ptrdiff_t>(std::get<0>(rhs.index_impl()));
                 }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::ptrdiff_t operator-(const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs - rhs.to_const();
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::ptrdiff_t operator-(non_const_iterator_t const &lhs, const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() - rhs;
-                }
-                template<std::bool_constant<is_const> * = nullptr>
-                    requires(support_random_access && !is_const)
-                friend std::ptrdiff_t operator-(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs)
-                {
-                    return lhs.to_const() - rhs.to_const();
-                }
-                friend std::ptrdiff_t operator-([[maybe_unused]] std::default_sentinel_t const &lhs, rb2p_iterator_t const &rhs)
-                    requires(support_random_access)
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::ptrdiff_t operator-(const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs - rhs.to_const(); }
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::ptrdiff_t operator-(non_const_iterator_t const &lhs, const_iterator_t const &rhs) { return lhs.to_const() - rhs; }
+                template<std::bool_constant<is_const> * = nullptr> requires (support_random_access && !is_const)
+                friend std::ptrdiff_t operator-(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs.to_const() - rhs.to_const(); }
+                friend std::ptrdiff_t operator-([[maybe_unused]] std::default_sentinel_t const &lhs, rb2p_iterator_t const &rhs) requires (support_random_access)
                 {
                     assert(rhs.current_list_node != nullptr);
                     auto [index, size] = rhs.index_impl();
                     return static_cast<std::ptrdiff_t>(size) - static_cast<std::ptrdiff_t>(index);
                 }
-                friend std::ptrdiff_t operator-(rb2p_iterator_t const &lhs, [[maybe_unused]] std::default_sentinel_t const &rhs)
-                    requires(support_random_access)
+                friend std::ptrdiff_t operator-(rb2p_iterator_t const &lhs, [[maybe_unused]] std::default_sentinel_t const &rhs) requires (support_random_access)
                 {
                     return -(rhs - lhs);
                 }
 
                 // std::random_access_iterator
                 template<bool is_reversed_move_impl>
-                    void move_impl(std::size_t distance) &
-                        requires(support_random_access)
+                void move_impl(std::size_t distance) & requires (support_random_access)
                 {
                     constexpr bool is_reversed = rb2p_iterator_t::is_reversed ^ is_reversed_move_impl;
 
                     static constexpr typename navigator_t::p_child_left_or_right_except_node_end_t p_child_left = navigator_t::p_child_left_or_right_except_node_end_t::template make_p_child_left_or_right<is_reversed>(false), p_child_right = navigator_t::p_child_left_or_right_except_node_end_t::template make_p_child_left_or_right<is_reversed>(true);
 
                     assert(distance != 0);
-                    auto find_in_tree = [](auto &this_, navigator_t *root, std::size_t index) -> navigator_t *
+                    auto find_in_tree = [](auto &this_, navigator_t *root, std::size_t index) -> navigator_t * //
                     {
-                        if(root->*p_child_left != nullptr)
+                        if (root->*p_child_left != nullptr)
                         {
-                            if(index < static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count)
+                            if (index < static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count)
                                 return this_(this_, root->*p_child_left, index);
                             else
                                 index -= static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count;
 
-                            if(index == 0)
+                            if (index == 0)
                                 return root;
                             else
                                 --index;
@@ -2719,7 +2651,7 @@ namespace augmented_containers
                         }
                         else
                         {
-                            if(index == 0)
+                            if (index == 0)
                                 return root;
                             else
                                 --index;
@@ -2728,12 +2660,12 @@ namespace augmented_containers
                             return this_(this_, root->*p_child_right, index);
                         }
                     };
-                    while(true)
+                    while (true)
                     {
                         --distance;
-                        if(current_node->*p_child_right != nullptr)
+                        if (current_node->*p_child_right != nullptr)
                         {
-                            if(distance < static_cast<node_t *>(static_cast<navigator_t *>(current_node->*p_child_right))->node_count)
+                            if (distance < static_cast<node_t *>(static_cast<navigator_t *>(current_node->*p_child_right))->node_count)
                             {
                                 current_node = find_in_tree(find_in_tree, current_node->*p_child_right, distance);
                                 return;
@@ -2741,13 +2673,13 @@ namespace augmented_containers
                             else
                                 distance -= static_cast<node_t *>(static_cast<navigator_t *>(current_node->*p_child_right))->node_count;
                         }
-                        while(true)
+                        while (true)
                         {
                             typename navigator_t::template parent_info_t<is_reversed> parent_info(current_node);
-                            if(parent_info.is_end())
+                            if (parent_info.is_end())
                             {
                                 distance %= size_from_node_end(static_cast<node_end_t *>(tagged_ptr_bit0_unsetted(parent_info.parent))) + 1;
-                                if(distance == 0)
+                                if (distance == 0)
                                     current_node = tagged_ptr_bit0_unsetted(parent_info.parent);
                                 else
                                     current_node = find_in_tree(find_in_tree, current_node, distance - 1);
@@ -2756,35 +2688,34 @@ namespace augmented_containers
                             else
                             {
                                 current_node = parent_info.parent;
-                                if(!parent_info.is_left_or_right_child_of_parent)
+                                if (!parent_info.is_left_or_right_child_of_parent)
                                     break;
                             }
                         }
-                        if(distance == 0)
+                        if (distance == 0)
                             return;
                     }
                 }
-                rb2p_iterator_t &operator+=(std::ptrdiff_t offset) &
-                        requires(support_random_access)
+                rb2p_iterator_t &operator+=(std::ptrdiff_t offset) & requires (support_random_access)
                 {
                     assert(current_node != nullptr);
-                    if(offset == 0)
+                    if (offset == 0)
                         ;
                     else
                     {
-                        if(current_node->role() == rb2p_node_role_e::end)
+                        if (current_node->role() == rb2p_node_role_e::end)
                         {
                             offset %= static_cast<std::ptrdiff_t>(size_from_node_end(static_cast<node_end_t *>(current_node))) + 1;
-                            auto find_in_tree = [](auto &this_, navigator_t *root, std::size_t index) -> navigator_t *
+                            auto find_in_tree = [](auto &this_, navigator_t *root, std::size_t index) -> navigator_t * //
                             {
-                                if(root->*p_child_left != nullptr)
+                                if (root->*p_child_left != nullptr)
                                 {
-                                    if(index < static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count)
+                                    if (index < static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count)
                                         return this_(this_, root->*p_child_left, index);
                                     else
                                         index -= static_cast<node_t *>(static_cast<navigator_t *>(root->*p_child_left))->node_count;
 
-                                    if(index == 0)
+                                    if (index == 0)
                                         return root;
                                     else
                                         --index;
@@ -2794,7 +2725,7 @@ namespace augmented_containers
                                 }
                                 else
                                 {
-                                    if(index == 0)
+                                    if (index == 0)
                                         return root;
                                     else
                                         --index;
@@ -2803,13 +2734,13 @@ namespace augmented_containers
                                     return this_(this_, root->*p_child_right, index);
                                 }
                             };
-                            if(offset == 0)
+                            if (offset == 0)
                                 ;
-                            else if(offset > 0)
+                            else if (offset > 0)
                             {
                                 current_node = find_in_tree(find_in_tree, tagged_ptr_bit0_unsetted(current_node->parent_all()), offset - 1);
                             }
-                            else if(offset < 0)
+                            else if (offset < 0)
                             {
                                 current_node = find_in_tree(find_in_tree, tagged_ptr_bit0_unsetted(current_node->parent_all()), offset + (static_cast<std::ptrdiff_t>(size_from_node_end(static_cast<node_end_t *>(current_node))) + 1) - 1);
                             }
@@ -2817,41 +2748,36 @@ namespace augmented_containers
                         }
                         else
                         {
-                            if(offset == 0)
+                            if (offset == 0)
                                 ;
-                            else if(offset > 0)
+                            else if (offset > 0)
                                 move_impl<false>(offset);
-                            else if(offset < 0)
+                            else if (offset < 0)
                                 move_impl<true>(-offset);
                             else std::unreachable();
                         }
                     }
                     return *this;
                 }
-                rb2p_iterator_t &operator-=(std::ptrdiff_t offset) &
-                        requires(support_random_access)
+                rb2p_iterator_t &operator-=(std::ptrdiff_t offset) & requires (support_random_access)
                 {
                     return operator+=(-offset);
                 }
-                rb2p_iterator_t operator+(std::ptrdiff_t offset) const &
-                    requires(support_random_access)
+                rb2p_iterator_t operator+(std::ptrdiff_t offset) const & requires (support_random_access)
                 {
                     rb2p_iterator_t temp = *this;
                     temp += offset;
                     return temp;
                 }
-                rb2p_iterator_t operator-(std::ptrdiff_t offset) const &
-                    requires(support_random_access)
+                rb2p_iterator_t operator-(std::ptrdiff_t offset) const & requires (support_random_access)
                 {
                     return operator+(-offset);
                 }
-                friend rb2p_iterator_t operator+(std::ptrdiff_t offset, rb2p_iterator_t const &this_)
-                    requires(support_random_access)
+                friend rb2p_iterator_t operator+(std::ptrdiff_t offset, rb2p_iterator_t const &this_) requires (support_random_access)
                 {
                     return *this_ + offset;
                 }
-                reference operator[](std::ptrdiff_t offset) const &
-                    requires(support_random_access)
+                reference operator[](std::ptrdiff_t offset) const & requires (support_random_access)
                 {
                     return *(*this + offset);
                 }
@@ -2874,38 +2800,37 @@ namespace augmented_containers
                 using node_end_t = rb2p_node_end_t<config_t>;
                 using node_t = rb2p_node_t<config_t>;
 
-                static constexpr bool uses_siblings = []() consteval->bool
+                static constexpr bool uses_siblings = []() consteval -> bool //
                 {
-                    if constexpr(requires { std::convertible_to<decltype(accumulator_t::uses_siblings), bool>; })
+                    if constexpr (requires { std::convertible_to<decltype(accumulator_t::uses_siblings), bool>; })
                         return accumulator_t::uses_siblings;
                     return false;
-                }
-                ();
+                }();
 
                 static constexpr typename navigator_t::p_child_left_or_right_all_t p_child_left_all = navigator_t::p_child_left_or_right_all_t::template make_p_child_left_or_right<is_reversed>(false), p_child_right_all = navigator_t::p_child_left_or_right_all_t::template make_p_child_left_or_right<is_reversed>(true);
                 static constexpr typename navigator_t::p_child_left_or_right_except_node_end_t p_child_left = navigator_t::p_child_left_or_right_except_node_end_t::template make_p_child_left_or_right<is_reversed>(false), p_child_right = navigator_t::p_child_left_or_right_except_node_end_t::template make_p_child_left_or_right<is_reversed>(true);
 
                 static bool empty(node_end_t *node_end)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                         return node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end);
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         return node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end);
                     //                        return node_end->node_count == 0;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                         return node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end);
                     else
                         std::unreachable();
                 }
                 static std::size_t size(node_end_t *node_end)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                         return std::ranges::distance(std::ranges::next(rb2p_iterator_t<false, false, config_t>(node_end)), rb2p_iterator_t<false, false, config_t>(node_end));
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         return node_end->node_count;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                     {
-                        if(node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end))
+                        if (node_end->my_list_begin() == tagged_ptr_bit0_setted(node_end))
                             return 0;
                         else
                         {
@@ -2918,18 +2843,18 @@ namespace augmented_containers
                 }
                 static bool one_provided_not_empty(node_end_t *node_end)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                     {
                         assert(node_end->my_list_begin() != tagged_ptr_bit0_setted(node_end));
                         navigator_t *root = tagged_ptr_bit0_unsetted(node_end->parent_all());
                         return root->my_list_begin() == tagged_ptr_bit0_setted(root);
                     }
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                     {
                         assert(node_end->node_count != 0);
                         return node_end->node_count == 1;
                     }
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                     {
                         assert(node_end->my_list_begin() != tagged_ptr_bit0_setted(node_end));
                         node_t *root = static_cast<node_t *>(tagged_ptr_bit0_unsetted(node_end->parent_all()));
@@ -2962,38 +2887,31 @@ namespace augmented_containers
 
                 static void refresh_node_count(navigator_except_node_end_t *node)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                         static_cast<node_t *>(node)->node_count = (node->child_left() != nullptr ? static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->node_count : 0) + 1 + (node->child_right() != nullptr ? static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->node_count : 0);
                 }
                 static void refresh_accumulated_storage(accumulator_t const &accumulator, navigator_except_node_end_t *node)
                 {
-                    if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    if constexpr (!std::is_same_v<accumulated_storage_t, void>)
                     {
-                        auto get_left_operand = [&](auto return_accumulated_tuple)
-                        { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
+                        auto get_left_operand = [&](auto return_accumulated_tuple) //
+                        { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void //
                           {
-                              if(node->child_left() == nullptr)
+                              if (node->child_left() == nullptr)
                                   return_accumulated_tuple(accumulated_tuple_so_far);
                               else
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage()))));
                           }; };
-                        auto get_middle_operand = [&](auto return_accumulated_tuple)
-                        { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
+                        auto get_middle_operand = [&](auto return_accumulated_tuple) { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void { return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*static_cast<node_t *>(node)->p_element())))); }; };
+                        auto get_right_operand = [&](auto return_accumulated_tuple) //
+                        { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void //
                           {
-                              return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*static_cast<node_t *>(node)->p_element()))));
-                          }; };
-                        auto get_right_operand = [&](auto return_accumulated_tuple)
-                        { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> void
-                          {
-                              if(node->child_right() == nullptr)
+                              if (node->child_right() == nullptr)
                                   return_accumulated_tuple(accumulated_tuple_so_far);
                               else
                                   return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->p_accumulated_storage()))));
                           }; };
-                        auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far)
-                        {
-                            accumulator.update_accumulated_storage(*static_cast<node_t *>(node)->p_accumulated_storage(), accumulated_tuple_so_far);
-                        };
+                        auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far) { accumulator.update_accumulated_storage(*static_cast<node_t *>(node)->p_accumulated_storage(), accumulated_tuple_so_far); };
                         get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                     }
                 }
@@ -3004,17 +2922,17 @@ namespace augmented_containers
                 }
                 static void refresh_node_count_and_accumulated_storage(schedules_t &schedules, accumulator_t const &accumulator, navigator_except_node_end_t *node)
                 {
-                    if constexpr(uses_siblings)
+                    if constexpr (uses_siblings)
                         schedules.push_back(refresh_node_count_and_accumulated_storage_schedule_t{.node = node});
                     else
                         refresh_node_count_and_accumulated_storage_impl(accumulator, node);
                 }
                 static void refresh_accumulated_storage_and_above(accumulator_t const &accumulator, navigator_except_node_end_t *node)
                 {
-                    if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    if constexpr (!std::is_same_v<accumulated_storage_t, void>)
                     {
                         refresh_accumulated_storage(accumulator, node);
-                        while(node->role() != rb2p_node_role_e::root)
+                        while (node->role() != rb2p_node_role_e::root)
                         {
                             node = node->parent();
                             refresh_accumulated_storage(accumulator, node);
@@ -3023,10 +2941,10 @@ namespace augmented_containers
                 }
                 static void refresh_node_count_and_accumulated_storage_and_above_impl(accumulator_t const &accumulator, navigator_except_node_end_t *node)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end || !std::is_same_v<accumulated_storage_t, void>)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end || !std::is_same_v<accumulated_storage_t, void>)
                     {
                         refresh_node_count_and_accumulated_storage_impl(accumulator, node);
-                        while(node->role() != rb2p_node_role_e::root)
+                        while (node->role() != rb2p_node_role_e::root)
                         {
                             node = node->parent();
                             refresh_node_count_and_accumulated_storage_impl(accumulator, node);
@@ -3035,20 +2953,20 @@ namespace augmented_containers
                 }
                 static void refresh_node_count_and_accumulated_storage_and_above(schedules_t &schedules, accumulator_t const &accumulator, navigator_except_node_end_t *node)
                 {
-                    if constexpr(uses_siblings)
+                    if constexpr (uses_siblings)
                         schedules.push_back(refresh_node_count_and_accumulated_storage_and_above_schedule_t{.node = node});
                     else
                         refresh_node_count_and_accumulated_storage_and_above_impl(accumulator, node);
                 }
                 static void refresh_node_count_and_accumulated_storage_and_above_until_impl(accumulator_t const &accumulator, navigator_except_node_end_t *node, navigator_except_node_end_t *node_end)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end || !std::is_same_v<accumulated_storage_t, void>)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end || !std::is_same_v<accumulated_storage_t, void>)
                     {
                         refresh_node_count_and_accumulated_storage_impl(accumulator, node);
-                        while(node->role() != rb2p_node_role_e::root)
+                        while (node->role() != rb2p_node_role_e::root)
                         {
                             node = node->parent();
-                            if(node == node_end)
+                            if (node == node_end)
                                 break;
                             refresh_node_count_and_accumulated_storage_impl(accumulator, node);
                         }
@@ -3056,7 +2974,7 @@ namespace augmented_containers
                 }
                 static void refresh_node_count_and_accumulated_storage_and_above_until(schedules_t &schedules, accumulator_t const &accumulator, navigator_except_node_end_t *node, navigator_except_node_end_t *node_end)
                 {
-                    if constexpr(uses_siblings)
+                    if constexpr (uses_siblings)
                         schedules.push_back(refresh_node_count_and_accumulated_storage_and_above_until_schedule_t{.node = node, .node_end = node_end});
                     else
                         refresh_node_count_and_accumulated_storage_and_above_until_impl(accumulator, node, node_end);
@@ -3064,9 +2982,9 @@ namespace augmented_containers
                 template<bool from_left_to_right_or_from_right_to_left>
                 static void move_node_count_and_accumulated_storage_impl(accumulator_t const &accumulator, navigator_except_node_end_t *node_left, navigator_except_node_end_t *node_right)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                     {
-                        if constexpr(!from_left_to_right_or_from_right_to_left)
+                        if constexpr (!from_left_to_right_or_from_right_to_left)
                         {
                             static_cast<node_t *>(node_left)->node_count = 1;
                             static_cast<node_t *>(node_right)->node_count = 2;
@@ -3077,9 +2995,9 @@ namespace augmented_containers
                             static_cast<node_t *>(node_left)->node_count = 2;
                         }
                     }
-                    if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+                    if constexpr (!std::is_same_v<accumulated_storage_t, void>)
                     {
-                        if constexpr(!from_left_to_right_or_from_right_to_left)
+                        if constexpr (!from_left_to_right_or_from_right_to_left)
                         {
                             refresh_accumulated_storage(accumulator, node_left);
                             refresh_accumulated_storage(accumulator, node_right);
@@ -3094,7 +3012,7 @@ namespace augmented_containers
                 template<bool from_left_to_right_or_from_right_to_left>
                 static void move_node_count_and_accumulated_storage(schedules_t &schedules, accumulator_t const &accumulator, navigator_except_node_end_t *node_left, navigator_except_node_end_t *node_right)
                 {
-                    if constexpr(uses_siblings)
+                    if constexpr (uses_siblings)
                         schedules.push_back(move_node_count_and_accumulated_storage_schedule_t<from_left_to_right_or_from_right_to_left>{.node_left = node_left, .node_right = node_right});
                     else
                         move_node_count_and_accumulated_storage_impl<from_left_to_right_or_from_right_to_left>(accumulator, node_left, node_right);
@@ -3102,23 +3020,23 @@ namespace augmented_containers
 
                 static void run_schedules(schedules_t &schedules, accumulator_t const &accumulator)
                 {
-                    if constexpr(uses_siblings)
+                    if constexpr (uses_siblings)
                     {
-                        for(auto &schedule : schedules)
+                        for (auto &schedule : schedules)
                         {
-                            std::visit([&]<typename schedule_t>(schedule_t &schedule) -> void
-                                {
-                                   if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_schedule_t>)
-                                       refresh_node_count_and_accumulated_storage_impl(accumulator,schedule.node);
-                                   else if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_and_above_schedule_t>)
-                                       refresh_node_count_and_accumulated_storage_and_above_impl(accumulator,schedule.node);
-                                   else if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_and_above_until_schedule_t>)
-                                       refresh_node_count_and_accumulated_storage_and_above_until_impl(accumulator,schedule.node,schedule.node_end);
-                                   else if constexpr(std::is_same_v<schedule_t,move_node_count_and_accumulated_storage_schedule_t<false>>)
-                                       move_node_count_and_accumulated_storage_impl<false>(accumulator,schedule.node_left,schedule.node_right);
-                                   else if constexpr(std::is_same_v<schedule_t,move_node_count_and_accumulated_storage_schedule_t<true>>)
-                                       move_node_count_and_accumulated_storage_impl<true>(accumulator,schedule.node_left,schedule.node_right); },
-                                schedule);
+                            std::visit([&]<typename schedule_t>(schedule_t &schedule) -> void //
+                                       {
+                                           if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_schedule_t>)
+                                               refresh_node_count_and_accumulated_storage_impl(accumulator,schedule.node);
+                                           else if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_and_above_schedule_t>)
+                                               refresh_node_count_and_accumulated_storage_and_above_impl(accumulator,schedule.node);
+                                           else if constexpr(std::is_same_v<schedule_t,refresh_node_count_and_accumulated_storage_and_above_until_schedule_t>)
+                                               refresh_node_count_and_accumulated_storage_and_above_until_impl(accumulator,schedule.node,schedule.node_end);
+                                           else if constexpr(std::is_same_v<schedule_t,move_node_count_and_accumulated_storage_schedule_t<false>>)
+                                               move_node_count_and_accumulated_storage_impl<false>(accumulator,schedule.node_left,schedule.node_right);
+                                           else if constexpr(std::is_same_v<schedule_t,move_node_count_and_accumulated_storage_schedule_t<true>>)
+                                               move_node_count_and_accumulated_storage_impl<true>(accumulator,schedule.node_left,schedule.node_right); },
+                                       schedule);
                         }
                     }
                 }
@@ -3130,12 +3048,12 @@ namespace augmented_containers
                     typename navigator_t::template parent_info_t<is_reversed> center_key_parent_info;
                     std::optional<navigator_except_node_end_t *> opt_child_at(int index /* -3 / -1 / 1 / 3 */)
                     {
-                        if(index == -3)
+                        if (index == -3)
                         {
-                            if(!std::get<0>(keys).has_value()) return std::nullopt;
+                            if (!std::get<0>(keys).has_value()) return std::nullopt;
                             else
                             {
-                                if(/*std::get<0>(keys).value()->*p_child_left == nullptr*/ std::get<0>(keys).value()->*p_child_left_all == nullptr)
+                                if (/*std::get<0>(keys).value()->*p_child_left == nullptr*/ std::get<0>(keys).value()->*p_child_left_all == nullptr)
                                 {
                                     assert(!tagged_ptr_bit0_is_setted(std::get<0>(keys).value()->*p_child_left_all));
                                     return std::nullopt;
@@ -3143,26 +3061,26 @@ namespace augmented_containers
                                 else return std::get<0>(keys).value()->*p_child_left;
                             }
                         }
-                        else if(index == -1)
+                        else if (index == -1)
                         {
-                            if(!std::get<0>(keys).has_value())
+                            if (!std::get<0>(keys).has_value())
                                 return std::get<1>(keys)->*p_child_left;
                             else
                                 return std::get<0>(keys).value()->*p_child_right;
                         }
-                        else if(index == 1)
+                        else if (index == 1)
                         {
-                            if(!std::get<2>(keys).has_value())
+                            if (!std::get<2>(keys).has_value())
                                 return std::get<1>(keys)->*p_child_right;
                             else
                                 return std::get<2>(keys).value()->*p_child_left;
                         }
-                        else if(index == 3)
+                        else if (index == 3)
                         {
-                            if(!std::get<2>(keys).has_value()) return std::nullopt;
+                            if (!std::get<2>(keys).has_value()) return std::nullopt;
                             else
                             {
-                                if(/*std::get<2>(keys).value()->*p_child_right == nullptr*/ std::get<2>(keys).value()->*p_child_right_all == nullptr)
+                                if (/*std::get<2>(keys).value()->*p_child_right == nullptr*/ std::get<2>(keys).value()->*p_child_right_all == nullptr)
                                 {
                                     assert(!tagged_ptr_bit0_is_setted(std::get<2>(keys).value()->*p_child_right_all));
                                     return std::nullopt;
@@ -3174,27 +3092,27 @@ namespace augmented_containers
                     }
                     navigator_except_node_end_t *key_at(int index /* -2 / 0 / 2 */)
                     {
-                        if(index == -2)
+                        if (index == -2)
                             return std::get<0>(keys).value();
-                        else if(index == 0)
+                        else if (index == 0)
                             return std::get<1>(keys);
-                        else if(index == 2)
+                        else if (index == 2)
                             return std::get<2>(keys).value();
                         else std::unreachable();
                     }
                 };
-                struct bnode_up_t: bnode_t
+                struct bnode_up_t : bnode_t
                 {
                     int child_index; // inserting, -3 / -1 / 1 / 3
                     static bnode_up_t get_bnode_from_key(navigator_except_node_end_t *key, bool child_is_left_or_right_child_of_key)
                     {
                         bnode_up_t bnode;
-                        if(!key->color()) // black
+                        if (!key->color()) // black
                         {
-                            if(key->*p_child_left == nullptr || !(key->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                            if (key->*p_child_left == nullptr || !(key->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                             else std::get<0>(bnode.keys) = key->*p_child_left;
                             std::get<1>(bnode.keys) = key;
-                            if(key->*p_child_right == nullptr || !(key->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                            if (key->*p_child_right == nullptr || !(key->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                             else std::get<2>(bnode.keys) = key->*p_child_right;
 
                             bnode.child_index = !child_is_left_or_right_child_of_key ? -1 : 1;
@@ -3203,17 +3121,17 @@ namespace augmented_containers
                         {
                             typename navigator_t::template parent_info_t<is_reversed> key_red_parent_info(key);
                             navigator_except_node_end_t *key_black = std::get<1>(bnode.keys) = static_cast<navigator_except_node_end_t *>(key_red_parent_info.parent);
-                            if(!key_red_parent_info.is_left_or_right_child_of_parent)
+                            if (!key_red_parent_info.is_left_or_right_child_of_parent)
                             {
                                 std::get<0>(bnode.keys).emplace(key);
-                                if(key_black->*p_child_right == nullptr || !(key_black->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                                if (key_black->*p_child_right == nullptr || !(key_black->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                                 else std::get<2>(bnode.keys) = key_black->*p_child_right;
 
                                 bnode.child_index = !child_is_left_or_right_child_of_key ? -3 : -1;
                             }
                             else
                             {
-                                if(key_black->*p_child_left == nullptr || !(key_black->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                                if (key_black->*p_child_left == nullptr || !(key_black->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                                 else std::get<0>(bnode.keys) = key_black->*p_child_left;
                                 std::get<2>(bnode.keys).emplace(key);
 
@@ -3230,10 +3148,10 @@ namespace augmented_containers
 
                         bnode_up_t bnode;
 
-                        if(key_black_sibling->*p_child_left == nullptr || !(key_black_sibling->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                        if (key_black_sibling->*p_child_left == nullptr || !(key_black_sibling->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                         else std::get<0>(bnode.keys) = key_black_sibling->*p_child_left;
                         std::get<1>(bnode.keys) = key_black_sibling;
-                        if(key_black_sibling->*p_child_right == nullptr || !(key_black_sibling->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                        if (key_black_sibling->*p_child_right == nullptr || !(key_black_sibling->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                         else std::get<2>(bnode.keys) = key_black_sibling->*p_child_right;
 
                         bnode.child_index = !key_black_sibling_is_left_or_right_sibling //
@@ -3248,18 +3166,18 @@ namespace augmented_containers
                         return std::make_tuple(bnode, bnode_rightmost_or_leftmost_child);
                     };
                 };
-                struct bnode_erase_t: bnode_t
+                struct bnode_erase_t : bnode_t
                 {
                     int key_to_be_erased_index; // erasing, -2 / 0 / 2
                     static bnode_erase_t erasing_get_bnode(navigator_except_node_end_t *node_key_to_be_erased)
                     {
                         bnode_erase_t bnode;
-                        if(!node_key_to_be_erased->color()) // black
+                        if (!node_key_to_be_erased->color()) // black
                         {
-                            if(node_key_to_be_erased->*p_child_left == nullptr || !(node_key_to_be_erased->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                            if (node_key_to_be_erased->*p_child_left == nullptr || !(node_key_to_be_erased->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                             else std::get<0>(bnode.keys) = node_key_to_be_erased->*p_child_left;
                             std::get<1>(bnode.keys) = node_key_to_be_erased;
-                            if(node_key_to_be_erased->*p_child_right == nullptr || !(node_key_to_be_erased->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                            if (node_key_to_be_erased->*p_child_right == nullptr || !(node_key_to_be_erased->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                             else std::get<2>(bnode.keys) = node_key_to_be_erased->*p_child_right;
 
                             bnode.key_to_be_erased_index = 0;
@@ -3268,17 +3186,17 @@ namespace augmented_containers
                         {
                             typename navigator_t::template parent_info_t<is_reversed> key_red_parent_info(node_key_to_be_erased);
                             navigator_except_node_end_t *key_black = std::get<1>(bnode.keys) = static_cast<navigator_except_node_end_t *>(key_red_parent_info.parent);
-                            if(!key_red_parent_info.is_left_or_right_child_of_parent)
+                            if (!key_red_parent_info.is_left_or_right_child_of_parent)
                             {
                                 std::get<0>(bnode.keys).emplace(node_key_to_be_erased);
-                                if(key_black->*p_child_right == nullptr || !(key_black->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                                if (key_black->*p_child_right == nullptr || !(key_black->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                                 else std::get<2>(bnode.keys) = key_black->*p_child_right;
 
                                 bnode.key_to_be_erased_index = -2;
                             }
                             else
                             {
-                                if(key_black->*p_child_left == nullptr || !(key_black->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                                if (key_black->*p_child_left == nullptr || !(key_black->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                                 else std::get<0>(bnode.keys) = key_black->*p_child_left;
                                 std::get<2>(bnode.keys).emplace(node_key_to_be_erased);
 
@@ -3295,10 +3213,10 @@ namespace augmented_containers
 
                         bnode_erase_t bnode;
 
-                        if(key_black_sibling->*p_child_left == nullptr || !(key_black_sibling->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
+                        if (key_black_sibling->*p_child_left == nullptr || !(key_black_sibling->*p_child_left)->color()) std::get<0>(bnode.keys).reset();
                         else std::get<0>(bnode.keys) = key_black_sibling->*p_child_left;
                         std::get<1>(bnode.keys) = key_black_sibling;
-                        if(key_black_sibling->*p_child_right == nullptr || !(key_black_sibling->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
+                        if (key_black_sibling->*p_child_right == nullptr || !(key_black_sibling->*p_child_right)->color()) std::get<2>(bnode.keys).reset();
                         else std::get<2>(bnode.keys) = key_black_sibling->*p_child_right;
 
                         bnode.key_to_be_erased_index = !key_black_sibling_is_left_or_right_sibling //
@@ -3317,7 +3235,7 @@ namespace augmented_containers
                     }
                 };
 
-                static bool erase(schedules_t &schedules, node_end_t *node_end, navigator_t * const node_)
+                static bool erase(schedules_t &schedules, node_end_t *node_end, navigator_t *const node_)
                 {
                     accumulator_t const &accumulator = node_end->accumulator;
                     assert(node_ != nullptr);
@@ -3326,16 +3244,16 @@ namespace augmented_containers
                     assert(!is_empty);
                     navigator_except_node_end_t *node = static_cast<navigator_except_node_end_t *>(node_);
                     bool will_be_empty = one_provided_not_empty(node_end);
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                         ;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         --node_end->node_count;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                         ;
                     else
                         std::unreachable();
                     bool height_changed;
-                    if(will_be_empty) // --count==0
+                    if (will_be_empty) // --count==0
                     {
                         typename navigator_t::loop_end_t{.end = node_end}.link(); //node_end->my_list_begin() = tagged_ptr_bit0_setted(node_end);
                         height_changed = true;
@@ -3345,7 +3263,7 @@ namespace augmented_containers
                         bool should_link_loop_end = false;
                         typename navigator_t::loop_end_t loop_end = navigator_t::get_loop_end(node_end);
 
-                        if((!node->color() && ((node->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all)) || ((node->*p_child_left_all)->color() && (node->*p_child_left_all->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all->*p_child_left_all))))) ||
+                        if ((!node->color() && ((node->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all)) || ((node->*p_child_left_all)->color() && (node->*p_child_left_all->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all->*p_child_left_all))))) ||
                             (node->color() && (node->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all)))) // leaf bnode
                         {
                         }
@@ -3353,16 +3271,16 @@ namespace augmented_containers
                         {
                             navigator_except_node_end_t *node_current = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(node));
                             typename navigator_t::loop_t parent_outer_loop;
-                            if(node->role() != rb2p_node_role_e::root)
+                            if (node->role() != rb2p_node_role_e::root)
                                 parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(node);
                             typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(node);
-                            if(node_current == parent_inner_loop.child_left)
+                            if (node_current == parent_inner_loop.child_left)
                             {
                                 assert(!node_current->color() && ((node_current->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node_current->*p_child_left_all)) || ((node_current->*p_child_left_all)->color() && (node_current->*p_child_left_all->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node_current->*p_child_left_all->*p_child_left_all)))));
                                 assert(node_current->*p_child_right_all == nullptr);
-                                if(node_current->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node_current->*p_child_left_all)) //node_current is a single black node
+                                if (node_current->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node_current->*p_child_left_all)) //node_current is a single black node
                                 {
-                                    if(node->role() == rb2p_node_role_e::root && node_current->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                    if (node->role() == rb2p_node_role_e::root && node_current->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                     {
                                         assert(loop_end.root == node);
                                         assert(loop_end.leftmost_descendent_of_root == node_current);
@@ -3371,7 +3289,7 @@ namespace augmented_containers
                                         //                                        should_link_loop_end = true;
                                         loop_end.index = -1, loop_end.link();
                                     }
-                                    else if(node->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && node_current->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                    else if (node->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && node_current->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                     {
                                         assert(loop_end.leftmost_descendent_of_root == node_current);
                                         loop_end.leftmost_descendent_of_root = node;
@@ -3380,11 +3298,11 @@ namespace augmented_containers
 
                                         parent_outer_loop.exchange(node_current);
                                     }
-                                    else if(node->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || (node->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && node_current->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root))
+                                    else if (node->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || (node->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && node_current->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root))
                                     {
                                         assert(node_current->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                         typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(node_current);
-                                        if(child_outer_loop.this_ == parent_outer_loop.this_)
+                                        if (child_outer_loop.this_ == parent_outer_loop.this_)
                                         {
                                             assert(parent_outer_loop.child_right == node);
                                             assert(parent_outer_loop.leftmost_descendent_of_child_right == node_current);
@@ -3405,7 +3323,7 @@ namespace augmented_containers
                                     assert(node_current->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
                                     typename navigator_t::loop_t child_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(node_current);
                                     assert(child_inner_loop.child_right == nullptr);
-                                    if(node->role() == rb2p_node_role_e::root)
+                                    if (node->role() == rb2p_node_role_e::root)
                                     {
                                         assert(loop_end.root == node);
                                         loop_end.root = node_current;
@@ -3420,13 +3338,13 @@ namespace augmented_containers
                                 parent_inner_loop.child_left = node;
                                 parent_inner_loop.index = -1, parent_inner_loop.link();
                             }
-                            else if(node_current == parent_inner_loop.rightmost_descendent_of_child_left)
+                            else if (node_current == parent_inner_loop.rightmost_descendent_of_child_left)
                             {
                                 [[maybe_unused]] typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(node_current);
                                 assert(child_outer_loop.this_ == parent_inner_loop.this_);
 
                                 typename navigator_t::loop_t child_parent_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(node_current);
-                                if(node->role() == rb2p_node_role_e::root)
+                                if (node->role() == rb2p_node_role_e::root)
                                 {
                                     assert(loop_end.root == node);
                                     loop_end.root = node_current;
@@ -3444,18 +3362,18 @@ namespace augmented_containers
                             std::ranges::swap(node->color(), node_current->color());
                             std::ranges::swap(node->role(), node_current->role());
                         }
-                        auto erase_impl = [&schedules, &accumulator, &node, &loop_end, &should_link_loop_end, &height_changed](auto &this_, bnode_erase_t bnode_to_have_key_erased, function_view<navigator_except_node_end_t *(rb2p_node_role_e)> merge_and_return_child_after_merge, std::size_t child_after_merge_height) -> void
+                        auto erase_impl = [&schedules, &accumulator, &node, &loop_end, &should_link_loop_end, &height_changed](auto &this_, bnode_erase_t bnode_to_have_key_erased, function_view<navigator_except_node_end_t *(rb2p_node_role_e)> merge_and_return_child_after_merge, std::size_t child_after_merge_height) -> void //
                         {
-                            if(bnode_to_have_key_erased.key_count != 1)
+                            if (bnode_to_have_key_erased.key_count != 1)
                             {
                                 assert(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
-                                if(bnode_to_have_key_erased.key_to_be_erased_index == -2)
+                                if (bnode_to_have_key_erased.key_to_be_erased_index == -2)
                                 {
-                                    if(child_after_merge_height == 0)
+                                    if (child_after_merge_height == 0)
                                     {
-                                        if(!std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        if (!std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
 
@@ -3471,17 +3389,17 @@ namespace augmented_containers
                                                 }
                                                     .link();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
-                                                if(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                if (std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                 {
                                                     assert(!should_link_loop_end);
                                                     assert(loop_end.leftmost_descendent_of_root == std::get<0>(bnode_to_have_key_erased.keys).value());
                                                     loop_end.leftmost_descendent_of_root = std::get<1>(bnode_to_have_key_erased.keys);
                                                     should_link_loop_end = true;
                                                 }
-                                                else if(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                                else if (std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                                 {
                                                     typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
                                                     child_outer_loop.exchange(std::get<1>(bnode_to_have_key_erased.keys));
@@ -3493,7 +3411,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
@@ -3511,24 +3429,24 @@ namespace augmented_containers
                                                 }
                                                     .link();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
                                                 typename navigator_t::loop_t child_left_outer_loop;
-                                                if(std::get<0>(bnode_to_have_key_erased.keys).value()->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                if (std::get<0>(bnode_to_have_key_erased.keys).value()->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                     child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_to_have_key_erased.keys).value());
 
-                                                if(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                if (std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                 {
                                                     assert(!should_link_loop_end);
                                                     assert(loop_end.leftmost_descendent_of_root == std::get<0>(bnode_to_have_key_erased.keys).value());
                                                     loop_end.leftmost_descendent_of_root = std::get<1>(bnode_to_have_key_erased.keys);
                                                     should_link_loop_end = true;
                                                 }
-                                                else if(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                                else if (std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                                     child_left_outer_loop.exchange(std::get<1>(bnode_to_have_key_erased.keys));
                                                 else std::unreachable();
 
@@ -3549,7 +3467,7 @@ namespace augmented_containers
                                                 std::get<1>(bnode_to_have_key_erased.keys)->role() = std::get<0>(bnode_to_have_key_erased.keys).value()->role();
                                                 std::get<1>(bnode_to_have_key_erased.keys)->color() = std::get<0>(bnode_to_have_key_erased.keys).value()->color();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
@@ -3575,7 +3493,7 @@ namespace augmented_containers
                                     else
                                     {
                                         typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_to_have_key_erased.keys));
-                                        if(parent_inner_loop.rightmost_descendent_of_child_left == node)
+                                        if (parent_inner_loop.rightmost_descendent_of_child_left == node)
                                             parent_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(parent_inner_loop.rightmost_descendent_of_child_left));
 
                                         navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
@@ -3586,13 +3504,13 @@ namespace augmented_containers
 
                                     refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_to_have_key_erased.keys));
                                 }
-                                else if(bnode_to_have_key_erased.key_to_be_erased_index == 0)
+                                else if (bnode_to_have_key_erased.key_to_be_erased_index == 0)
                                 {
-                                    if(child_after_merge_height == 0)
+                                    if (child_after_merge_height == 0)
                                     {
-                                        if(std::get<0>(bnode_to_have_key_erased.keys).has_value() && !std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        if (std::get<0>(bnode_to_have_key_erased.keys).has_value() && !std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
 
@@ -3610,7 +3528,7 @@ namespace augmented_containers
                                                     .link();
                                                 std::get<0>(bnode_to_have_key_erased.keys).value()->role() = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
 
@@ -3622,9 +3540,9 @@ namespace augmented_containers
 
                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_to_have_key_erased.keys).value());
                                         }
-                                        else if(!std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        else if (!std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
 
@@ -3642,7 +3560,7 @@ namespace augmented_containers
                                                     .link();
                                                 std::get<2>(bnode_to_have_key_erased.keys).value()->role() = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
 
@@ -3654,9 +3572,9 @@ namespace augmented_containers
 
                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<2>(bnode_to_have_key_erased.keys).value());
                                         }
-                                        else if(std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        else if (std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
@@ -3679,7 +3597,7 @@ namespace augmented_containers
 
                                                 refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<2>(bnode_to_have_key_erased.keys).value());
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
@@ -3702,7 +3620,7 @@ namespace augmented_containers
 
                                                 refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_to_have_key_erased.keys).value());
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
@@ -3731,20 +3649,20 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(std::get<0>(bnode_to_have_key_erased.keys).has_value() && !std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        if (std::get<0>(bnode_to_have_key_erased.keys).has_value() && !std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
                                             typename navigator_t::loop_t parent_outer_loop;
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                 {
                                                     assert(parent_outer_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys));
                                                     parent_outer_loop.child_left = std::get<0>(bnode_to_have_key_erased.keys).value();
-                                                    if(parent_outer_loop.rightmost_descendent_of_child_left == node)
+                                                    if (parent_outer_loop.rightmost_descendent_of_child_left == node)
                                                         parent_outer_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(parent_outer_loop.rightmost_descendent_of_child_left));
                                                 }
-                                                else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                 {
                                                     assert(parent_outer_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys));
                                                     parent_outer_loop.child_right = std::get<0>(bnode_to_have_key_erased.keys).value();
@@ -3752,13 +3670,13 @@ namespace augmented_containers
                                                 else std::unreachable();
                                             }
                                             typename navigator_t::loop_t child_left_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_to_have_key_erased.keys).value());
-                                            if(child_left_inner_loop.leftmost_descendent_of_child_right == node)
+                                            if (child_left_inner_loop.leftmost_descendent_of_child_right == node)
                                                 child_left_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_left_inner_loop.leftmost_descendent_of_child_right));
                                             rb2p_node_role_e center_key_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
 
                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
-                                            if(parent_outer_loop.this_ != nullptr)
+                                            if (parent_outer_loop.this_ != nullptr)
                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
                                             else
                                             {
@@ -3775,20 +3693,20 @@ namespace augmented_containers
 
                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_to_have_key_erased.keys).value());
                                         }
-                                        else if(!std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        else if (!std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
                                             typename navigator_t::loop_t parent_outer_loop;
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                 {
                                                     assert(parent_outer_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys));
                                                     parent_outer_loop.child_right = std::get<2>(bnode_to_have_key_erased.keys).value();
-                                                    if(parent_outer_loop.leftmost_descendent_of_child_right == node)
+                                                    if (parent_outer_loop.leftmost_descendent_of_child_right == node)
                                                         parent_outer_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(parent_outer_loop.leftmost_descendent_of_child_right));
                                                 }
-                                                else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                 {
                                                     assert(parent_outer_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys));
                                                     parent_outer_loop.child_left = std::get<2>(bnode_to_have_key_erased.keys).value();
@@ -3796,13 +3714,13 @@ namespace augmented_containers
                                                 else std::unreachable();
                                             }
                                             typename navigator_t::loop_t child_right_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_to_have_key_erased.keys).value());
-                                            if(child_right_inner_loop.rightmost_descendent_of_child_left == node)
+                                            if (child_right_inner_loop.rightmost_descendent_of_child_left == node)
                                                 child_right_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_right_inner_loop.rightmost_descendent_of_child_left));
                                             rb2p_node_role_e center_key_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
 
                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
-                                            if(parent_outer_loop.this_ != nullptr)
+                                            if (parent_outer_loop.this_ != nullptr)
                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
                                             else
                                             {
@@ -3819,26 +3737,26 @@ namespace augmented_containers
 
                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<2>(bnode_to_have_key_erased.keys).value());
                                         }
-                                        else if(std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
+                                        else if (std::get<0>(bnode_to_have_key_erased.keys).has_value() && std::get<2>(bnode_to_have_key_erased.keys).has_value())
                                         {
                                             typename navigator_t::loop_t parent_outer_loop;
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                 parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
 
                                             typename navigator_t::loop_t child_left_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_to_have_key_erased.keys).value());
-                                            if(child_left_inner_loop.leftmost_descendent_of_child_right == nullptr)
+                                            if (child_left_inner_loop.leftmost_descendent_of_child_right == nullptr)
                                                 child_left_inner_loop.leftmost_descendent_of_child_right = child_left_inner_loop.child_right;
-                                            if(child_left_inner_loop.leftmost_descendent_of_child_right == node)
+                                            if (child_left_inner_loop.leftmost_descendent_of_child_right == node)
                                                 child_left_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_left_inner_loop.leftmost_descendent_of_child_right));
 
                                             typename navigator_t::loop_t child_right_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_to_have_key_erased.keys).value());
-                                            if(child_right_inner_loop.rightmost_descendent_of_child_left == node)
+                                            if (child_right_inner_loop.rightmost_descendent_of_child_left == node)
                                                 child_right_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_right_inner_loop.rightmost_descendent_of_child_left));
 
                                             rb2p_node_role_e center_key_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
-                                            if(parent_outer_loop.this_ != nullptr)
+                                            if (parent_outer_loop.this_ != nullptr)
                                                 parent_outer_loop.exchange(std::get<0>(bnode_to_have_key_erased.keys).value());
                                             else
                                             {
@@ -3862,13 +3780,13 @@ namespace augmented_containers
                                         else std::unreachable();
                                     }
                                 }
-                                else if(bnode_to_have_key_erased.key_to_be_erased_index == 2)
+                                else if (bnode_to_have_key_erased.key_to_be_erased_index == 2)
                                 {
-                                    if(child_after_merge_height == 0)
+                                    if (child_after_merge_height == 0)
                                     {
-                                        if(!std::get<0>(bnode_to_have_key_erased.keys).has_value())
+                                        if (!std::get<0>(bnode_to_have_key_erased.keys).has_value())
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
 
@@ -3884,17 +3802,17 @@ namespace augmented_containers
                                                 }
                                                     .link();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
-                                                if(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                if (std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                 {
                                                     assert(!should_link_loop_end);
                                                     assert(loop_end.rightmost_descendent_of_root == std::get<2>(bnode_to_have_key_erased.keys).value());
                                                     loop_end.rightmost_descendent_of_root = std::get<1>(bnode_to_have_key_erased.keys);
                                                     should_link_loop_end = true;
                                                 }
-                                                else if(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                                else if (std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                                 {
                                                     typename navigator_t::loop_t child_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
                                                     child_outer_loop.exchange(std::get<1>(bnode_to_have_key_erased.keys));
@@ -3906,7 +3824,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
+                                            if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::root)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
@@ -3924,24 +3842,24 @@ namespace augmented_containers
                                                 }
                                                     .link();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
 
                                                 typename navigator_t::loop_t parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
                                                 typename navigator_t::loop_t child_right_outer_loop;
-                                                if(std::get<2>(bnode_to_have_key_erased.keys).value()->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                if (std::get<2>(bnode_to_have_key_erased.keys).value()->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                     child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_to_have_key_erased.keys).value());
 
-                                                if(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                if (std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                 {
                                                     assert(!should_link_loop_end);
                                                     assert(loop_end.rightmost_descendent_of_root == std::get<2>(bnode_to_have_key_erased.keys).value());
                                                     loop_end.rightmost_descendent_of_root = std::get<1>(bnode_to_have_key_erased.keys);
                                                     should_link_loop_end = true;
                                                 }
-                                                else if(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                                else if (std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                                     child_right_outer_loop.exchange(std::get<1>(bnode_to_have_key_erased.keys));
                                                 else std::unreachable();
 
@@ -3962,7 +3880,7 @@ namespace augmented_containers
                                                 std::get<1>(bnode_to_have_key_erased.keys)->role() = std::get<2>(bnode_to_have_key_erased.keys).value()->role();
                                                 std::get<1>(bnode_to_have_key_erased.keys)->color() = std::get<2>(bnode_to_have_key_erased.keys).value()->color();
                                             }
-                                            else if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                            else if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                             {
                                                 assert(std::get<2>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
                                                 assert(std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_to_have_key_erased.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
@@ -3988,7 +3906,7 @@ namespace augmented_containers
                                     else
                                     {
                                         typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_to_have_key_erased.keys));
-                                        if(parent_inner_loop.leftmost_descendent_of_child_right == node)
+                                        if (parent_inner_loop.leftmost_descendent_of_child_right == node)
                                             parent_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(parent_inner_loop.leftmost_descendent_of_child_right));
 
                                         navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
@@ -4004,7 +3922,7 @@ namespace augmented_containers
                             }
                             else
                             {
-                                if(bnode_to_have_key_erased.center_key_parent_info.is_end())
+                                if (bnode_to_have_key_erased.center_key_parent_info.is_end())
                                 {
                                     assert(child_after_merge_height != 0);
 
@@ -4027,51 +3945,51 @@ namespace augmented_containers
                                     bnode_erase_t bnode_right_sibling;
                                     navigator_t *bnode_right_sibling_leftmost_child, *bnode_right_sibling_second_leftmost_child;
 
-                                    auto try_grab_from_left_sibling = [&](auto fallback)
+                                    auto try_grab_from_left_sibling = [&](auto fallback) //
                                     {
-                                        return [&, fallback]()
+                                        return [&, fallback]() //
                                         {
-                                            if(opt_node_left_sibling_black = bnode_parent.opt_child_at(bnode_parent.child_index - 2); opt_node_left_sibling_black.has_value())
+                                            if (opt_node_left_sibling_black = bnode_parent.opt_child_at(bnode_parent.child_index - 2); opt_node_left_sibling_black.has_value())
                                             {
                                                 std::tie(bnode_left_sibling, bnode_left_sibling_rightmost_child, bnode_left_sibling_second_rightmost_child) = bnode_erase_t::erasing_get_bnode_from_key_black_sibling(opt_node_left_sibling_black.value(), false);
-                                                if(bnode_left_sibling.key_count != 1)
+                                                if (bnode_left_sibling.key_count != 1)
                                                 {
                                                     navigator_except_node_end_t *parent = bnode_parent.key_at(bnode_parent.child_index - 1);
                                                     assert(parent->role() == rb2p_node_role_e::root || parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
                                                     typename navigator_t::loop_t parent_outer_loop;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
 
-                                                    if(child_after_merge_height == 0)
+                                                    if (child_after_merge_height == 0)
                                                     {
                                                         typename navigator_t::loop_t child_right_outer_loop;
-                                                        if(!std::get<0>(bnode_left_sibling.keys).has_value() && std::get<2>(bnode_left_sibling.keys).has_value())
+                                                        if (!std::get<0>(bnode_left_sibling.keys).has_value() && std::get<2>(bnode_left_sibling.keys).has_value())
                                                         {
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<2>(bnode_left_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.rightmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
-                                                                if(parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.rightmost_descendent_of_child_left = parent;
                                                                 parent_outer_loop.child_left = std::get<2>(bnode_left_sibling.keys).value();
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<2>(bnode_left_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4081,13 +3999,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_right = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                     child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.leftmost_descendent_of_child_right = parent;
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4096,10 +4014,10 @@ namespace augmented_containers
                                                             parent_inner_loop.this_ = std::get<2>(bnode_left_sibling.keys).value();
                                                             parent_inner_loop.rightmost_descendent_of_child_left = std::get<1>(bnode_left_sibling.keys);
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_right_outer_loop.this_ != nullptr)
+                                                            if (child_right_outer_loop.this_ != nullptr)
                                                                 child_right_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<1>(bnode_left_sibling.keys)->role() = std::get<2>(bnode_left_sibling.keys).value()->role();
@@ -4111,33 +4029,33 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<2>(bnode_left_sibling.keys).value());
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_left_sibling.keys));
                                                         }
-                                                        else if(std::get<0>(bnode_left_sibling.keys).has_value() && !std::get<2>(bnode_left_sibling.keys).has_value())
+                                                        else if (std::get<0>(bnode_left_sibling.keys).has_value() && !std::get<2>(bnode_left_sibling.keys).has_value())
                                                         {
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 assert(loop_end.leftmost_descendent_of_root == std::get<0>(bnode_left_sibling.keys).value());
                                                                 loop_end.root = std::get<1>(bnode_left_sibling.keys);
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.rightmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
-                                                                if(parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.rightmost_descendent_of_child_left = parent;
                                                                 parent_outer_loop.child_left = std::get<1>(bnode_left_sibling.keys);
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<1>(bnode_left_sibling.keys);
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4147,13 +4065,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_right = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                     child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.leftmost_descendent_of_child_right = parent;
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4162,10 +4080,10 @@ namespace augmented_containers
                                                             parent_inner_loop.this_ = std::get<1>(bnode_left_sibling.keys);
                                                             parent_inner_loop.child_left = std::get<0>(bnode_left_sibling.keys).value();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_right_outer_loop.this_ != nullptr)
+                                                            if (child_right_outer_loop.this_ != nullptr)
                                                                 child_right_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<0>(bnode_left_sibling.keys).value()->color() = std::get<1>(bnode_left_sibling.keys)->color();
@@ -4177,33 +4095,33 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<1>(bnode_left_sibling.keys));
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_left_sibling.keys).value());
                                                         }
-                                                        else if(std::get<0>(bnode_left_sibling.keys).has_value() && std::get<2>(bnode_left_sibling.keys).has_value())
+                                                        else if (std::get<0>(bnode_left_sibling.keys).has_value() && std::get<2>(bnode_left_sibling.keys).has_value())
                                                         {
                                                             assert(std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<2>(bnode_left_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.rightmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
-                                                                if(parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.rightmost_descendent_of_child_left = parent;
                                                                 parent_outer_loop.child_left = std::get<2>(bnode_left_sibling.keys).value();
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<2>(bnode_left_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.rightmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4213,13 +4131,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_right = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                     child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.leftmost_descendent_of_child_right = parent;
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4227,7 +4145,7 @@ namespace augmented_containers
                                                             else std::unreachable();
                                                             parent_inner_loop.this_ = std::get<2>(bnode_left_sibling.keys).value();
                                                             assert(parent_inner_loop.rightmost_descendent_of_child_left == std::get<2>(bnode_left_sibling.keys).value());
-                                                            if(parent_inner_loop.child_left == std::get<1>(bnode_left_sibling.keys))
+                                                            if (parent_inner_loop.child_left == std::get<1>(bnode_left_sibling.keys))
                                                             {
                                                                 parent_inner_loop.rightmost_descendent_of_child_left = nullptr;
 
@@ -4259,10 +4177,10 @@ namespace augmented_containers
                                                                 std::get<1>(bnode_left_sibling.keys)->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                             }
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_right_outer_loop.this_ != nullptr)
+                                                            if (child_right_outer_loop.this_ != nullptr)
                                                                 child_right_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<2>(bnode_left_sibling.keys).value()->role() = parent->role();
@@ -4277,14 +4195,14 @@ namespace augmented_containers
                                                     }
                                                     else
                                                     {
-                                                        if(std::get<2>(bnode_left_sibling.keys).has_value())
+                                                        if (std::get<2>(bnode_left_sibling.keys).has_value())
                                                         {
                                                             bool child_after_merge_is_child_right_of_parent = std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                             typename navigator_t::loop_t child_right_outer_loop;
-                                                            if(!child_after_merge_is_child_right_of_parent)
+                                                            if (!child_after_merge_is_child_right_of_parent)
                                                             {
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                                if(child_right_outer_loop.rightmost_descendent_of_child_left == node)
+                                                                if (child_right_outer_loop.rightmost_descendent_of_child_left == node)
                                                                     child_right_outer_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_right_outer_loop.rightmost_descendent_of_child_left));
                                                             }
 
@@ -4292,14 +4210,14 @@ namespace augmented_containers
                                                                 .this_ = parent,
                                                                 .leftmost_descendent_of_child_right = parent_inner_loop.leftmost_descendent_of_child_right,
                                                             };
-                                                            if(child_right_inner_loop.leftmost_descendent_of_child_right == node)
+                                                            if (child_right_inner_loop.leftmost_descendent_of_child_right == node)
                                                                 child_right_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_right_inner_loop.leftmost_descendent_of_child_right));
 
                                                             typename navigator_t::loop_t child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_left_sibling.keys).value());
                                                             typename navigator_t::loop_t child_left_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_left_sibling.keys).value());
                                                             navigator_except_node_end_t *key_right_child_left = std::get<2>(bnode_left_sibling.keys).value()->child_left(), *key_right_child_left_child_left, *key_right_child_left_child_right;
                                                             navigator_except_node_end_t *key_right_child_right = std::get<2>(bnode_left_sibling.keys).value()->child_right(), *key_right_child_right_child_left, *key_right_child_right_child_right;
-                                                            if(child_after_merge_height == 1)
+                                                            if (child_after_merge_height == 1)
                                                             {
                                                                 key_right_child_left_child_left = key_right_child_left->child_left();
                                                                 key_right_child_left_child_right = key_right_child_left->child_right();
@@ -4307,7 +4225,7 @@ namespace augmented_containers
                                                                 key_right_child_right_child_right = key_right_child_right->child_right();
                                                             }
 
-                                                            if(child_after_merge_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
+                                                            if (child_after_merge_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_left = key_right_child_left_child_left;
                                                                 navigator_except_node_end_t *node_right = key_right_child_left;
@@ -4326,14 +4244,14 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_right_child_left_child_left == nullptr && key_right_child_left_child_right == nullptr)
+                                                                if (child_after_merge_height == 1 && key_right_child_left_child_left == nullptr && key_right_child_left_child_right == nullptr)
                                                                     key_right_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                                 else
                                                                     key_right_child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                                 child_left_outer_loop.child_right = child_left_inner_loop.child_left;
                                                             }
 
-                                                            if(child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right != nullptr)
+                                                            if (child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right != nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_left = key_right_child_right;
                                                                 navigator_except_node_end_t *node_right = key_right_child_right_child_right;
@@ -4352,7 +4270,7 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right == nullptr)
+                                                                if (child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right == nullptr)
                                                                     key_right_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                                 else
                                                                     key_right_child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -4363,20 +4281,20 @@ namespace augmented_containers
                                                             parent_inner_loop.rightmost_descendent_of_child_left = child_left_inner_loop.rightmost_descendent_of_child_left != nullptr ? child_left_inner_loop.rightmost_descendent_of_child_left : child_left_inner_loop.child_left;
                                                             parent_inner_loop.leftmost_descendent_of_child_right = child_left_inner_loop.leftmost_descendent_of_child_right != nullptr ? child_left_inner_loop.leftmost_descendent_of_child_right : child_left_inner_loop.child_right;
 
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<2>(bnode_left_sibling.keys).value();
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<2>(bnode_left_sibling.keys).value();
-                                                                if(parent_outer_loop.rightmost_descendent_of_child_left == node)
+                                                                if (parent_outer_loop.rightmost_descendent_of_child_left == node)
                                                                     parent_outer_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(parent_outer_loop.rightmost_descendent_of_child_left));
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<2>(bnode_left_sibling.keys).value();
@@ -4386,7 +4304,7 @@ namespace augmented_containers
                                                             rb2p_node_role_e child_after_merge_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
-                                                            if(!child_after_merge_is_child_right_of_parent)
+                                                            if (!child_after_merge_is_child_right_of_parent)
                                                             {
                                                                 child_right_outer_loop.child_left = parent;
                                                                 child_right_outer_loop.index = -1, child_right_outer_loop.link();
@@ -4397,7 +4315,7 @@ namespace augmented_containers
                                                             child_right_inner_loop.link();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
                                                             child_left_outer_loop.index = -1, child_left_outer_loop.link();
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<2>(bnode_left_sibling.keys).value()->role() = parent->role();
@@ -4408,16 +4326,16 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<2>(bnode_left_sibling.keys).value());
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_left_sibling.keys));
                                                         }
-                                                        else if(!std::get<2>(bnode_left_sibling.keys).has_value())
+                                                        else if (!std::get<2>(bnode_left_sibling.keys).has_value())
                                                         {
                                                             assert(std::get<0>(bnode_left_sibling.keys).has_value());
 
                                                             bool child_after_merge_is_child_right_of_parent = std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                             typename navigator_t::loop_t child_right_outer_loop;
-                                                            if(!child_after_merge_is_child_right_of_parent)
+                                                            if (!child_after_merge_is_child_right_of_parent)
                                                             {
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                                if(child_right_outer_loop.rightmost_descendent_of_child_left == node)
+                                                                if (child_right_outer_loop.rightmost_descendent_of_child_left == node)
                                                                     child_right_outer_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_right_outer_loop.rightmost_descendent_of_child_left));
                                                             }
 
@@ -4425,24 +4343,24 @@ namespace augmented_containers
                                                                 .this_ = parent,
                                                                 .leftmost_descendent_of_child_right = parent_inner_loop.leftmost_descendent_of_child_right,
                                                             };
-                                                            if(child_right_inner_loop.leftmost_descendent_of_child_right == node)
+                                                            if (child_right_inner_loop.leftmost_descendent_of_child_right == node)
                                                                 child_right_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_right_inner_loop.leftmost_descendent_of_child_right));
 
                                                             typename navigator_t::loop_t child_left_outer_loop;
                                                             typename navigator_t::loop_t child_left_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_left_sibling.keys));
                                                             navigator_except_node_end_t *key_right_child_right = std::get<1>(bnode_left_sibling.keys)->child_right(), *key_right_child_right_child_left, *key_right_child_right_child_right;
-                                                            if(child_after_merge_height == 1)
+                                                            if (child_after_merge_height == 1)
                                                             {
                                                                 key_right_child_right_child_left = key_right_child_right->child_left();
                                                                 key_right_child_right_child_right = key_right_child_right->child_right();
                                                             }
 
-                                                            if(std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            if (std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_inner_loop.child_left == std::get<1>(bnode_left_sibling.keys));
                                                                 parent_inner_loop.child_left = std::get<0>(bnode_left_sibling.keys).value();
                                                             }
-                                                            else if(std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (std::get<1>(bnode_left_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_left_sibling.keys));
                                                                 assert(child_left_outer_loop.child_right == std::get<1>(bnode_left_sibling.keys));
@@ -4450,7 +4368,7 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right != nullptr)
+                                                            if (child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right != nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_left = key_right_child_right;
                                                                 navigator_except_node_end_t *node_right = key_right_child_right_child_right;
@@ -4469,7 +4387,7 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right == nullptr)
+                                                                if (child_after_merge_height == 1 && key_right_child_right_child_left == nullptr && key_right_child_right_child_right == nullptr)
                                                                     key_right_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                                 else
                                                                     key_right_child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -4480,20 +4398,20 @@ namespace augmented_containers
                                                             parent_inner_loop.rightmost_descendent_of_child_left = child_left_inner_loop.rightmost_descendent_of_child_left != nullptr ? child_left_inner_loop.rightmost_descendent_of_child_left : child_left_inner_loop.child_left;
                                                             parent_inner_loop.leftmost_descendent_of_child_right = child_left_inner_loop.leftmost_descendent_of_child_right != nullptr ? child_left_inner_loop.leftmost_descendent_of_child_right : child_left_inner_loop.child_right;
 
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<1>(bnode_left_sibling.keys);
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<1>(bnode_left_sibling.keys);
-                                                                if(parent_outer_loop.rightmost_descendent_of_child_left == node)
+                                                                if (parent_outer_loop.rightmost_descendent_of_child_left == node)
                                                                     parent_outer_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(parent_outer_loop.rightmost_descendent_of_child_left));
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<1>(bnode_left_sibling.keys);
@@ -4503,7 +4421,7 @@ namespace augmented_containers
                                                             rb2p_node_role_e child_after_merge_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
-                                                            if(!child_after_merge_is_child_right_of_parent)
+                                                            if (!child_after_merge_is_child_right_of_parent)
                                                             {
                                                                 child_right_outer_loop.child_left = parent;
                                                                 child_right_outer_loop.index = -1, child_right_outer_loop.link();
@@ -4513,9 +4431,9 @@ namespace augmented_containers
                                                             child_right_inner_loop.child_right = child_after_merge;
                                                             child_right_inner_loop.link();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_left_outer_loop.this_ != nullptr)
+                                                            if (child_left_outer_loop.this_ != nullptr)
                                                                 child_left_outer_loop.index = -1, child_left_outer_loop.link();
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<0>(bnode_left_sibling.keys).value()->role() = std::get<1>(bnode_left_sibling.keys)->role();
@@ -4538,50 +4456,50 @@ namespace augmented_containers
                                                 fallback();
                                         };
                                     };
-                                    auto try_grab_from_right_sibling = [&](auto fallback)
+                                    auto try_grab_from_right_sibling = [&](auto fallback) //
                                     {
-                                        return [&, fallback]()
+                                        return [&, fallback]() //
                                         {
-                                            if(opt_node_right_sibling_black = bnode_parent.opt_child_at(bnode_parent.child_index + 2); opt_node_right_sibling_black.has_value())
+                                            if (opt_node_right_sibling_black = bnode_parent.opt_child_at(bnode_parent.child_index + 2); opt_node_right_sibling_black.has_value())
                                             {
                                                 std::tie(bnode_right_sibling, bnode_right_sibling_leftmost_child, bnode_right_sibling_second_leftmost_child) = bnode_erase_t::erasing_get_bnode_from_key_black_sibling(opt_node_right_sibling_black.value(), true);
-                                                if(bnode_right_sibling.key_count != 1)
+                                                if (bnode_right_sibling.key_count != 1)
                                                 {
                                                     navigator_except_node_end_t *parent = bnode_parent.key_at(bnode_parent.child_index + 1);
                                                     assert(parent->role() == rb2p_node_role_e::root || parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
                                                     typename navigator_t::loop_t parent_outer_loop;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         parent_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_after_merge_height == 0)
+                                                    if (child_after_merge_height == 0)
                                                     {
                                                         typename navigator_t::loop_t child_left_outer_loop;
-                                                        if(!std::get<2>(bnode_right_sibling.keys).has_value() && std::get<0>(bnode_right_sibling.keys).has_value())
+                                                        if (!std::get<2>(bnode_right_sibling.keys).has_value() && std::get<0>(bnode_right_sibling.keys).has_value())
                                                         {
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<0>(bnode_right_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.leftmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
-                                                                if(parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.leftmost_descendent_of_child_right = parent;
                                                                 parent_outer_loop.child_right = std::get<0>(bnode_right_sibling.keys).value();
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<0>(bnode_right_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4591,13 +4509,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_left = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                     child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.rightmost_descendent_of_child_left = parent;
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4606,10 +4524,10 @@ namespace augmented_containers
                                                             parent_inner_loop.this_ = std::get<0>(bnode_right_sibling.keys).value();
                                                             parent_inner_loop.leftmost_descendent_of_child_right = std::get<1>(bnode_right_sibling.keys);
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_left_outer_loop.this_ != nullptr)
+                                                            if (child_left_outer_loop.this_ != nullptr)
                                                                 child_left_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<1>(bnode_right_sibling.keys)->role() = std::get<0>(bnode_right_sibling.keys).value()->role();
@@ -4621,33 +4539,33 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<0>(bnode_right_sibling.keys).value());
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_right_sibling.keys));
                                                         }
-                                                        else if(std::get<2>(bnode_right_sibling.keys).has_value() && !std::get<0>(bnode_right_sibling.keys).has_value())
+                                                        else if (std::get<2>(bnode_right_sibling.keys).has_value() && !std::get<0>(bnode_right_sibling.keys).has_value())
                                                         {
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 assert(loop_end.rightmost_descendent_of_root == std::get<2>(bnode_right_sibling.keys).value());
                                                                 loop_end.root = std::get<1>(bnode_right_sibling.keys);
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.leftmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
-                                                                if(parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.leftmost_descendent_of_child_right = parent;
                                                                 parent_outer_loop.child_right = std::get<1>(bnode_right_sibling.keys);
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<1>(bnode_right_sibling.keys);
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4657,13 +4575,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_left = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                     child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.rightmost_descendent_of_child_left = parent;
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4672,10 +4590,10 @@ namespace augmented_containers
                                                             parent_inner_loop.this_ = std::get<1>(bnode_right_sibling.keys);
                                                             parent_inner_loop.child_right = std::get<2>(bnode_right_sibling.keys).value();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_left_outer_loop.this_ != nullptr)
+                                                            if (child_left_outer_loop.this_ != nullptr)
                                                                 child_left_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<2>(bnode_right_sibling.keys).value()->color() = std::get<1>(bnode_right_sibling.keys)->color();
@@ -4687,33 +4605,33 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<1>(bnode_right_sibling.keys));
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<2>(bnode_right_sibling.keys).value());
                                                         }
-                                                        else if(std::get<2>(bnode_right_sibling.keys).has_value() && std::get<0>(bnode_right_sibling.keys).has_value())
+                                                        else if (std::get<2>(bnode_right_sibling.keys).has_value() && std::get<0>(bnode_right_sibling.keys).has_value())
                                                         {
                                                             assert(std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(!should_link_loop_end);
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<0>(bnode_right_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
                                                                     loop_end.leftmost_descendent_of_root = parent;
                                                                 }
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
-                                                                if(parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
+                                                                if (parent_outer_loop.leftmost_descendent_of_child_right == std::get<1>(bnode_to_have_key_erased.keys))
                                                                     parent_outer_loop.leftmost_descendent_of_child_right = parent;
                                                                 parent_outer_loop.child_right = std::get<0>(bnode_right_sibling.keys).value();
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<0>(bnode_right_sibling.keys).value();
-                                                                if(std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 {
                                                                     assert(!should_link_loop_end);
                                                                     assert(loop_end.leftmost_descendent_of_root == std::get<1>(bnode_to_have_key_erased.keys));
@@ -4723,13 +4641,13 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            if (parent_inner_loop.child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.child_left = parent;
-                                                                if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                                if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent && std::get<1>(bnode_to_have_key_erased.keys)->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                     child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_to_have_key_erased.keys));
                                                             }
-                                                            else if(parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
+                                                            else if (parent_inner_loop.rightmost_descendent_of_child_left == std::get<1>(bnode_to_have_key_erased.keys))
                                                             {
                                                                 parent_inner_loop.rightmost_descendent_of_child_left = parent;
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
@@ -4737,7 +4655,7 @@ namespace augmented_containers
                                                             else std::unreachable();
                                                             parent_inner_loop.this_ = std::get<0>(bnode_right_sibling.keys).value();
                                                             assert(parent_inner_loop.leftmost_descendent_of_child_right == std::get<0>(bnode_right_sibling.keys).value());
-                                                            if(parent_inner_loop.child_right == std::get<1>(bnode_right_sibling.keys))
+                                                            if (parent_inner_loop.child_right == std::get<1>(bnode_right_sibling.keys))
                                                             {
                                                                 parent_inner_loop.leftmost_descendent_of_child_right = nullptr;
 
@@ -4769,10 +4687,10 @@ namespace augmented_containers
                                                                 std::get<1>(bnode_right_sibling.keys)->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                             }
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_left_outer_loop.this_ != nullptr)
+                                                            if (child_left_outer_loop.this_ != nullptr)
                                                                 child_left_outer_loop.exchange(parent);
 
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<0>(bnode_right_sibling.keys).value()->role() = parent->role();
@@ -4787,14 +4705,14 @@ namespace augmented_containers
                                                     }
                                                     else
                                                     {
-                                                        if(std::get<0>(bnode_right_sibling.keys).has_value())
+                                                        if (std::get<0>(bnode_right_sibling.keys).has_value())
                                                         {
                                                             bool child_after_merge_is_child_left_of_parent = std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                             typename navigator_t::loop_t child_left_outer_loop;
-                                                            if(!child_after_merge_is_child_left_of_parent)
+                                                            if (!child_after_merge_is_child_left_of_parent)
                                                             {
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                                if(child_left_outer_loop.leftmost_descendent_of_child_right == node)
+                                                                if (child_left_outer_loop.leftmost_descendent_of_child_right == node)
                                                                     child_left_outer_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_left_outer_loop.leftmost_descendent_of_child_right));
                                                             }
 
@@ -4802,14 +4720,14 @@ namespace augmented_containers
                                                                 .this_ = parent,
                                                                 .rightmost_descendent_of_child_left = parent_inner_loop.rightmost_descendent_of_child_left,
                                                             };
-                                                            if(child_left_inner_loop.rightmost_descendent_of_child_left == node)
+                                                            if (child_left_inner_loop.rightmost_descendent_of_child_left == node)
                                                                 child_left_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_left_inner_loop.rightmost_descendent_of_child_left));
 
                                                             typename navigator_t::loop_t child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_right_sibling.keys).value());
                                                             typename navigator_t::loop_t child_right_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_right_sibling.keys).value());
                                                             navigator_except_node_end_t *key_left_child_right = std::get<0>(bnode_right_sibling.keys).value()->child_right(), *key_left_child_right_child_right, *key_left_child_right_child_left;
                                                             navigator_except_node_end_t *key_left_child_left = std::get<0>(bnode_right_sibling.keys).value()->child_left(), *key_left_child_left_child_right, *key_left_child_left_child_left;
-                                                            if(child_after_merge_height == 1)
+                                                            if (child_after_merge_height == 1)
                                                             {
                                                                 key_left_child_right_child_right = key_left_child_right->child_right();
                                                                 key_left_child_right_child_left = key_left_child_right->child_left();
@@ -4817,7 +4735,7 @@ namespace augmented_containers
                                                                 key_left_child_left_child_left = key_left_child_left->child_left();
                                                             }
 
-                                                            if(child_after_merge_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
+                                                            if (child_after_merge_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_right = key_left_child_right_child_right;
                                                                 navigator_except_node_end_t *node_left = key_left_child_right;
@@ -4836,14 +4754,14 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_left_child_right_child_right == nullptr && key_left_child_right_child_left == nullptr)
+                                                                if (child_after_merge_height == 1 && key_left_child_right_child_right == nullptr && key_left_child_right_child_left == nullptr)
                                                                     key_left_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                                 else
                                                                     key_left_child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                                 child_right_outer_loop.child_left = child_right_inner_loop.child_right;
                                                             }
 
-                                                            if(child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left != nullptr)
+                                                            if (child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left != nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_right = key_left_child_left;
                                                                 navigator_except_node_end_t *node_left = key_left_child_left_child_left;
@@ -4862,7 +4780,7 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left == nullptr)
+                                                                if (child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left == nullptr)
                                                                     key_left_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                                 else
                                                                     key_left_child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -4873,20 +4791,20 @@ namespace augmented_containers
                                                             parent_inner_loop.leftmost_descendent_of_child_right = child_right_inner_loop.leftmost_descendent_of_child_right != nullptr ? child_right_inner_loop.leftmost_descendent_of_child_right : child_right_inner_loop.child_right;
                                                             parent_inner_loop.rightmost_descendent_of_child_left = child_right_inner_loop.rightmost_descendent_of_child_left != nullptr ? child_right_inner_loop.rightmost_descendent_of_child_left : child_right_inner_loop.child_left;
 
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<0>(bnode_right_sibling.keys).value();
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<0>(bnode_right_sibling.keys).value();
-                                                                if(parent_outer_loop.leftmost_descendent_of_child_right == node)
+                                                                if (parent_outer_loop.leftmost_descendent_of_child_right == node)
                                                                     parent_outer_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(parent_outer_loop.leftmost_descendent_of_child_right));
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<0>(bnode_right_sibling.keys).value();
@@ -4896,7 +4814,7 @@ namespace augmented_containers
                                                             rb2p_node_role_e child_after_merge_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
-                                                            if(!child_after_merge_is_child_left_of_parent)
+                                                            if (!child_after_merge_is_child_left_of_parent)
                                                             {
                                                                 child_left_outer_loop.child_right = parent;
                                                                 child_left_outer_loop.index = -1, child_left_outer_loop.link();
@@ -4907,7 +4825,7 @@ namespace augmented_containers
                                                             child_left_inner_loop.link();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
                                                             child_right_outer_loop.index = -1, child_right_outer_loop.link();
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<0>(bnode_right_sibling.keys).value()->role() = parent->role();
@@ -4918,16 +4836,16 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, parent, std::get<0>(bnode_right_sibling.keys).value());
                                                             refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_right_sibling.keys));
                                                         }
-                                                        else if(!std::get<0>(bnode_right_sibling.keys).has_value())
+                                                        else if (!std::get<0>(bnode_right_sibling.keys).has_value())
                                                         {
                                                             assert(std::get<2>(bnode_right_sibling.keys).has_value());
 
                                                             bool child_after_merge_is_child_left_of_parent = std::get<1>(bnode_to_have_key_erased.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                             typename navigator_t::loop_t child_left_outer_loop;
-                                                            if(!child_after_merge_is_child_left_of_parent)
+                                                            if (!child_after_merge_is_child_left_of_parent)
                                                             {
                                                                 child_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_to_have_key_erased.keys));
-                                                                if(child_left_outer_loop.leftmost_descendent_of_child_right == node)
+                                                                if (child_left_outer_loop.leftmost_descendent_of_child_right == node)
                                                                     child_left_outer_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(child_left_outer_loop.leftmost_descendent_of_child_right));
                                                             }
 
@@ -4935,24 +4853,24 @@ namespace augmented_containers
                                                                 .this_ = parent,
                                                                 .rightmost_descendent_of_child_left = parent_inner_loop.rightmost_descendent_of_child_left,
                                                             };
-                                                            if(child_left_inner_loop.rightmost_descendent_of_child_left == node)
+                                                            if (child_left_inner_loop.rightmost_descendent_of_child_left == node)
                                                                 child_left_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(child_left_inner_loop.rightmost_descendent_of_child_left));
 
                                                             typename navigator_t::loop_t child_right_outer_loop;
                                                             typename navigator_t::loop_t child_right_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_right_sibling.keys));
                                                             navigator_except_node_end_t *key_left_child_left = std::get<1>(bnode_right_sibling.keys)->child_left(), *key_left_child_left_child_right, *key_left_child_left_child_left;
-                                                            if(child_after_merge_height == 1)
+                                                            if (child_after_merge_height == 1)
                                                             {
                                                                 key_left_child_left_child_right = key_left_child_left->child_right();
                                                                 key_left_child_left_child_left = key_left_child_left->child_left();
                                                             }
 
-                                                            if(std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            if (std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_inner_loop.child_right == std::get<1>(bnode_right_sibling.keys));
                                                                 parent_inner_loop.child_right = std::get<2>(bnode_right_sibling.keys).value();
                                                             }
-                                                            else if(std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (std::get<1>(bnode_right_sibling.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 child_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_right_sibling.keys));
                                                                 assert(child_right_outer_loop.child_left == std::get<1>(bnode_right_sibling.keys));
@@ -4960,7 +4878,7 @@ namespace augmented_containers
                                                             }
                                                             else std::unreachable();
 
-                                                            if(child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left != nullptr)
+                                                            if (child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left != nullptr)
                                                             {
                                                                 navigator_except_node_end_t *node_right = key_left_child_left;
                                                                 navigator_except_node_end_t *node_left = key_left_child_left_child_left;
@@ -4979,7 +4897,7 @@ namespace augmented_containers
                                                             }
                                                             else
                                                             {
-                                                                if(child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left == nullptr)
+                                                                if (child_after_merge_height == 1 && key_left_child_left_child_right == nullptr && key_left_child_left_child_left == nullptr)
                                                                     key_left_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                                 else
                                                                     key_left_child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -4990,20 +4908,20 @@ namespace augmented_containers
                                                             parent_inner_loop.leftmost_descendent_of_child_right = child_right_inner_loop.leftmost_descendent_of_child_right != nullptr ? child_right_inner_loop.leftmost_descendent_of_child_right : child_right_inner_loop.child_right;
                                                             parent_inner_loop.rightmost_descendent_of_child_left = child_right_inner_loop.rightmost_descendent_of_child_left != nullptr ? child_right_inner_loop.rightmost_descendent_of_child_left : child_right_inner_loop.child_left;
 
-                                                            if(parent->role() == rb2p_node_role_e::root)
+                                                            if (parent->role() == rb2p_node_role_e::root)
                                                             {
                                                                 assert(loop_end.root == parent);
                                                                 loop_end.root = std::get<1>(bnode_right_sibling.keys);
                                                                 should_link_loop_end = true;
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_right == parent);
                                                                 parent_outer_loop.child_right = std::get<1>(bnode_right_sibling.keys);
-                                                                if(parent_outer_loop.leftmost_descendent_of_child_right == node)
+                                                                if (parent_outer_loop.leftmost_descendent_of_child_right == node)
                                                                     parent_outer_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(parent_outer_loop.leftmost_descendent_of_child_right));
                                                             }
-                                                            else if(parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
+                                                            else if (parent->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent)
                                                             {
                                                                 assert(parent_outer_loop.child_left == parent);
                                                                 parent_outer_loop.child_left = std::get<1>(bnode_right_sibling.keys);
@@ -5013,7 +4931,7 @@ namespace augmented_containers
                                                             rb2p_node_role_e child_after_merge_role = std::get<1>(bnode_to_have_key_erased.keys)->role();
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
-                                                            if(!child_after_merge_is_child_left_of_parent)
+                                                            if (!child_after_merge_is_child_left_of_parent)
                                                             {
                                                                 child_left_outer_loop.child_right = parent;
                                                                 child_left_outer_loop.index = -1, child_left_outer_loop.link();
@@ -5023,9 +4941,9 @@ namespace augmented_containers
                                                             child_left_inner_loop.child_left = child_after_merge;
                                                             child_left_inner_loop.link();
                                                             parent_inner_loop.index = -1, parent_inner_loop.link();
-                                                            if(child_right_outer_loop.this_ != nullptr)
+                                                            if (child_right_outer_loop.this_ != nullptr)
                                                                 child_right_outer_loop.index = -1, child_right_outer_loop.link();
-                                                            if(parent->role() != rb2p_node_role_e::root)
+                                                            if (parent->role() != rb2p_node_role_e::root)
                                                                 parent_outer_loop.index = -1, parent_outer_loop.link();
 
                                                             std::get<2>(bnode_right_sibling.keys).value()->role() = std::get<1>(bnode_right_sibling.keys)->role();
@@ -5048,11 +4966,11 @@ namespace augmented_containers
                                                 fallback();
                                         };
                                     };
-                                    auto try_merge_with_left_sibling = [&](auto fallback)
+                                    auto try_merge_with_left_sibling = [&](auto fallback) //
                                     {
-                                        return [&, fallback]()
+                                        return [&, fallback]() //
                                         {
-                                            if(opt_node_left_sibling_black.has_value())
+                                            if (opt_node_left_sibling_black.has_value())
                                             {
                                                 navigator_except_node_end_t *key_from_parent = bnode_parent.key_at(bnode_parent.child_index - 1);
                                                 navigator_except_node_end_t *key_left = opt_node_left_sibling_black.value();
@@ -5062,19 +4980,19 @@ namespace augmented_containers
                                                 static_cast<bnode_t &>(bnode_to_have_key_erased_next) = static_cast<bnode_t &>(bnode_parent);
                                                 bnode_to_have_key_erased_next.key_to_be_erased_index = bnode_parent.child_index - 1;
 
-                                                if(child_after_merge_height == 0)
+                                                if (child_after_merge_height == 0)
                                                 {
                                                     assert(key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root || key_left->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
                                                     assert(key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root || key_right->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                     typename navigator_t::loop_t key_left_outer_loop;
-                                                    if(key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                                    if (key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                                         key_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_left);
                                                     typename navigator_t::loop_t key_right_outer_loop;
-                                                    if(key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                                    if (key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                                         key_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_right);
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_left_outer_loop*/, key_left, key_from_parent, key_right, key_right_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_left_outer_loop*/, key_left, key_from_parent, key_right, key_right_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t * //
                                                         {
                                                             if(child_after_merge_role == rb2p_node_role_e::root)
                                                             {
@@ -5157,17 +5075,18 @@ namespace augmented_containers
                                                                 return key_left;
                                                             }
                                                             else std::unreachable(); },
-                                                        child_after_merge_height + 1);
+                                                        child_after_merge_height + 1
+                                                    );
                                                 }
                                                 else
                                                 {
                                                     typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(key_from_parent);
-                                                    if(parent_inner_loop.leftmost_descendent_of_child_right == node)
+                                                    if (parent_inner_loop.leftmost_descendent_of_child_right == node)
                                                         parent_inner_loop.leftmost_descendent_of_child_right = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<true>(parent_inner_loop.leftmost_descendent_of_child_right));
                                                     parent_inner_loop.child_left = key_left;
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_left, key_from_parent /*, key_right*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_left, key_from_parent /*, key_right*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t * //
                                                         {
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
@@ -5182,17 +5101,18 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage(schedules,accumulator,key_from_parent);
 
                                                             return key_from_parent; },
-                                                        child_after_merge_height + 1);
+                                                        child_after_merge_height + 1
+                                                    );
                                                 }
                                             }
                                             else fallback();
                                         };
                                     };
-                                    auto try_merge_with_right_sibling = [&](auto fallback)
+                                    auto try_merge_with_right_sibling = [&](auto fallback) //
                                     {
-                                        return [&, fallback]()
+                                        return [&, fallback]() //
                                         {
-                                            if(opt_node_right_sibling_black.has_value())
+                                            if (opt_node_right_sibling_black.has_value())
                                             {
                                                 navigator_except_node_end_t *key_from_parent = bnode_parent.key_at(bnode_parent.child_index + 1);
                                                 navigator_except_node_end_t *key_right = opt_node_right_sibling_black.value();
@@ -5202,19 +5122,19 @@ namespace augmented_containers
                                                 static_cast<bnode_t &>(bnode_to_have_key_erased_next) = static_cast<bnode_t &>(bnode_parent);
                                                 bnode_to_have_key_erased_next.key_to_be_erased_index = bnode_parent.child_index + 1;
 
-                                                if(child_after_merge_height == 0)
+                                                if (child_after_merge_height == 0)
                                                 {
                                                     assert(key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root || key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root || key_right->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                                     assert(key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root || key_left->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root);
                                                     typename navigator_t::loop_t key_right_outer_loop;
-                                                    if(key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                                    if (key_right->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                                         key_right_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_right);
                                                     typename navigator_t::loop_t key_left_outer_loop;
-                                                    if(key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                                    if (key_left->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                                         key_left_outer_loop = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(key_left);
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_right_outer_loop*/, key_right, key_from_parent, key_left, key_left_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &should_link_loop_end, &loop_end /*, key_right_outer_loop*/, key_right, key_from_parent, key_left, key_left_outer_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t * //
                                                         {
                                                             if(child_after_merge_role == rb2p_node_role_e::root)
                                                             {
@@ -5297,17 +5217,18 @@ namespace augmented_containers
                                                                 return key_right;
                                                             }
                                                             else std::unreachable(); },
-                                                        child_after_merge_height + 1);
+                                                        child_after_merge_height + 1
+                                                    );
                                                 }
                                                 else
                                                 {
                                                     typename navigator_t::loop_t parent_inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(key_from_parent);
-                                                    if(parent_inner_loop.rightmost_descendent_of_child_left == node)
+                                                    if (parent_inner_loop.rightmost_descendent_of_child_left == node)
                                                         parent_inner_loop.rightmost_descendent_of_child_left = static_cast<navigator_except_node_end_t *>(rb2p_iterator_t<false, is_reversed, config_t>::template predecessor<false>(parent_inner_loop.rightmost_descendent_of_child_left));
                                                     parent_inner_loop.child_right = key_right;
 
                                                     this_ /*erase_impl*/ (
-                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_right, key_from_parent /*, key_left*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t *
+                                                        this_, bnode_to_have_key_erased_next, [&schedules, &accumulator, &merge_and_return_child_after_merge, key_right, key_from_parent /*, key_left*/, parent_inner_loop](rb2p_node_role_e child_after_merge_role) mutable -> navigator_except_node_end_t * //
                                                         {
                                                             navigator_except_node_end_t *child_after_merge = merge_and_return_child_after_merge(rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
@@ -5322,22 +5243,22 @@ namespace augmented_containers
                                                             refresh_node_count_and_accumulated_storage(schedules,accumulator,key_from_parent);
 
                                                             return key_from_parent; },
-                                                        child_after_merge_height + 1);
+                                                        child_after_merge_height + 1
+                                                    );
                                                 }
                                             }
                                             else fallback();
                                         };
                                     };
-                                    try_grab_from_left_sibling(try_grab_from_right_sibling(try_merge_with_left_sibling(try_merge_with_right_sibling([]()
-                                        { std::unreachable(); }))))();
+                                    try_grab_from_left_sibling(try_grab_from_right_sibling(try_merge_with_left_sibling(try_merge_with_right_sibling([]() { std::unreachable(); }))))();
                                 }
                             }
                         };
                         erase_impl(
-                            erase_impl, bnode_erase_t::erasing_get_bnode(node), []([[maybe_unused]] rb2p_node_role_e child_after_merge_role) -> navigator_except_node_end_t *
-                            { return nullptr; },
-                            0);
-                        if(should_link_loop_end)
+                            erase_impl, bnode_erase_t::erasing_get_bnode(node), []([[maybe_unused]] rb2p_node_role_e child_after_merge_role) -> navigator_except_node_end_t * { return nullptr; },
+                            0
+                        );
+                        if (should_link_loop_end)
                             loop_end.index = -1, loop_end.link();
                     }
                     return height_changed;
@@ -5347,16 +5268,16 @@ namespace augmented_containers
                 {
                     accumulator_t const &accumulator = node_end->accumulator;
                     bool height_changed;
-                    while(true)
+                    while (true)
                     {
-                        if(bnode_before_split.key_count != 3)
+                        if (bnode_before_split.key_count != 3)
                         {
-                            if(bnode_before_split.child_index == -3)
+                            if (bnode_before_split.child_index == -3)
                             {
                                 rb2p_node_role_e role_right;
-                                if(child_left_or_right_after_split_height == 0)
+                                if (child_left_or_right_after_split_height == 0)
                                 {
-                                    if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                    if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -5372,7 +5293,7 @@ namespace augmented_containers
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root || std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
-                                        if(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                        if (std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                         {
                                             typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_before_split.keys).value());
                                             loop_outer_left.exchange(child_after_split);
@@ -5397,18 +5318,18 @@ namespace augmented_containers
                                     assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
                                     assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
                                     typename navigator_t::loop_t loop_outer_right_or_left;
-                                    if(!bnode_before_split.center_key_parent_info.is_end())
+                                    if (!bnode_before_split.center_key_parent_info.is_end())
                                         loop_outer_right_or_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                     typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                     typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
-                                    if(!bnode_before_split.center_key_parent_info.is_end())
+                                    if (!bnode_before_split.center_key_parent_info.is_end())
                                         loop_outer_right_or_left.exchange(std::get<0>(bnode_before_split.keys).value());
                                     else
                                     {
                                         loop_end.root = std::get<0>(bnode_before_split.keys).value();
                                         should_link_loop_end = true;
                                     }
-                                    if(child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() != nullptr)
+                                    if (child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() != nullptr)
                                     {
                                         navigator_except_node_end_t *node_left = std::get<0>(bnode_before_split.keys).value()->child_right();
                                         navigator_except_node_end_t *node_right = node_left->child_right();
@@ -5422,7 +5343,7 @@ namespace augmented_containers
                                         loop_inner_right.index = -1, loop_inner_right.link();
                                         loop_inner_left.child_right = std::get<1>(bnode_before_split.keys);
                                         loop_inner_left.leftmost_descendent_of_child_right = node_left;
-                                        if(loop_inner_left.rightmost_descendent_of_child_left == nullptr)
+                                        if (loop_inner_left.rightmost_descendent_of_child_left == nullptr)
                                             loop_inner_left.rightmost_descendent_of_child_left = child_right_after_split;
                                         loop_inner_left.child_left = child_after_split;
                                         loop_inner_left.index = -1, loop_inner_left.link();
@@ -5434,7 +5355,7 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() == nullptr)
                                         {
                                             assert(loop_inner_left.child_right == std::get<0>(bnode_before_split.keys).value()->child_right());
                                             assert(loop_inner_left.leftmost_descendent_of_child_right == nullptr);
@@ -5447,7 +5368,7 @@ namespace augmented_containers
                                         }
                                         loop_inner_right.exchange(loop_inner_left.child_right);
                                         loop_inner_left.child_right = std::get<1>(bnode_before_split.keys);
-                                        if(loop_inner_left.rightmost_descendent_of_child_left == nullptr)
+                                        if (loop_inner_left.rightmost_descendent_of_child_left == nullptr)
                                             loop_inner_left.rightmost_descendent_of_child_left = child_right_after_split;
                                         loop_inner_left.child_left = child_after_split;
                                         loop_inner_left.index = -1, loop_inner_left.link();
@@ -5470,13 +5391,13 @@ namespace augmented_containers
                                 std::get<0>(bnode_before_split.keys).value()->role() = std::get<1>(bnode_before_split.keys)->role();
                                 std::get<1>(bnode_before_split.keys)->color() = true;
                                 std::get<1>(bnode_before_split.keys)->role() = role_right;
-                                if(child_left_or_right_after_split_height == 1)
+                                if (child_left_or_right_after_split_height == 1)
                                 {
-                                    if(child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                    if (child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                         child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                 }
-                                else if(child_left_or_right_after_split_height > 1)
+                                else if (child_left_or_right_after_split_height > 1)
                                 {
                                     child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -5486,13 +5407,13 @@ namespace augmented_containers
                                 refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                 refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_before_split.keys).value());
                             }
-                            else if(bnode_before_split.child_index == -1)
+                            else if (bnode_before_split.child_index == -1)
                             {
-                                if(!std::get<0>(bnode_before_split.keys).has_value())
+                                if (!std::get<0>(bnode_before_split.keys).has_value())
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
-                                        if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                        if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                         {
                                             typename navigator_t::loop_t{
                                                 .this_ = std::get<1>(bnode_before_split.keys),
@@ -5507,11 +5428,11 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            switch(std::get<1>(bnode_before_split.keys)->role())
+                                            switch (std::get<1>(bnode_before_split.keys)->role())
                                             {
                                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                                if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                                if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_before_split.keys));
                                                     loop_outer_left.exchange(child_after_split);
@@ -5529,10 +5450,10 @@ namespace augmented_containers
                                                 break;
                                             case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                             case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                            {
-                                                typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
-                                                loop_outer_left.exchange(child_after_split);
-                                            }
+                                                {
+                                                    typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
+                                                    loop_outer_left.exchange(child_after_split);
+                                                }
                                                 typename navigator_t::loop_t{
                                                     .this_ = child_after_split,
                                                     .child_right = std::get<1>(bnode_before_split.keys),
@@ -5545,11 +5466,11 @@ namespace augmented_containers
                                                 refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                                 break;
                                             case rb2p_node_role_e::child_right_not_a_rightmost_descendent:
-                                            {
-                                                typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
-                                                loop_outer_left.leftmost_descendent_of_child_right = child_after_split;
-                                                loop_outer_left.index = -1, loop_outer_left.link();
-                                            }
+                                                {
+                                                    typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
+                                                    loop_outer_left.leftmost_descendent_of_child_right = child_after_split;
+                                                    loop_outer_left.index = -1, loop_outer_left.link();
+                                                }
                                                 typename navigator_t::loop_t{
                                                     .this_ = std::get<1>(bnode_before_split.keys),
                                                     .child_right = std::get<2>(bnode_before_split.keys).value(),
@@ -5573,7 +5494,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
                                         loop_inner.child_left = child_after_split;
-                                        if(loop_inner.rightmost_descendent_of_child_left == nullptr)
+                                        if (loop_inner.rightmost_descendent_of_child_left == nullptr)
                                             loop_inner.rightmost_descendent_of_child_left = child_right_after_split;
                                         loop_inner.index = -1, loop_inner.link();
 
@@ -5588,13 +5509,13 @@ namespace augmented_containers
 
                                         child_after_split->color() = true;
                                         child_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                        if(child_left_or_right_after_split_height == 1)
+                                        if (child_left_or_right_after_split_height == 1)
                                         {
-                                            if(child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                            if (child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                 child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         }
-                                        else if(child_left_or_right_after_split_height > 1)
+                                        else if (child_left_or_right_after_split_height > 1)
                                         {
                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -5606,9 +5527,9 @@ namespace augmented_containers
                                 else
                                 {
                                     rb2p_node_role_e role_right;
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
-                                        if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                        if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                         {
                                             assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                             assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -5645,11 +5566,11 @@ namespace augmented_containers
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
                                         typename navigator_t::loop_t loop_outer_right_or_left;
-                                        if(!bnode_before_split.center_key_parent_info.is_end())
+                                        if (!bnode_before_split.center_key_parent_info.is_end())
                                             loop_outer_right_or_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
-                                        if(!bnode_before_split.center_key_parent_info.is_end())
+                                        if (!bnode_before_split.center_key_parent_info.is_end())
                                             loop_outer_right_or_left.exchange(child_after_split);
                                         else
                                         {
@@ -5657,7 +5578,7 @@ namespace augmented_containers
                                             assert(!should_link_loop_end);
                                             should_link_loop_end = true;
                                         }
-                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -5678,7 +5599,7 @@ namespace augmented_containers
                                         }
                                         else
                                             loop_inner_right.exchange(child_right_after_split);
-                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -5718,18 +5639,18 @@ namespace augmented_containers
                                     child_after_split->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->color() = true;
                                     std::get<1>(bnode_before_split.keys)->role() = role_right;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
                                         child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     }
 
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                     else
                                     {
@@ -5739,13 +5660,13 @@ namespace augmented_containers
                                     }
                                 }
                             }
-                            else if(bnode_before_split.child_index == 1)
+                            else if (bnode_before_split.child_index == 1)
                             {
-                                if(!std::get<2>(bnode_before_split.keys).has_value())
+                                if (!std::get<2>(bnode_before_split.keys).has_value())
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
-                                        if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                        if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                         {
                                             typename navigator_t::loop_t{
                                                 .this_ = std::get<1>(bnode_before_split.keys),
@@ -5760,11 +5681,11 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            switch(std::get<1>(bnode_before_split.keys)->role())
+                                            switch (std::get<1>(bnode_before_split.keys)->role())
                                             {
                                             case rb2p_node_role_e::child_right_rightmost_descendent_of_non_root:
                                             case rb2p_node_role_e::child_right_rightmost_descendent_of_root:
-                                                if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                                if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<1>(bnode_before_split.keys));
                                                     loop_outer_right.exchange(child_after_split);
@@ -5782,10 +5703,10 @@ namespace augmented_containers
                                                 break;
                                             case rb2p_node_role_e::child_left_leftmost_descendent_of_non_root:
                                             case rb2p_node_role_e::child_left_leftmost_descendent_of_root:
-                                            {
-                                                typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
-                                                loop_outer_right.exchange(child_after_split);
-                                            }
+                                                {
+                                                    typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
+                                                    loop_outer_right.exchange(child_after_split);
+                                                }
                                                 typename navigator_t::loop_t{
                                                     .this_ = child_after_split,
                                                     .child_left = std::get<1>(bnode_before_split.keys),
@@ -5798,11 +5719,11 @@ namespace augmented_containers
                                                 refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                                 break;
                                             case rb2p_node_role_e::child_left_not_a_leftmost_descendent:
-                                            {
-                                                typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
-                                                loop_outer_right.rightmost_descendent_of_child_left = child_after_split;
-                                                loop_outer_right.index = -1, loop_outer_right.link();
-                                            }
+                                                {
+                                                    typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
+                                                    loop_outer_right.rightmost_descendent_of_child_left = child_after_split;
+                                                    loop_outer_right.index = -1, loop_outer_right.link();
+                                                }
                                                 typename navigator_t::loop_t{
                                                     .this_ = std::get<1>(bnode_before_split.keys),
                                                     .child_right = child_after_split,
@@ -5826,7 +5747,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
                                         loop_inner.child_right = child_after_split;
-                                        if(loop_inner.leftmost_descendent_of_child_right == nullptr)
+                                        if (loop_inner.leftmost_descendent_of_child_right == nullptr)
                                             loop_inner.leftmost_descendent_of_child_right = child_left_after_split;
                                         loop_inner.index = -1, loop_inner.link();
 
@@ -5841,13 +5762,13 @@ namespace augmented_containers
 
                                         child_after_split->color() = true;
                                         child_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                        if(child_left_or_right_after_split_height == 1)
+                                        if (child_left_or_right_after_split_height == 1)
                                         {
-                                            if(child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                            if (child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                 child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         }
-                                        else if(child_left_or_right_after_split_height > 1)
+                                        else if (child_left_or_right_after_split_height > 1)
                                         {
                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -5859,9 +5780,9 @@ namespace augmented_containers
                                 else
                                 {
                                     rb2p_node_role_e role_left;
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
-                                        if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                        if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                         {
                                             assert(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
                                             assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -5898,11 +5819,11 @@ namespace augmented_containers
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
 
                                         typename navigator_t::loop_t loop_outer_left_or_right;
-                                        if(!bnode_before_split.center_key_parent_info.is_end())
+                                        if (!bnode_before_split.center_key_parent_info.is_end())
                                             loop_outer_left_or_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
-                                        if(!bnode_before_split.center_key_parent_info.is_end())
+                                        if (!bnode_before_split.center_key_parent_info.is_end())
                                             loop_outer_left_or_right.exchange(child_after_split);
                                         else
                                         {
@@ -5910,7 +5831,7 @@ namespace augmented_containers
                                             assert(!should_link_loop_end);
                                             should_link_loop_end = true;
                                         }
-                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_right_after_split->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_right_after_split->child_right() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -5931,7 +5852,7 @@ namespace augmented_containers
                                         }
                                         else
                                             loop_inner_left.exchange(child_left_after_split);
-                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -5971,18 +5892,18 @@ namespace augmented_containers
                                     child_after_split->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->color() = true;
                                     std::get<1>(bnode_before_split.keys)->role() = role_left;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
                                         child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     }
 
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                     else
                                     {
@@ -5992,12 +5913,12 @@ namespace augmented_containers
                                     }
                                 }
                             }
-                            else if(bnode_before_split.child_index == 3)
+                            else if (bnode_before_split.child_index == 3)
                             {
                                 rb2p_node_role_e role_left;
-                                if(child_left_or_right_after_split_height == 0)
+                                if (child_left_or_right_after_split_height == 0)
                                 {
-                                    if(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
+                                    if (std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root)
                                     {
                                         assert(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -6013,7 +5934,7 @@ namespace augmented_containers
                                         assert(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root || std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
 
-                                        if(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                        if (std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                         {
                                             typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_before_split.keys).value());
                                             loop_outer_right.exchange(child_after_split);
@@ -6038,18 +5959,18 @@ namespace augmented_containers
                                     assert(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
                                     assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent);
                                     typename navigator_t::loop_t loop_outer_left_or_right;
-                                    if(!bnode_before_split.center_key_parent_info.is_end())
+                                    if (!bnode_before_split.center_key_parent_info.is_end())
                                         loop_outer_left_or_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                     typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                     typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
-                                    if(!bnode_before_split.center_key_parent_info.is_end())
+                                    if (!bnode_before_split.center_key_parent_info.is_end())
                                         loop_outer_left_or_right.exchange(std::get<2>(bnode_before_split.keys).value());
                                     else
                                     {
                                         loop_end.root = std::get<2>(bnode_before_split.keys).value();
                                         should_link_loop_end = true;
                                     }
-                                    if(child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() != nullptr)
+                                    if (child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() != nullptr)
                                     {
                                         navigator_except_node_end_t *node_right = std::get<2>(bnode_before_split.keys).value()->child_left();
                                         navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6063,7 +5984,7 @@ namespace augmented_containers
                                         loop_inner_left.index = -1, loop_inner_left.link();
                                         loop_inner_right.child_left = std::get<1>(bnode_before_split.keys);
                                         loop_inner_right.rightmost_descendent_of_child_left = node_right;
-                                        if(loop_inner_right.leftmost_descendent_of_child_right == nullptr)
+                                        if (loop_inner_right.leftmost_descendent_of_child_right == nullptr)
                                             loop_inner_right.leftmost_descendent_of_child_right = child_left_after_split;
                                         loop_inner_right.child_right = child_after_split;
                                         loop_inner_right.index = -1, loop_inner_right.link();
@@ -6075,7 +5996,7 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() == nullptr)
                                         {
                                             assert(loop_inner_right.child_left == std::get<2>(bnode_before_split.keys).value()->child_left());
                                             assert(loop_inner_right.rightmost_descendent_of_child_left == nullptr);
@@ -6088,7 +6009,7 @@ namespace augmented_containers
                                         }
                                         loop_inner_left.exchange(loop_inner_right.child_left);
                                         loop_inner_right.child_left = std::get<1>(bnode_before_split.keys);
-                                        if(loop_inner_right.leftmost_descendent_of_child_right == nullptr)
+                                        if (loop_inner_right.leftmost_descendent_of_child_right == nullptr)
                                             loop_inner_right.leftmost_descendent_of_child_right = child_left_after_split;
                                         loop_inner_right.child_right = child_after_split;
                                         loop_inner_right.index = -1, loop_inner_right.link();
@@ -6111,13 +6032,13 @@ namespace augmented_containers
                                 std::get<2>(bnode_before_split.keys).value()->role() = std::get<1>(bnode_before_split.keys)->role();
                                 std::get<1>(bnode_before_split.keys)->color() = true;
                                 std::get<1>(bnode_before_split.keys)->role() = role_left;
-                                if(child_left_or_right_after_split_height == 1)
+                                if (child_left_or_right_after_split_height == 1)
                                 {
-                                    if(child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                    if (child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                         child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                 }
-                                else if(child_left_or_right_after_split_height > 1)
+                                else if (child_left_or_right_after_split_height > 1)
                                 {
                                     child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -6133,12 +6054,12 @@ namespace augmented_containers
                         }
                         else
                         {
-                            if(bnode_before_split.center_key_parent_info.is_end())
+                            if (bnode_before_split.center_key_parent_info.is_end())
                             {
                                 assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
-                                if(bnode_before_split.child_index == -3)
+                                if (bnode_before_split.child_index == -3)
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -6170,7 +6091,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
-                                        if(child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() != nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() != nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = std::get<0>(bnode_before_split.keys).value()->child_right();
                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6195,7 +6116,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr)
+                                            if (std::get<0>(bnode_before_split.keys).value()->child_right()->child_right() == nullptr && std::get<0>(bnode_before_split.keys).value()->child_right()->child_left() == nullptr)
                                                 std::get<0>(bnode_before_split.keys).value()->child_right()->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                             else
                                                 std::get<0>(bnode_before_split.keys).value()->child_right()->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -6221,13 +6142,13 @@ namespace augmented_containers
                                     std::get<0>(bnode_before_split.keys).value()->color() = false;
                                     std::get<0>(bnode_before_split.keys).value()->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
-                                        if(child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                        if (child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                             child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -6237,9 +6158,9 @@ namespace augmented_containers
                                     refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                     refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<0>(bnode_before_split.keys).value());
                                 }
-                                else if(bnode_before_split.child_index == -1)
+                                else if (bnode_before_split.child_index == -1)
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -6273,7 +6194,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
-                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6294,7 +6215,7 @@ namespace augmented_containers
                                         }
                                         else
                                             loop_inner_right.exchange(child_right_after_split);
-                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6332,18 +6253,18 @@ namespace augmented_containers
                                     child_after_split->color() = false;
                                     child_after_split->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
                                         child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     }
 
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                     else
                                     {
@@ -6352,9 +6273,9 @@ namespace augmented_containers
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, child_after_split);
                                     }
                                 }
-                                else if(bnode_before_split.child_index == 1)
+                                else if (bnode_before_split.child_index == 1)
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -6388,7 +6309,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
-                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6409,7 +6330,7 @@ namespace augmented_containers
                                         }
                                         else
                                             loop_inner_left.exchange(child_left_after_split);
-                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6447,18 +6368,18 @@ namespace augmented_containers
                                     child_after_split->color() = false;
                                     child_after_split->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
                                         child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                         child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                     }
 
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                     else
                                     {
@@ -6467,9 +6388,9 @@ namespace augmented_containers
                                         refresh_node_count_and_accumulated_storage_and_above(schedules, accumulator, child_after_split);
                                     }
                                 }
-                                else if(bnode_before_split.child_index == 3)
+                                else if (bnode_before_split.child_index == 3)
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::root);
@@ -6501,7 +6422,7 @@ namespace augmented_containers
 
                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
-                                        if(child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() != nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr)
+                                        if (child_left_or_right_after_split_height == 1 && std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() != nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = std::get<2>(bnode_before_split.keys).value()->child_left();
                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6526,7 +6447,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr)
+                                            if (std::get<2>(bnode_before_split.keys).value()->child_left()->child_left() == nullptr && std::get<2>(bnode_before_split.keys).value()->child_left()->child_right() == nullptr)
                                                 std::get<2>(bnode_before_split.keys).value()->child_left()->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                             else
                                                 std::get<2>(bnode_before_split.keys).value()->child_left()->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -6552,13 +6473,13 @@ namespace augmented_containers
                                     std::get<2>(bnode_before_split.keys).value()->color() = false;
                                     std::get<2>(bnode_before_split.keys).value()->role() = std::get<1>(bnode_before_split.keys)->role();
                                     std::get<1>(bnode_before_split.keys)->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                    if(child_left_or_right_after_split_height == 1)
+                                    if (child_left_or_right_after_split_height == 1)
                                     {
-                                        if(child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                        if (child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                             child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                     }
-                                    else if(child_left_or_right_after_split_height > 1)
+                                    else if (child_left_or_right_after_split_height > 1)
                                     {
                                         child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                         child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -6577,30 +6498,30 @@ namespace augmented_containers
                                 navigator_except_node_end_t *child_after_split_old = child_after_split;
 
                                 bnode_up_t bnode_parent = bnode_up_t::get_bnode_from_key(static_cast<navigator_except_node_end_t *>(bnode_before_split.center_key_parent_info.parent), bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent);
-                                auto try_spill_to_left_sibling = [&](auto fallback)
+                                auto try_spill_to_left_sibling = [&](auto fallback) //
                                 {
-                                    return [&, fallback]()
+                                    return [&, fallback]() //
                                     {
-                                        if(std::optional<navigator_except_node_end_t *> opt_key_black_left_sibling = bnode_parent.opt_child_at(bnode_parent.child_index - 2); opt_key_black_left_sibling.has_value())
+                                        if (std::optional<navigator_except_node_end_t *> opt_key_black_left_sibling = bnode_parent.opt_child_at(bnode_parent.child_index - 2); opt_key_black_left_sibling.has_value())
                                         {
                                             auto [bnode_left_sibling, bnode_left_sibling_rightmost_child] = bnode_up_t::inserting_get_bnode_from_key_black_sibling(opt_key_black_left_sibling.value(), false);
-                                            if(bnode_left_sibling.key_count != 3)
+                                            if (bnode_left_sibling.key_count != 3)
                                             {
                                                 navigator_except_node_end_t *parent = bnode_parent.key_at(bnode_parent.child_index - 1);
-                                                if(bnode_before_split.child_index == -3)
+                                                if (bnode_before_split.child_index == -3)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         loop_inner_parent.exchange(child_after_split);
                                                     else
                                                     {
                                                         loop_inner_parent.this_ = child_after_split;
 
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
-                                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6624,20 +6545,20 @@ namespace augmented_containers
                                                             loop_inner_right.child_left = child_right_after_split;
                                                             loop_inner_right.index = -1, loop_inner_right.link();
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        if(child_right_after_split_leftmost_descendent != nullptr)
+                                                        if (child_right_after_split_leftmost_descendent != nullptr)
                                                             std::ranges::swap(loop_inner_parent.leftmost_descendent_of_child_right, child_right_after_split_leftmost_descendent);
                                                         else
                                                             child_right_after_split_leftmost_descendent = std::exchange(loop_inner_parent.leftmost_descendent_of_child_right, child_right_after_split);
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6653,17 +6574,17 @@ namespace augmented_containers
                                                             std::tie(child_left_after_split, child_left_after_split_rightmost_descendent) = std::make_tuple(node_left, node_right);
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() == nullptr && child_left_after_split->child_right() == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() == nullptr && child_left_after_split->child_right() == nullptr)
                                                             child_left_after_split->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                         child_right_after_split = child_left_after_split;
-                                                        if(child_left_after_split_rightmost_descendent != nullptr)
+                                                        if (child_left_after_split_rightmost_descendent != nullptr)
                                                             std::ranges::swap(loop_inner_parent.rightmost_descendent_of_child_left, child_left_after_split_rightmost_descendent);
                                                         else
                                                             child_left_after_split_rightmost_descendent = std::exchange(loop_inner_parent.rightmost_descendent_of_child_left, child_left_after_split);
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = bnode_left_sibling_rightmost_child;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6686,7 +6607,7 @@ namespace augmented_containers
                                                         else
                                                             child_left_after_split = bnode_left_sibling_rightmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(child_after_split);
                                                     else
                                                     {
@@ -6698,18 +6619,18 @@ namespace augmented_containers
                                                     child_after_split->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         ;
                                                     else
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, std::get<0>(bnode_before_split.keys).value(), child_after_split_old);
                                                 }
-                                                else if(bnode_before_split.child_index == -1)
+                                                else if (bnode_before_split.child_index == -1)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t{
                                                             .this_ = std::get<1>(bnode_before_split.keys),
@@ -6728,7 +6649,7 @@ namespace augmented_containers
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
                                                         navigator_except_node_end_t *key_left_child_left, *key_left_child_left_child_left, *key_left_child_left_child_right;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_left_child_left = std::get<0>(bnode_before_split.keys).value()->child_left();
                                                             key_left_child_left_child_left = key_left_child_left->child_left();
@@ -6743,12 +6664,12 @@ namespace augmented_containers
                                                             .child_left = child_left_after_split,
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                             child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -6756,7 +6677,7 @@ namespace augmented_containers
                                                         child_right_after_split_leftmost_descendent = loop_inner_parent.leftmost_descendent_of_child_right;
                                                         loop_inner_parent.leftmost_descendent_of_child_right = loop_inner_left.leftmost_descendent_of_child_right != nullptr ? loop_inner_left.leftmost_descendent_of_child_right : loop_inner_left.child_right;
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_left_child_left;
                                                             navigator_except_node_end_t *node_left = key_left_child_left_child_left;
@@ -6773,7 +6694,7 @@ namespace augmented_containers
                                                             loop_inner_left.child_left = node_left;
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
                                                             key_left_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                         child_left_after_split_rightmost_descendent = loop_inner_parent.rightmost_descendent_of_child_left;
                                                         loop_inner_parent.rightmost_descendent_of_child_left = loop_inner_left.rightmost_descendent_of_child_left != nullptr ? loop_inner_left.rightmost_descendent_of_child_left : loop_inner_left.child_left;
@@ -6781,7 +6702,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = bnode_left_sibling_rightmost_child;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6804,7 +6725,7 @@ namespace augmented_containers
                                                         else
                                                             child_left_after_split = bnode_left_sibling_rightmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<0>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -6818,21 +6739,21 @@ namespace augmented_containers
                                                     std::get<0>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                                     else
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, child_after_split_old, std::get<0>(bnode_before_split.keys).value());
                                                 }
-                                                else if(bnode_before_split.child_index == 1)
+                                                else if (bnode_before_split.child_index == 1)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t{
                                                             .this_ = child_after_split,
@@ -6840,7 +6761,7 @@ namespace augmented_containers
                                                             .child_left = std::get<1>(bnode_before_split.keys),
                                                         }
                                                             .link();
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(child_after_split);
                                                         else
                                                             loop_inner_parent.child_right = child_after_split;
@@ -6853,14 +6774,14 @@ namespace augmented_containers
                                                         loop_inner_parent.this_ = std::get<0>(bnode_before_split.keys).value();
 
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_middle = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                                         navigator_except_node_end_t *key_left_child_left, *key_left_child_left_child_left, *key_left_child_left_child_right;
                                                         navigator_except_node_end_t *key_left_child_right, *key_left_child_right_child_left, *key_left_child_right_child_right;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_left_child_left = std::get<0>(bnode_before_split.keys).value()->child_left();
                                                             key_left_child_left_child_left = key_left_child_left->child_left();
@@ -6869,12 +6790,12 @@ namespace augmented_containers
                                                             key_left_child_right_child_left = key_left_child_right->child_left();
                                                             key_left_child_right_child_right = key_left_child_right->child_right();
                                                         }
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(child_after_split);
                                                         else
                                                             loop_inner_parent.child_right = child_after_split;
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -6892,16 +6813,16 @@ namespace augmented_containers
                                                         }
                                                         loop_inner_right.child_left = child_right_after_split;
                                                         loop_inner_right.index = -1, loop_inner_right.link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -6925,16 +6846,16 @@ namespace augmented_containers
                                                             .child_left = std::get<1>(bnode_before_split.keys),
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_left_child_right;
                                                             navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -6954,16 +6875,16 @@ namespace augmented_containers
                                                         loop_inner_middle.child_right = child_left_after_split;
                                                         loop_inner_middle.child_left = loop_inner_left.child_right;
                                                         loop_inner_middle.index = -1, loop_inner_middle.link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             loop_inner_left.child_right->role() = loop_inner_left.child_right->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             loop_inner_left.child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_left_child_left;
                                                             navigator_except_node_end_t *node_left = key_left_child_left_child_left;
@@ -6980,7 +6901,7 @@ namespace augmented_containers
                                                             loop_inner_left.child_left = node_left;
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
                                                             key_left_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                                         child_right_after_split = loop_inner_left.child_left;
                                                         child_right_after_split_leftmost_descendent = loop_inner_parent.leftmost_descendent_of_child_right;
@@ -6990,7 +6911,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = bnode_left_sibling_rightmost_child;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -7013,7 +6934,7 @@ namespace augmented_containers
                                                         else
                                                             child_left_after_split = bnode_left_sibling_rightmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<0>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -7029,7 +6950,7 @@ namespace augmented_containers
                                                     std::get<0>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
@@ -7041,22 +6962,22 @@ namespace augmented_containers
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, child_after_split_old, std::get<0>(bnode_before_split.keys).value());
                                                     }
                                                 }
-                                                else if(bnode_before_split.child_index == 3)
+                                                else if (bnode_before_split.child_index == 3)
                                                 {
-                                                    if(child_left_or_right_after_split_height == 0 && std::get<2>(bnode_before_split.keys).value()->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                    if (child_left_or_right_after_split_height == 0 && std::get<2>(bnode_before_split.keys).value()->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                     {
                                                         typename navigator_t::loop_t loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_before_split.keys).value());
                                                         loop_outer_parent.exchange(child_after_split);
                                                         child_after_split->role() = std::get<2>(bnode_before_split.keys).value()->role();
                                                     }
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t{
                                                             .this_ = std::get<2>(bnode_before_split.keys).value(),
@@ -7064,7 +6985,7 @@ namespace augmented_containers
                                                             .child_left = std::get<1>(bnode_before_split.keys),
                                                         }
                                                             .link();
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(std::get<2>(bnode_before_split.keys).value());
                                                         else
                                                             loop_inner_parent.child_right = std::get<2>(bnode_before_split.keys).value();
@@ -7077,7 +6998,7 @@ namespace augmented_containers
                                                         loop_inner_parent.this_ = std::get<0>(bnode_before_split.keys).value();
 
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_middle = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
@@ -7085,7 +7006,7 @@ namespace augmented_containers
                                                         navigator_except_node_end_t *key_left_child_left, *key_left_child_left_child_left, *key_left_child_left_child_right;
                                                         navigator_except_node_end_t *key_left_child_right, *key_left_child_right_child_left, *key_left_child_right_child_right;
                                                         navigator_except_node_end_t *key_right_child_left, *key_right_child_left_child_left, *key_right_child_left_child_right;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_left_child_left = std::get<0>(bnode_before_split.keys).value()->child_left();
                                                             key_left_child_left_child_left = key_left_child_left->child_left();
@@ -7097,7 +7018,7 @@ namespace augmented_containers
                                                             key_right_child_left_child_left = key_right_child_left->child_left();
                                                             key_right_child_left_child_right = key_right_child_left->child_right();
                                                         }
-                                                        if(!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (!bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(std::get<2>(bnode_before_split.keys).value());
                                                         else
                                                             loop_inner_parent.child_right = std::get<2>(bnode_before_split.keys).value();
@@ -7110,19 +7031,19 @@ namespace augmented_containers
                                                             .child_left = child_left_after_split,
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                                            if(child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                            if (child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                                 child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_left_child_right;
                                                             navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -7139,11 +7060,11 @@ namespace augmented_containers
                                                             loop_inner_left.leftmost_descendent_of_child_right = node_left;
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_left.child_right->role() = loop_inner_left.child_right->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_left.child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_right_child_left;
                                                             navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -7160,9 +7081,9 @@ namespace augmented_containers
                                                             loop_inner_right.rightmost_descendent_of_child_left = node_right;
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_right.child_left->role() = loop_inner_right.child_left->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_right.child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         loop_inner_middle.child_right = loop_inner_right.child_left;
                                                         loop_inner_middle.child_left = loop_inner_left.child_right;
@@ -7174,7 +7095,7 @@ namespace augmented_containers
                                                         loop_inner_right.child_left = std::get<1>(bnode_before_split.keys);
                                                         loop_inner_right.index = -1, loop_inner_right.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left != nullptr && key_left_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_left_child_left;
                                                             navigator_except_node_end_t *node_left = key_left_child_left_child_left;
@@ -7191,11 +7112,11 @@ namespace augmented_containers
                                                             loop_inner_left.child_left = node_left;
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_left_child_left_child_left == nullptr && key_left_child_left_child_right == nullptr)
                                                             key_left_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_left.child_left->role() = loop_inner_left.child_left->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_left.child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         child_right_after_split = loop_inner_left.child_left;
                                                         child_right_after_split_leftmost_descendent = loop_inner_parent.leftmost_descendent_of_child_right;
@@ -7205,7 +7126,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_left_sibling_rightmost_child->child_right() != nullptr && bnode_left_sibling_rightmost_child->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = bnode_left_sibling_rightmost_child;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -7228,7 +7149,7 @@ namespace augmented_containers
                                                         else
                                                             child_left_after_split = bnode_left_sibling_rightmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<0>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -7245,7 +7166,7 @@ namespace augmented_containers
                                                     std::get<0>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
@@ -7268,30 +7189,30 @@ namespace augmented_containers
                                             fallback();
                                     };
                                 };
-                                auto try_spill_to_right_sibling = [&](auto fallback)
+                                auto try_spill_to_right_sibling = [&](auto fallback) //
                                 {
-                                    return [&, fallback]()
+                                    return [&, fallback]() //
                                     {
-                                        if(std::optional<navigator_except_node_end_t *> opt_key_black_right_sibling = bnode_parent.opt_child_at(bnode_parent.child_index + 2); opt_key_black_right_sibling.has_value())
+                                        if (std::optional<navigator_except_node_end_t *> opt_key_black_right_sibling = bnode_parent.opt_child_at(bnode_parent.child_index + 2); opt_key_black_right_sibling.has_value())
                                         {
                                             auto [bnode_right_sibling, bnode_right_sibling_leftmost_child] = bnode_up_t::inserting_get_bnode_from_key_black_sibling(opt_key_black_right_sibling.value(), true);
-                                            if(bnode_right_sibling.key_count != 3)
+                                            if (bnode_right_sibling.key_count != 3)
                                             {
                                                 navigator_except_node_end_t *parent = bnode_parent.key_at(bnode_parent.child_index + 1);
-                                                if(bnode_before_split.child_index == 3)
+                                                if (bnode_before_split.child_index == 3)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         loop_inner_parent.exchange(child_after_split);
                                                     else
                                                     {
                                                         loop_inner_parent.this_ = child_after_split;
 
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
-                                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7315,20 +7236,20 @@ namespace augmented_containers
                                                             loop_inner_left.child_right = child_left_after_split;
                                                             loop_inner_left.index = -1, loop_inner_left.link();
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        if(child_left_after_split_rightmost_descendent != nullptr)
+                                                        if (child_left_after_split_rightmost_descendent != nullptr)
                                                             std::ranges::swap(loop_inner_parent.rightmost_descendent_of_child_left, child_left_after_split_rightmost_descendent);
                                                         else
                                                             child_left_after_split_rightmost_descendent = std::exchange(loop_inner_parent.rightmost_descendent_of_child_left, child_left_after_split);
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -7344,20 +7265,20 @@ namespace augmented_containers
                                                             std::tie(child_right_after_split, child_right_after_split_leftmost_descendent) = std::make_tuple(node_right, node_left);
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() == nullptr && child_right_after_split->child_left() == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() == nullptr && child_right_after_split->child_left() == nullptr)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                             child_right_after_split->next() = nullptr;
                                                         }
                                                         child_left_after_split = child_right_after_split;
-                                                        if(child_right_after_split_leftmost_descendent != nullptr)
+                                                        if (child_right_after_split_leftmost_descendent != nullptr)
                                                             std::ranges::swap(loop_inner_parent.leftmost_descendent_of_child_right, child_right_after_split_leftmost_descendent);
                                                         else
                                                             child_right_after_split_leftmost_descendent = std::exchange(loop_inner_parent.leftmost_descendent_of_child_right, child_right_after_split);
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = bnode_right_sibling_leftmost_child;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7380,7 +7301,7 @@ namespace augmented_containers
                                                         else
                                                             child_right_after_split = bnode_right_sibling_leftmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(child_after_split);
                                                     else
                                                     {
@@ -7392,18 +7313,18 @@ namespace augmented_containers
                                                     child_after_split->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         ;
                                                     else
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, std::get<2>(bnode_before_split.keys).value(), child_after_split_old);
                                                 }
-                                                else if(bnode_before_split.child_index == 1)
+                                                else if (bnode_before_split.child_index == 1)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t{
                                                             .this_ = std::get<1>(bnode_before_split.keys),
@@ -7422,7 +7343,7 @@ namespace augmented_containers
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
                                                         navigator_except_node_end_t *key_right_child_right, *key_right_child_right_child_right, *key_right_child_right_child_left;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_right_child_right = std::get<2>(bnode_before_split.keys).value()->child_right();
                                                             key_right_child_right_child_right = key_right_child_right->child_right();
@@ -7437,12 +7358,12 @@ namespace augmented_containers
                                                             .child_left = child_left_after_split,
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                             child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -7450,7 +7371,7 @@ namespace augmented_containers
                                                         child_left_after_split_rightmost_descendent = loop_inner_parent.rightmost_descendent_of_child_left;
                                                         loop_inner_parent.rightmost_descendent_of_child_left = loop_inner_right.rightmost_descendent_of_child_left != nullptr ? loop_inner_right.rightmost_descendent_of_child_left : loop_inner_right.child_left;
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_right_child_right;
                                                             navigator_except_node_end_t *node_right = key_right_child_right_child_right;
@@ -7467,7 +7388,7 @@ namespace augmented_containers
                                                             loop_inner_right.child_right = node_right;
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             key_right_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                             key_right_child_right->next() = nullptr;
@@ -7478,7 +7399,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = bnode_right_sibling_leftmost_child;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7501,7 +7422,7 @@ namespace augmented_containers
                                                         else
                                                             child_right_after_split = bnode_right_sibling_leftmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<2>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -7515,21 +7436,21 @@ namespace augmented_containers
                                                     std::get<2>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                                     else
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, child_after_split_old, std::get<2>(bnode_before_split.keys).value());
                                                 }
-                                                else if(bnode_before_split.child_index == -1)
+                                                else if (bnode_before_split.child_index == -1)
                                                 {
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t{
                                                             .this_ = child_after_split,
@@ -7537,7 +7458,7 @@ namespace augmented_containers
                                                             .child_left = std::get<0>(bnode_before_split.keys).value(),
                                                         }
                                                             .link();
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(child_after_split);
                                                         else
                                                             loop_inner_parent.child_left = child_after_split;
@@ -7550,14 +7471,14 @@ namespace augmented_containers
                                                         loop_inner_parent.this_ = std::get<2>(bnode_before_split.keys).value();
 
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_middle = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                                         navigator_except_node_end_t *key_right_child_right, *key_right_child_right_child_right, *key_right_child_right_child_left;
                                                         navigator_except_node_end_t *key_right_child_left, *key_right_child_left_child_right, *key_right_child_left_child_left;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_right_child_right = std::get<2>(bnode_before_split.keys).value()->child_right();
                                                             key_right_child_right_child_right = key_right_child_right->child_right();
@@ -7566,12 +7487,12 @@ namespace augmented_containers
                                                             key_right_child_left_child_right = key_right_child_left->child_right();
                                                             key_right_child_left_child_left = key_right_child_left->child_left();
                                                         }
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(child_after_split);
                                                         else
                                                             loop_inner_parent.child_left = child_after_split;
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = child_left_after_split;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7589,16 +7510,16 @@ namespace augmented_containers
                                                         }
                                                         loop_inner_left.child_right = child_left_after_split;
                                                         loop_inner_left.index = -1, loop_inner_left.link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = child_right_after_split;
                                                             navigator_except_node_end_t *node_right = node_left->child_right();
@@ -7622,16 +7543,16 @@ namespace augmented_containers
                                                             .child_left = std::get<0>(bnode_before_split.keys).value(),
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_right_child_left;
                                                             navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -7651,16 +7572,16 @@ namespace augmented_containers
                                                         loop_inner_middle.child_left = child_right_after_split;
                                                         loop_inner_middle.child_right = loop_inner_right.child_left;
                                                         loop_inner_middle.index = -1, loop_inner_middle.link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             loop_inner_right.child_left->role() = loop_inner_right.child_left->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             loop_inner_right.child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_right_child_right;
                                                             navigator_except_node_end_t *node_right = key_right_child_right_child_right;
@@ -7677,7 +7598,7 @@ namespace augmented_containers
                                                             loop_inner_right.child_right = node_right;
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             key_right_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                             key_right_child_right->next() = nullptr;
@@ -7690,7 +7611,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = bnode_right_sibling_leftmost_child;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7713,7 +7634,7 @@ namespace augmented_containers
                                                         else
                                                             child_right_after_split = bnode_right_sibling_leftmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<2>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -7729,7 +7650,7 @@ namespace augmented_containers
                                                     std::get<2>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
@@ -7741,22 +7662,22 @@ namespace augmented_containers
                                                         refresh_node_count_and_accumulated_storage_and_above_until(schedules, accumulator, child_after_split_old, std::get<2>(bnode_before_split.keys).value());
                                                     }
                                                 }
-                                                else if(bnode_before_split.child_index == -3)
+                                                else if (bnode_before_split.child_index == -3)
                                                 {
-                                                    if(child_left_or_right_after_split_height == 0 && std::get<0>(bnode_before_split.keys).value()->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                    if (child_left_or_right_after_split_height == 0 && std::get<0>(bnode_before_split.keys).value()->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                     {
                                                         typename navigator_t::loop_t loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_before_split.keys).value());
                                                         loop_outer_parent.exchange(child_after_split);
                                                         child_after_split->role() = std::get<0>(bnode_before_split.keys).value()->role();
                                                     }
                                                     typename navigator_t::loop_t loop_outer_parent;
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(parent);
                                                     typename navigator_t::loop_t loop_inner_parent = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(parent);
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t{
                                                             .this_ = std::get<0>(bnode_before_split.keys).value(),
@@ -7764,7 +7685,7 @@ namespace augmented_containers
                                                             .child_left = child_after_split,
                                                         }
                                                             .link();
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(std::get<0>(bnode_before_split.keys).value());
                                                         else
                                                             loop_inner_parent.child_left = std::get<0>(bnode_before_split.keys).value();
@@ -7777,7 +7698,7 @@ namespace augmented_containers
                                                         loop_inner_parent.this_ = std::get<2>(bnode_before_split.keys).value();
 
                                                         typename navigator_t::loop_t loop_inner_parent2;
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2 = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<1>(bnode_before_split.keys));
                                                         typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                                         typename navigator_t::loop_t loop_inner_middle = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_before_split.keys));
@@ -7785,7 +7706,7 @@ namespace augmented_containers
                                                         navigator_except_node_end_t *key_right_child_right, *key_right_child_right_child_right, *key_right_child_right_child_left;
                                                         navigator_except_node_end_t *key_right_child_left, *key_right_child_left_child_right, *key_right_child_left_child_left;
                                                         navigator_except_node_end_t *key_left_child_right, *key_left_child_right_child_right, *key_left_child_right_child_left;
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             key_right_child_right = std::get<2>(bnode_before_split.keys).value()->child_right();
                                                             key_right_child_right_child_right = key_right_child_right->child_right();
@@ -7797,7 +7718,7 @@ namespace augmented_containers
                                                             key_left_child_right_child_right = key_left_child_right->child_right();
                                                             key_left_child_right_child_left = key_left_child_right->child_left();
                                                         }
-                                                        if(bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
+                                                        if (bnode_before_split.center_key_parent_info.is_left_or_right_child_of_parent)
                                                             loop_inner_parent2.exchange(std::get<0>(bnode_before_split.keys).value());
                                                         else
                                                             loop_inner_parent.child_left = std::get<0>(bnode_before_split.keys).value();
@@ -7810,19 +7731,19 @@ namespace augmented_containers
                                                             .child_left = child_left_after_split,
                                                         }
                                                             .link();
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                         {
                                                             child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                                            if(child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                            if (child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                                 child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                         {
                                                             child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                             child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         }
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = key_right_child_left;
                                                             navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -7839,11 +7760,11 @@ namespace augmented_containers
                                                             loop_inner_right.rightmost_descendent_of_child_left = node_right;
                                                             move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_right.child_left->role() = loop_inner_right.child_left->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_right.child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                                        if(child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_left_child_right;
                                                             navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -7860,9 +7781,9 @@ namespace augmented_containers
                                                             loop_inner_left.leftmost_descendent_of_child_right = node_left;
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_left.child_right->role() = loop_inner_left.child_right->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_left.child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         loop_inner_middle.child_left = loop_inner_left.child_right;
                                                         loop_inner_middle.child_right = loop_inner_right.child_left;
@@ -7874,7 +7795,7 @@ namespace augmented_containers
                                                         loop_inner_left.child_right = std::get<1>(bnode_before_split.keys);
                                                         loop_inner_left.index = -1, loop_inner_left.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right != nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_left = key_right_child_right;
                                                             navigator_except_node_end_t *node_right = key_right_child_right_child_right;
@@ -7891,14 +7812,14 @@ namespace augmented_containers
                                                             loop_inner_right.child_right = node_right;
                                                             move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                                         }
-                                                        else if(child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
+                                                        else if (child_left_or_right_after_split_height == 1 && key_right_child_right_child_right == nullptr && key_right_child_right_child_left == nullptr)
                                                         {
                                                             key_right_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                                             key_right_child_right->next() = nullptr;
                                                         }
-                                                        if(child_left_or_right_after_split_height == 1)
+                                                        if (child_left_or_right_after_split_height == 1)
                                                             loop_inner_right.child_right->role() = loop_inner_right.child_right->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                                        else if(child_left_or_right_after_split_height > 1)
+                                                        else if (child_left_or_right_after_split_height > 1)
                                                             loop_inner_right.child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                         child_left_after_split = loop_inner_right.child_right;
                                                         child_left_after_split_rightmost_descendent = loop_inner_parent.rightmost_descendent_of_child_left;
@@ -7908,7 +7829,7 @@ namespace augmented_containers
 
                                                         loop_inner_parent.index = -1, loop_inner_parent.link();
 
-                                                        if(child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
+                                                        if (child_left_or_right_after_split_height == 1 && bnode_right_sibling_leftmost_child->child_left() != nullptr && bnode_right_sibling_leftmost_child->child_right() == nullptr)
                                                         {
                                                             navigator_except_node_end_t *node_right = bnode_right_sibling_leftmost_child;
                                                             navigator_except_node_end_t *node_left = node_right->child_left();
@@ -7931,7 +7852,7 @@ namespace augmented_containers
                                                         else
                                                             child_right_after_split = bnode_right_sibling_leftmost_child;
                                                     }
-                                                    if(parent->role() != rb2p_node_role_e::root)
+                                                    if (parent->role() != rb2p_node_role_e::root)
                                                         loop_outer_parent.exchange(std::get<2>(bnode_before_split.keys).value());
                                                     else
                                                     {
@@ -7948,7 +7869,7 @@ namespace augmented_containers
                                                     std::get<2>(bnode_before_split.keys).value()->role() = parent->role();
                                                     child_after_split = parent;
 
-                                                    if(child_left_or_right_after_split_height == 0)
+                                                    if (child_left_or_right_after_split_height == 0)
                                                     {
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                                         refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
@@ -7971,9 +7892,9 @@ namespace augmented_containers
                                             fallback();
                                     };
                                 };
-                                auto spill_to_parent = [&]()
+                                auto spill_to_parent = [&]() //
                                 {
-                                    if(child_left_or_right_after_split_height == 0)
+                                    if (child_left_or_right_after_split_height == 0)
                                     {
                                         assert(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_root || std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root);
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
@@ -7986,11 +7907,11 @@ namespace augmented_containers
                                         assert(std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_left_not_a_leftmost_descendent || std::get<1>(bnode_before_split.keys)->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
                                         assert(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_not_a_rightmost_descendent);
                                     }
-                                    if(bnode_before_split.child_index == -3)
+                                    if (bnode_before_split.child_index == -3)
                                     {
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
-                                            if(std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
+                                            if (std::get<0>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_left_leftmost_descendent_of_non_root)
                                             {
                                                 typename navigator_t::loop_t loop_outer_left = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<0>(bnode_before_split.keys).value());
                                                 loop_outer_left.exchange(child_after_split);
@@ -8006,7 +7927,7 @@ namespace augmented_containers
                                             typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                             typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
                                             navigator_except_node_end_t *key_left_child_right, *key_left_child_right_child_left, *key_left_child_right_child_right;
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
                                                 key_left_child_right = std::get<0>(bnode_before_split.keys).value()->child_right();
                                                 key_left_child_right_child_left = key_left_child_right->child_left();
@@ -8020,19 +7941,19 @@ namespace augmented_containers
                                                 .child_left = child_left_after_split,
                                             }
                                                 .link();
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
-                                                if(child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
+                                                if (child_left_after_split->role() != rb2p_node_role_e::child_left_leftmost_descendent_of_root)
                                                     child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                 child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             }
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                             {
                                                 child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                 child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             }
 
-                                            if(child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && key_left_child_right_child_right != nullptr && key_left_child_right_child_left == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_left = key_left_child_right;
                                                 navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -8050,9 +7971,9 @@ namespace augmented_containers
                                                 move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                             }
                                             loop_inner_right.exchange(loop_inner_left.child_right);
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                                 loop_inner_left.child_right->role() = loop_inner_left.child_right->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                                 loop_inner_left.child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
 
                                             child_right_after_split_leftmost_descendent = loop_inner_left.leftmost_descendent_of_child_right != nullptr ? loop_inner_left.leftmost_descendent_of_child_right : loop_inner_left.child_right;
@@ -8064,7 +7985,7 @@ namespace augmented_containers
                                         child_right_after_split = std::get<1>(bnode_before_split.keys);
                                         child_after_split = std::get<0>(bnode_before_split.keys).value();
 
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
@@ -8075,9 +7996,9 @@ namespace augmented_containers
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                         }
                                     }
-                                    else if(bnode_before_split.child_index == -1)
+                                    else if (bnode_before_split.child_index == -1)
                                     {
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
                                             typename navigator_t::loop_t{
                                                 .this_ = std::get<1>(bnode_before_split.keys),
@@ -8089,7 +8010,7 @@ namespace augmented_containers
                                         {
                                             typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<0>(bnode_before_split.keys).value());
                                             typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<0>(bnode_before_split.keys).value());
-                                            if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_right = child_left_after_split;
                                                 navigator_except_node_end_t *node_left = node_right->child_left();
@@ -8105,7 +8026,7 @@ namespace augmented_containers
                                                 std::tie(child_left_after_split, child_left_after_split_rightmost_descendent) = std::make_tuple(node_left, node_right);
                                                 move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                             }
-                                            if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_left = child_right_after_split;
                                                 navigator_except_node_end_t *node_right = node_left->child_right();
@@ -8124,26 +8045,26 @@ namespace augmented_containers
                                             loop_inner_right.exchange(child_right_after_split);
                                             loop_inner_left.child_right = child_left_after_split;
                                             loop_inner_left.index = -1, loop_inner_left.link();
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
                                                 child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                 child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             }
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                             {
                                                 child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                 child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             }
                                         }
                                         std::get<0>(bnode_before_split.keys).value()->color() = false;
-                                        if(child_left_after_split_rightmost_descendent == nullptr)
+                                        if (child_left_after_split_rightmost_descendent == nullptr)
                                             child_left_after_split_rightmost_descendent = child_left_after_split;
                                         child_left_after_split = std::get<0>(bnode_before_split.keys).value();
-                                        if(child_right_after_split_leftmost_descendent == nullptr)
+                                        if (child_right_after_split_leftmost_descendent == nullptr)
                                             child_right_after_split_leftmost_descendent = child_right_after_split;
                                         child_right_after_split = std::get<1>(bnode_before_split.keys);
 
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                         else
                                         {
@@ -8151,9 +8072,9 @@ namespace augmented_containers
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                         }
                                     }
-                                    else if(bnode_before_split.child_index == 1)
+                                    else if (bnode_before_split.child_index == 1)
                                     {
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
                                             typename navigator_t::loop_t{
                                                 .this_ = std::get<1>(bnode_before_split.keys),
@@ -8165,7 +8086,7 @@ namespace augmented_containers
                                         {
                                             typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                             typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
-                                            if(child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && child_right_after_split->child_right() != nullptr && child_right_after_split->child_left() == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_left = child_right_after_split;
                                                 navigator_except_node_end_t *node_right = node_left->child_right();
@@ -8181,7 +8102,7 @@ namespace augmented_containers
                                                 std::tie(child_right_after_split, child_right_after_split_leftmost_descendent) = std::make_tuple(node_right, node_left);
                                                 move_node_count_and_accumulated_storage<false>(schedules, accumulator, node_left, node_right);
                                             }
-                                            if(child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && child_left_after_split->child_left() != nullptr && child_left_after_split->child_right() == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_right = child_left_after_split;
                                                 navigator_except_node_end_t *node_left = node_right->child_left();
@@ -8200,26 +8121,26 @@ namespace augmented_containers
                                             loop_inner_left.exchange(child_left_after_split);
                                             loop_inner_right.child_left = child_right_after_split;
                                             loop_inner_right.index = -1, loop_inner_right.link();
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
                                                 child_right_after_split->role() = child_right_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                 child_left_after_split->role() = child_left_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             }
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                             {
                                                 child_right_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                                 child_left_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                             }
                                         }
                                         std::get<2>(bnode_before_split.keys).value()->color() = false;
-                                        if(child_right_after_split_leftmost_descendent == nullptr)
+                                        if (child_right_after_split_leftmost_descendent == nullptr)
                                             child_right_after_split_leftmost_descendent = child_right_after_split;
                                         child_right_after_split = std::get<2>(bnode_before_split.keys).value();
-                                        if(child_left_after_split_rightmost_descendent == nullptr)
+                                        if (child_left_after_split_rightmost_descendent == nullptr)
                                             child_left_after_split_rightmost_descendent = child_left_after_split;
                                         child_left_after_split = std::get<1>(bnode_before_split.keys);
 
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                         else
                                         {
@@ -8227,11 +8148,11 @@ namespace augmented_containers
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
                                         }
                                     }
-                                    else if(bnode_before_split.child_index == 3)
+                                    else if (bnode_before_split.child_index == 3)
                                     {
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
-                                            if(std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
+                                            if (std::get<2>(bnode_before_split.keys).value()->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_non_root)
                                             {
                                                 typename navigator_t::loop_t loop_outer_right = navigator_t::template get_loop<navigator_t::loop_type_e::ancestor>(std::get<2>(bnode_before_split.keys).value());
                                                 loop_outer_right.exchange(child_after_split);
@@ -8247,7 +8168,7 @@ namespace augmented_containers
                                             typename navigator_t::loop_t loop_inner_right = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<2>(bnode_before_split.keys).value());
                                             typename navigator_t::loop_t loop_inner_left = navigator_t::template get_loop<navigator_t::loop_type_e::parent>(std::get<2>(bnode_before_split.keys).value());
                                             navigator_except_node_end_t *key_right_child_left, *key_right_child_left_child_right, *key_right_child_left_child_left;
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
                                                 key_right_child_left = std::get<2>(bnode_before_split.keys).value()->child_left();
                                                 key_right_child_left_child_right = key_right_child_left->child_right();
@@ -8261,19 +8182,19 @@ namespace augmented_containers
                                                 .child_left = child_left_after_split,
                                             }
                                                 .link();
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                             {
-                                                if(child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                                if (child_right_after_split->role() != rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                                     child_right_after_split->role() = child_right_after_split->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                 child_left_after_split->role() = child_left_after_split->child_left() == nullptr ? rb2p_node_role_e::child_left_leftmost_descendent_of_non_root : rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             }
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                             {
                                                 child_right_after_split->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
                                                 child_left_after_split->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
                                             }
 
-                                            if(child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
+                                            if (child_left_or_right_after_split_height == 1 && key_right_child_left_child_left != nullptr && key_right_child_left_child_right == nullptr)
                                             {
                                                 navigator_except_node_end_t *node_right = key_right_child_left;
                                                 navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -8291,9 +8212,9 @@ namespace augmented_containers
                                                 move_node_count_and_accumulated_storage<true>(schedules, accumulator, node_left, node_right);
                                             }
                                             loop_inner_left.exchange(loop_inner_right.child_left);
-                                            if(child_left_or_right_after_split_height == 1)
+                                            if (child_left_or_right_after_split_height == 1)
                                                 loop_inner_right.child_left->role() = loop_inner_right.child_left->child_right() == nullptr ? rb2p_node_role_e::child_right_rightmost_descendent_of_non_root : rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                            else if(child_left_or_right_after_split_height > 1)
+                                            else if (child_left_or_right_after_split_height > 1)
                                                 loop_inner_right.child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
 
                                             child_left_after_split_rightmost_descendent = loop_inner_right.rightmost_descendent_of_child_left != nullptr ? loop_inner_right.rightmost_descendent_of_child_left : loop_inner_right.child_left;
@@ -8301,13 +8222,13 @@ namespace augmented_containers
                                         }
                                         child_after_split->color() = false;
                                         child_after_split->role() = std::get<2>(bnode_before_split.keys).value()->role();
-                                        if(child_after_split->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
+                                        if (child_after_split->role() == rb2p_node_role_e::child_right_rightmost_descendent_of_root)
                                             loop_end.index = -1, loop_end.link();
                                         child_right_after_split = child_after_split;
                                         child_left_after_split = std::get<1>(bnode_before_split.keys);
                                         child_after_split = std::get<2>(bnode_before_split.keys).value();
 
-                                        if(child_left_or_right_after_split_height == 0)
+                                        if (child_left_or_right_after_split_height == 0)
                                         {
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, child_after_split_old);
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<1>(bnode_before_split.keys));
@@ -8322,30 +8243,30 @@ namespace augmented_containers
                                     bnode_before_split = bnode_parent;
                                     ++child_left_or_right_after_split_height;
                                 };
-                                if(bnode_parent.child_index == -3 || bnode_parent.child_index == -1)
+                                if (bnode_parent.child_index == -3 || bnode_parent.child_index == -1)
                                     try_spill_to_left_sibling(try_spill_to_right_sibling(spill_to_parent))();
-                                else if(bnode_parent.child_index == 1 || bnode_parent.child_index == 3)
+                                else if (bnode_parent.child_index == 1 || bnode_parent.child_index == 3)
                                     try_spill_to_right_sibling(try_spill_to_left_sibling(spill_to_parent))();
                                 else std::unreachable();
                             }
                         }
                     }
-                    if(should_link_loop_end)
+                    if (should_link_loop_end)
                         loop_end.index = -1, loop_end.link();
                     return height_changed;
                 }
 
-                static bool insert(schedules_t &schedules, node_end_t *node_end, navigator_t * const node, navigator_except_node_end_t * const node_new)
+                static bool insert(schedules_t &schedules, node_end_t *node_end, navigator_t *const node, navigator_except_node_end_t *const node_new)
                 {
                     accumulator_t const &accumulator = node_end->accumulator;
                     assert(node != nullptr);
                     assert(node_new != nullptr);
                     bool is_empty = empty(node_end);
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                         ;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         ++node_end->node_count;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                         ;
                     else
                         std::unreachable();
@@ -8359,9 +8280,9 @@ namespace augmented_containers
                     typename navigator_t::loop_end_t loop_end = navigator_t::get_loop_end(node_end);
 
                     bool height_changed;
-                    if(node == node_end) // node_end
+                    if (node == node_end) // node_end
                     {
-                        if(is_empty) // ++count==1
+                        if (is_empty) // ++count==1
                         {
                             node_new->color() = false;
                             node_new->role() = rb2p_node_role_e::root;
@@ -8385,11 +8306,11 @@ namespace augmented_containers
                             should_link_loop_end = true;
                         }
                     }
-                    else if(node->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all)) // doesn't have left tree (not root's leftmost descendent) / doesn't have left tree (root's leftmost descendent)
+                    else if (node->*p_child_left_all == nullptr || tagged_ptr_bit0_is_setted(node->*p_child_left_all)) // doesn't have left tree (not root's leftmost descendent) / doesn't have left tree (root's leftmost descendent)
                     {
                         bnode_before_split = bnode_up_t::get_bnode_from_key(static_cast<navigator_except_node_end_t *>(node), false);
                         std::tie(child_left_after_split, child_left_after_split_rightmost_descendent, child_after_split, child_right_after_split_leftmost_descendent, child_right_after_split, child_left_or_right_after_split_height) = std::make_tuple(nullptr, nullptr, node_new, nullptr, nullptr, 0);
-                        if(node->*p_child_left_all == nullptr) // doesn't have left tree (not root's leftmost descendent)
+                        if (node->*p_child_left_all == nullptr) // doesn't have left tree (not root's leftmost descendent)
                             ;
                         else // doesn't have left tree (root's leftmost descendent)
                         {
@@ -8404,17 +8325,17 @@ namespace augmented_containers
                         std::tie(child_left_after_split, child_left_after_split_rightmost_descendent, child_after_split, child_right_after_split_leftmost_descendent, child_right_after_split, child_left_or_right_after_split_height) = std::make_tuple(nullptr, nullptr, node_new, nullptr, nullptr, 0);
                     }
                     height_changed = insert_impl(schedules, node_end, bnode_before_split, child_left_after_split, child_left_after_split_rightmost_descendent, child_after_split, child_right_after_split_leftmost_descendent, child_right_after_split, child_left_or_right_after_split_height, should_link_loop_end, loop_end);
-                skip_insert_impl:;
+skip_insert_impl:;
                     return height_changed;
                 }
 
                 static void swap_root(node_end_t *node_end_lhs, node_end_t *node_end_rhs)
                 {
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                         ;
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         std::ranges::swap(node_end_lhs->node_count, node_end_rhs->node_count);
-                    else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                    else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                         ;
                     else
                         std::unreachable();
@@ -8426,18 +8347,18 @@ namespace augmented_containers
                 };
 
                 template<bool goto_left_or_right, bool invoked_by_concat_or_split>
-                static bool concat_with_middle_key(schedules_t &schedules, node_end_t *node_end_lhs, navigator_except_node_end_t * const node_middle_key, node_end_t *node_end_rhs, std::conditional_t<!invoked_by_concat_or_split, std::nullptr_t, int> height_difference)
+                static bool concat_with_middle_key(schedules_t &schedules, node_end_t *node_end_lhs, navigator_except_node_end_t *const node_middle_key, node_end_t *node_end_rhs, std::conditional_t<!invoked_by_concat_or_split, std::nullptr_t, int> height_difference)
                 {
                     accumulator_t const &accumulator = !goto_left_or_right ? node_end_lhs->accumulator : node_end_rhs->accumulator;
                     bool height_changed;
                     bool is_empty_lhs = empty(node_end_lhs), is_empty_rhs = empty(node_end_rhs);
-                    if(is_empty_lhs || is_empty_rhs)
+                    if (is_empty_lhs || is_empty_rhs)
                     {
-                        if constexpr(!goto_left_or_right)
+                        if constexpr (!goto_left_or_right)
                         {
-                            if(is_empty_rhs)
+                            if (is_empty_rhs)
                                 height_changed = insert(schedules, node_end_lhs, node_end_lhs, node_middle_key);
-                            else if(is_empty_lhs)
+                            else if (is_empty_lhs)
                             {
                                 height_changed = insert(schedules, node_end_rhs, tagged_ptr_bit0_unsetted(node_end_rhs->child_right_all()), node_middle_key);
                                 swap_root(node_end_lhs, node_end_rhs);
@@ -8446,9 +8367,9 @@ namespace augmented_containers
                         }
                         else
                         {
-                            if(is_empty_lhs)
+                            if (is_empty_lhs)
                                 height_changed = insert(schedules, node_end_rhs, tagged_ptr_bit0_unsetted(node_end_rhs->child_right_all()), node_middle_key);
-                            else if(is_empty_rhs)
+                            else if (is_empty_rhs)
                             {
                                 height_changed = insert(schedules, node_end_lhs, node_end_lhs, node_middle_key);
                                 swap_root(node_end_lhs, node_end_rhs);
@@ -8465,30 +8386,30 @@ namespace augmented_containers
                         std::size_t child_left_or_right_after_split_height = 1;
                         typename navigator_t::loop_end_t loop_end_lhs = navigator_t::get_loop_end(node_end_lhs);
                         typename navigator_t::loop_end_t loop_end_rhs = navigator_t::get_loop_end(node_end_rhs);
-                        if constexpr(!invoked_by_concat_or_split)
+                        if constexpr (!invoked_by_concat_or_split)
                         {
                             current_rightmost_black_descendent_of_lhs = child_left_after_split_rightmost_descendent;
-                            if(current_rightmost_black_descendent_of_lhs->color() == true)
+                            if (current_rightmost_black_descendent_of_lhs->color() == true)
                             {
                                 current_rightmost_black_descendent_of_lhs = current_rightmost_black_descendent_of_lhs->parent();
                                 assert(current_rightmost_black_descendent_of_lhs->color() == false);
                             }
                             current_leftmost_black_descendent_of_rhs = child_right_after_split_leftmost_descendent;
-                            if(current_leftmost_black_descendent_of_rhs->color() == true)
+                            if (current_leftmost_black_descendent_of_rhs->color() == true)
                             {
                                 current_leftmost_black_descendent_of_rhs = current_leftmost_black_descendent_of_rhs->parent();
                                 assert(current_leftmost_black_descendent_of_rhs->color() == false);
                             }
-                            while(current_rightmost_black_descendent_of_lhs->role() != rb2p_node_role_e::root && current_leftmost_black_descendent_of_rhs->role() != rb2p_node_role_e::root)
+                            while (current_rightmost_black_descendent_of_lhs->role() != rb2p_node_role_e::root && current_leftmost_black_descendent_of_rhs->role() != rb2p_node_role_e::root)
                             {
                                 current_rightmost_black_descendent_of_lhs = current_rightmost_black_descendent_of_lhs->parent();
-                                if(current_rightmost_black_descendent_of_lhs->color() == true)
+                                if (current_rightmost_black_descendent_of_lhs->color() == true)
                                 {
                                     current_rightmost_black_descendent_of_lhs = current_rightmost_black_descendent_of_lhs->parent();
                                     assert(current_rightmost_black_descendent_of_lhs->color() == false);
                                 }
                                 current_leftmost_black_descendent_of_rhs = current_leftmost_black_descendent_of_rhs->parent();
-                                if(current_leftmost_black_descendent_of_rhs->color() == true)
+                                if (current_leftmost_black_descendent_of_rhs->color() == true)
                                 {
                                     current_leftmost_black_descendent_of_rhs = current_leftmost_black_descendent_of_rhs->parent();
                                     assert(current_leftmost_black_descendent_of_rhs->color() == false);
@@ -8500,42 +8421,42 @@ namespace augmented_containers
                         {
                             current_rightmost_black_descendent_of_lhs = static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end_lhs->parent_all()));
                             current_leftmost_black_descendent_of_rhs = static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end_rhs->parent_all()));
-                            if(height_difference < 0)
+                            if (height_difference < 0)
                             {
-                                for(int current_height_difference = 0; current_height_difference != -height_difference; ++current_height_difference)
+                                for (int current_height_difference = 0; current_height_difference != -height_difference; ++current_height_difference)
                                 {
                                     current_leftmost_black_descendent_of_rhs = current_leftmost_black_descendent_of_rhs->child_left();
-                                    if(current_leftmost_black_descendent_of_rhs->color() == true)
+                                    if (current_leftmost_black_descendent_of_rhs->color() == true)
                                     {
                                         current_leftmost_black_descendent_of_rhs = current_leftmost_black_descendent_of_rhs->child_left();
                                         assert(current_leftmost_black_descendent_of_rhs->color() == false);
                                     }
                                 }
                             }
-                            else if(height_difference > 0)
+                            else if (height_difference > 0)
                             {
-                                for(int current_height_difference = 0; current_height_difference != height_difference; ++current_height_difference)
+                                for (int current_height_difference = 0; current_height_difference != height_difference; ++current_height_difference)
                                 {
                                     current_rightmost_black_descendent_of_lhs = current_rightmost_black_descendent_of_lhs->child_right();
-                                    if(current_rightmost_black_descendent_of_lhs->color() == true)
+                                    if (current_rightmost_black_descendent_of_lhs->color() == true)
                                     {
                                         current_rightmost_black_descendent_of_lhs = current_rightmost_black_descendent_of_lhs->child_right();
                                         assert(current_rightmost_black_descendent_of_lhs->color() == false);
                                     }
                                 }
                             }
-                            if(current_rightmost_black_descendent_of_lhs->child_left() == nullptr || (current_rightmost_black_descendent_of_lhs->child_left()->color() == true && current_rightmost_black_descendent_of_lhs->child_left()->child_left() == nullptr))
+                            if (current_rightmost_black_descendent_of_lhs->child_left() == nullptr || (current_rightmost_black_descendent_of_lhs->child_left()->color() == true && current_rightmost_black_descendent_of_lhs->child_left()->child_left() == nullptr))
                                 child_left_or_right_after_split_height = 1;
                             else
                                 child_left_or_right_after_split_height = 2;
                         }
-                        if(current_rightmost_black_descendent_of_lhs->role() == rb2p_node_role_e::root && current_leftmost_black_descendent_of_rhs->role() == rb2p_node_role_e::root)
+                        if (current_rightmost_black_descendent_of_lhs->role() == rb2p_node_role_e::root && current_leftmost_black_descendent_of_rhs->role() == rb2p_node_role_e::root)
                         {
                             node_middle_key->color() = false;
                             node_middle_key->role() = rb2p_node_role_e::root;
-                            if(current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
+                            if (current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
                             {
-                                if(current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
+                                if (current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
                                     current_rightmost_black_descendent_of_lhs->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_root;
                                 else
                                 {
@@ -8560,12 +8481,12 @@ namespace augmented_containers
                             else
                             {
                                 current_rightmost_black_descendent_of_lhs->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
-                                if(loop_end_lhs.rightmost_descendent_of_root != nullptr)
+                                if (loop_end_lhs.rightmost_descendent_of_root != nullptr)
                                     loop_end_lhs.rightmost_descendent_of_root->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                             }
-                            if(current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
+                            if (current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
                             {
-                                if(current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
+                                if (current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
                                     current_leftmost_black_descendent_of_rhs->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_root;
                                 else
                                 {
@@ -8590,7 +8511,7 @@ namespace augmented_containers
                             else
                             {
                                 current_leftmost_black_descendent_of_rhs->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
-                                if(loop_end_rhs.leftmost_descendent_of_root != nullptr)
+                                if (loop_end_rhs.leftmost_descendent_of_root != nullptr)
                                     loop_end_rhs.leftmost_descendent_of_root->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                             }
                             typename navigator_t::loop_t{
@@ -8601,7 +8522,7 @@ namespace augmented_containers
                                 .child_left = loop_end_lhs.root,
                             }
                                 .link();
-                            if constexpr(!goto_left_or_right)
+                            if constexpr (!goto_left_or_right)
                             {
                                 loop_end_lhs.leftmost_descendent_of_root = loop_end_lhs.leftmost_descendent_of_root != nullptr ? loop_end_lhs.leftmost_descendent_of_root : loop_end_lhs.root;
                                 loop_end_lhs.root = node_middle_key;
@@ -8622,13 +8543,13 @@ namespace augmented_containers
                             refresh_node_count_and_accumulated_storage(schedules, accumulator, node_middle_key);
                             height_changed = true;
                         }
-                        else if(current_leftmost_black_descendent_of_rhs->role() == rb2p_node_role_e::root)
+                        else if (current_leftmost_black_descendent_of_rhs->role() == rb2p_node_role_e::root)
                         {
                             auto current_rightmost_black_descendent_of_lhs_center_key_parent_info = typename navigator_t::template parent_info_t<is_reversed>(current_rightmost_black_descendent_of_lhs);
                             bnode_up_t bnode_parent_of_current_rightmost_black_descendent_of_lhs = bnode_up_t::get_bnode_from_key(static_cast<navigator_except_node_end_t *>(current_rightmost_black_descendent_of_lhs_center_key_parent_info.parent), current_rightmost_black_descendent_of_lhs_center_key_parent_info.is_left_or_right_child_of_parent);
-                            if(current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
+                            if (current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
                             {
-                                if(current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
+                                if (current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
                                     /*current_rightmost_black_descendent_of_lhs->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root*/ typename navigator_t::loop_t{.this_ = current_rightmost_black_descendent_of_lhs}.link();
                                 else
                                 {
@@ -8657,9 +8578,9 @@ namespace augmented_containers
                                 assert(loop_end_lhs.rightmost_descendent_of_root != nullptr);
                                 loop_end_lhs.rightmost_descendent_of_root->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                             }
-                            if(current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
+                            if (current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
                             {
-                                if(current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
+                                if (current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
                                     current_leftmost_black_descendent_of_rhs->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_root;
                                 else
                                 {
@@ -8684,12 +8605,12 @@ namespace augmented_containers
                             else
                             {
                                 /*current_leftmost_black_descendent_of_rhs->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent*/;
-                                if(loop_end_rhs.leftmost_descendent_of_root != nullptr)
+                                if (loop_end_rhs.leftmost_descendent_of_root != nullptr)
                                     loop_end_rhs.leftmost_descendent_of_root->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                             }
 
                             bool should_link_loop_end = false;
-                            if constexpr(!goto_left_or_right)
+                            if constexpr (!goto_left_or_right)
                             {
                                 loop_end_lhs.rightmost_descendent_of_root = loop_end_rhs.rightmost_descendent_of_root != nullptr ? loop_end_rhs.rightmost_descendent_of_root : loop_end_rhs.root;
                                 loop_end_lhs.index = -1, loop_end_lhs.link();
@@ -8708,13 +8629,13 @@ namespace augmented_containers
                                 height_changed = insert_impl(schedules, node_end_rhs, bnode_parent_of_current_rightmost_black_descendent_of_lhs, current_rightmost_black_descendent_of_lhs, child_left_after_split_rightmost_descendent, node_middle_key, child_right_after_split_leftmost_descendent, current_leftmost_black_descendent_of_rhs, child_left_or_right_after_split_height, should_link_loop_end, loop_end_rhs);
                             }
                         }
-                        else if(current_rightmost_black_descendent_of_lhs->role() == rb2p_node_role_e::root)
+                        else if (current_rightmost_black_descendent_of_lhs->role() == rb2p_node_role_e::root)
                         {
                             auto current_leftmost_black_descendent_of_rhs_center_key_parent_info = typename navigator_t::template parent_info_t<is_reversed>(current_leftmost_black_descendent_of_rhs);
                             bnode_up_t bnode_parent_of_current_leftmost_black_descendent_of_rhs = bnode_up_t::get_bnode_from_key(static_cast<navigator_except_node_end_t *>(current_leftmost_black_descendent_of_rhs_center_key_parent_info.parent), current_leftmost_black_descendent_of_rhs_center_key_parent_info.is_left_or_right_child_of_parent);
-                            if(current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
+                            if (current_leftmost_black_descendent_of_rhs->child_right() == nullptr)
                             {
-                                if(current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
+                                if (current_leftmost_black_descendent_of_rhs->child_left() == nullptr)
                                     /*current_leftmost_black_descendent_of_rhs->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root*/ typename navigator_t::loop_t{.this_ = current_leftmost_black_descendent_of_rhs}.link();
                                 else
                                 {
@@ -8743,9 +8664,9 @@ namespace augmented_containers
                                 assert(loop_end_rhs.leftmost_descendent_of_root != nullptr);
                                 loop_end_rhs.leftmost_descendent_of_root->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                             }
-                            if(current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
+                            if (current_rightmost_black_descendent_of_lhs->child_left() == nullptr)
                             {
-                                if(current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
+                                if (current_rightmost_black_descendent_of_lhs->child_right() == nullptr)
                                     current_rightmost_black_descendent_of_lhs->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_root;
                                 else
                                 {
@@ -8770,12 +8691,12 @@ namespace augmented_containers
                             else
                             {
                                 /*current_rightmost_black_descendent_of_lhs->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent*/;
-                                if(loop_end_lhs.rightmost_descendent_of_root != nullptr)
+                                if (loop_end_lhs.rightmost_descendent_of_root != nullptr)
                                     loop_end_lhs.rightmost_descendent_of_root->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                             }
 
                             bool should_link_loop_end = false;
-                            if constexpr(!goto_left_or_right)
+                            if constexpr (!goto_left_or_right)
                             {
                                 loop_end_lhs.leftmost_descendent_of_root = loop_end_lhs.leftmost_descendent_of_root != nullptr ? loop_end_lhs.leftmost_descendent_of_root : loop_end_lhs.root;
                                 loop_end_lhs.root = loop_end_rhs.root;
@@ -8796,16 +8717,16 @@ namespace augmented_containers
                         }
                         else std::unreachable();
 
-                        if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+                        if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                             ;
-                        else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                        else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         {
-                            if constexpr(!goto_left_or_right)
+                            if constexpr (!goto_left_or_right)
                                 std::tie(node_end_lhs->node_count, node_end_rhs->node_count) = std::make_tuple(node_end_lhs->node_count + 1 + node_end_rhs->node_count, 0);
                             else
                                 std::tie(node_end_rhs->node_count, node_end_lhs->node_count) = std::make_tuple(node_end_rhs->node_count + 1 + node_end_lhs->node_count, 0);
                         }
-                        else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+                        else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                             ;
                         else
                             std::unreachable();
@@ -8817,11 +8738,11 @@ namespace augmented_containers
                 static void concat_without_middle_key(schedules_t &schedules, node_end_t *node_end_lhs, node_end_t *node_end_rhs)
                 {
                     bool is_empty_lhs = empty(node_end_lhs), is_empty_rhs = empty(node_end_rhs);
-                    if constexpr(!goto_left_or_right)
+                    if constexpr (!goto_left_or_right)
                     {
-                        if(is_empty_rhs)
+                        if (is_empty_rhs)
                             ;
-                        else if(is_empty_lhs)
+                        else if (is_empty_lhs)
                             swap_root(node_end_lhs, node_end_rhs);
                         else
                         {
@@ -8832,9 +8753,9 @@ namespace augmented_containers
                     }
                     else
                     {
-                        if(is_empty_lhs)
+                        if (is_empty_lhs)
                             ;
-                        else if(is_empty_rhs)
+                        else if (is_empty_rhs)
                             swap_root(node_end_lhs, node_end_rhs);
                         else
                         {
@@ -8846,39 +8767,39 @@ namespace augmented_containers
                 }
 
                 template<bool emit_left_or_right>
-                static void split(schedules_t &schedules, node_end_t *node_end_emit, node_end_t *node_end, navigator_t * const node)
+                static void split(schedules_t &schedules, node_end_t *node_end_emit, node_end_t *node_end, navigator_t *const node)
                 {
                     accumulator_t const &accumulator = node_end->accumulator;
                     assert(node != nullptr);
                     assert(empty(node_end_emit));
                     std::size_t size_sum;
-                    if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                    if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         size_sum = node_end->node_count;
-                    if(node == node_end)
+                    if (node == node_end)
                     {
-                        if constexpr(!emit_left_or_right)
+                        if constexpr (!emit_left_or_right)
                             swap_root(node_end_emit, node_end);
                         else
                             ;
                     }
-                    else if(node == tagged_ptr_bit0_unsetted(node_end->child_right_all()))
+                    else if (node == tagged_ptr_bit0_unsetted(node_end->child_right_all()))
                     {
-                        if constexpr(!emit_left_or_right)
+                        if constexpr (!emit_left_or_right)
                             ;
                         else
                             swap_root(node_end_emit, node_end);
                     }
                     else
                     {
-                        auto split_impl = [&schedules, &accumulator, &node_end_emit, &node_end](auto &this_, bnode_t bnode_to_be_splitted, int split_position, function_view<std::tuple<int, int>(node_end_t *, navigator_except_node_end_t *, node_end_t *, navigator_except_node_end_t *)> split_and_emit_to_node_end_emit) -> void
+                        auto split_impl = [&schedules, &accumulator, &node_end_emit, &node_end](auto &this_, bnode_t bnode_to_be_splitted, int split_position, function_view<std::tuple<int, int>(node_end_t *, navigator_except_node_end_t *, node_end_t *, navigator_except_node_end_t *)> split_and_emit_to_node_end_emit) -> void //
                         {
-                            if(split_position == -2)
+                            if (split_position == -2)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
-                                    if(std::get<0>(bnode_to_be_splitted.keys).value()->child_left() == nullptr)
+                                    if (std::get<0>(bnode_to_be_splitted.keys).value()->child_left() == nullptr)
                                         return std::make_tuple(-1, 0);
                                     else
                                     {
@@ -8888,7 +8809,7 @@ namespace augmented_containers
                                         navigator_except_node_end_t *key_left_child_right = std::get<0>(bnode_to_be_splitted.keys).value()->child_right(),
                                                                     *key_left_child_right_child_left = key_left_child_right->child_left(),
                                                                     *key_left_child_right_child_right = key_left_child_right->child_right();
-                                        if(key_left_child_right_child_left == nullptr && key_left_child_right_child_right != nullptr)
+                                        if (key_left_child_right_child_left == nullptr && key_left_child_right_child_right != nullptr)
                                         {
                                             navigator_except_node_end_t *node_left = key_left_child_right;
                                             navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -8908,7 +8829,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(key_left_child_right_child_left == nullptr && key_left_child_right_child_right == nullptr)
+                                            if (key_left_child_right_child_left == nullptr && key_left_child_right_child_right == nullptr)
                                                 key_left_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                             else
                                                 key_left_child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -8941,7 +8862,7 @@ namespace augmented_containers
                                         return std::make_tuple(-1, (!height_changed ? 0 : 1));
                                     }
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -8949,16 +8870,16 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == 0)
+                            else if (split_position == 0)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
-                                    if(std::get<1>(bnode_to_be_splitted.keys)->child_left() == nullptr || (std::get<1>(bnode_to_be_splitted.keys)->child_left()->color() == true && std::get<1>(bnode_to_be_splitted.keys)->child_left()->child_left() == nullptr))
+                                    if (std::get<1>(bnode_to_be_splitted.keys)->child_left() == nullptr || (std::get<1>(bnode_to_be_splitted.keys)->child_left()->color() == true && std::get<1>(bnode_to_be_splitted.keys)->child_left()->child_left() == nullptr))
                                     {
                                         int height_left = !std::get<0>(bnode_to_be_splitted.keys).has_value() ? -1 : 0;
-                                        if(!std::get<0>(bnode_to_be_splitted.keys).has_value())
+                                        if (!std::get<0>(bnode_to_be_splitted.keys).has_value())
                                             ;
                                         else
                                         {
@@ -8975,7 +8896,7 @@ namespace augmented_containers
                                             std::get<0>(bnode_to_be_splitted.keys).value()->role() = rb2p_node_role_e::root;
                                             refresh_node_count_and_accumulated_storage(schedules, accumulator, std::get<0>(bnode_to_be_splitted.keys).value());
                                         }
-                                        if(!std::get<2>(bnode_to_be_splitted.keys).has_value())
+                                        if (!std::get<2>(bnode_to_be_splitted.keys).has_value())
                                         {
                                             typename navigator_t::loop_end_t{
                                                 .end = node_end,
@@ -9044,7 +8965,7 @@ namespace augmented_containers
                                         return std::make_tuple(height_left, height_right + (!height_changed ? 0 : 1));
                                     }
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9052,15 +8973,15 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == 2)
+                            else if (split_position == 2)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
-                                    if(std::get<2>(bnode_to_be_splitted.keys).value()->child_right() == nullptr)
+                                    if (std::get<2>(bnode_to_be_splitted.keys).value()->child_right() == nullptr)
                                     {
-                                        if(!std::get<0>(bnode_to_be_splitted.keys).has_value())
+                                        if (!std::get<0>(bnode_to_be_splitted.keys).has_value())
                                         {
                                             typename navigator_t::loop_end_t{
                                                 .end = node_end_emit,
@@ -9116,7 +9037,7 @@ namespace augmented_containers
                                         navigator_except_node_end_t *key_right_child_left = std::get<2>(bnode_to_be_splitted.keys).value()->child_left(),
                                                                     *key_right_child_left_child_right = key_right_child_left->child_right(),
                                                                     *key_right_child_left_child_left = key_right_child_left->child_left();
-                                        if(key_right_child_left_child_right == nullptr && key_right_child_left_child_left != nullptr)
+                                        if (key_right_child_left_child_right == nullptr && key_right_child_left_child_left != nullptr)
                                         {
                                             navigator_except_node_end_t *node_right = key_right_child_left;
                                             navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -9136,7 +9057,7 @@ namespace augmented_containers
                                         }
                                         else
                                         {
-                                            if(key_right_child_left_child_right == nullptr && key_right_child_left_child_left == nullptr)
+                                            if (key_right_child_left_child_right == nullptr && key_right_child_left_child_left == nullptr)
                                                 key_right_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                             else
                                                 key_right_child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -9169,7 +9090,7 @@ namespace augmented_containers
                                         return std::make_tuple(0, (-1) + (!height_changed ? 0 : 1));
                                     }
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9177,9 +9098,9 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == -3)
+                            else if (split_position == -3)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
@@ -9189,7 +9110,7 @@ namespace augmented_containers
                                     navigator_except_node_end_t *key_left_child_right = std::get<0>(bnode_to_be_splitted.keys).value()->child_right(),
                                                                 *key_left_child_right_child_left = key_left_child_right->child_left(),
                                                                 *key_left_child_right_child_right = key_left_child_right->child_right();
-                                    if(key_left_child_right_child_left == nullptr && key_left_child_right_child_right != nullptr)
+                                    if (key_left_child_right_child_left == nullptr && key_left_child_right_child_right != nullptr)
                                     {
                                         navigator_except_node_end_t *node_left = key_left_child_right;
                                         navigator_except_node_end_t *node_right = key_left_child_right_child_right;
@@ -9209,7 +9130,7 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(key_left_child_right_child_left == nullptr && key_left_child_right_child_right == nullptr)
+                                        if (key_left_child_right_child_left == nullptr && key_left_child_right_child_right == nullptr)
                                             key_left_child_right->role() = rb2p_node_role_e::child_left_leftmost_descendent_of_non_root;
                                         else
                                             key_left_child_right->role() = rb2p_node_role_e::child_left_not_a_leftmost_descendent;
@@ -9243,7 +9164,7 @@ namespace augmented_containers
                                     bool height_changed = concat_with_middle_key<true, true>(schedules, static_cast<node_end_t *>(loop_end_left.end), std::get<0>(bnode_to_be_splitted.keys).value(), static_cast<node_end_t *>(loop_end_right.end), std::get<1>(height_changed_s) - 1);
                                     return std::make_tuple(std::get<0>(height_changed_s) - 1, (!height_changed ? 0 : 1));
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9251,15 +9172,15 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == -1)
+                            else if (split_position == -1)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
                                     int height_right = !std::get<2>(bnode_to_be_splitted.keys).has_value() ? -1 : 0;
 
-                                    if(!std::get<0>(bnode_to_be_splitted.keys).has_value())
+                                    if (!std::get<0>(bnode_to_be_splitted.keys).has_value())
                                     {
                                         typename navigator_t::loop_t inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_to_be_splitted.keys));
 
@@ -9336,7 +9257,7 @@ namespace augmented_containers
                                         return std::make_tuple((!height_changed_lhs ? 0 : 1) - 1, (!height_changed_rhs ? 0 : 1) + height_right);
                                     }
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9344,15 +9265,15 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == 1)
+                            else if (split_position == 1)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
                                     int height_left = !std::get<0>(bnode_to_be_splitted.keys).has_value() ? -1 : 0;
 
-                                    if(!std::get<2>(bnode_to_be_splitted.keys).has_value())
+                                    if (!std::get<2>(bnode_to_be_splitted.keys).has_value())
                                     {
                                         typename navigator_t::loop_t inner_loop = navigator_t::template get_loop<navigator_t::loop_type_e::my_list>(std::get<1>(bnode_to_be_splitted.keys));
 
@@ -9429,7 +9350,7 @@ namespace augmented_containers
                                         return std::make_tuple((!height_changed_lhs ? 0 : 1) + height_left, (!height_changed_rhs ? 0 : 1) - 1);
                                     }
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9437,9 +9358,9 @@ namespace augmented_containers
                                     this_(this_, static_cast<bnode_t &>(bnode_parent), bnode_parent.child_index, split_when_all_information_are_ready);
                                 }
                             }
-                            else if(split_position == 3)
+                            else if (split_position == 3)
                             {
-                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int>
+                                auto split_when_all_information_are_ready = [&schedules, &accumulator, &bnode_to_be_splitted, &split_and_emit_to_node_end_emit](node_end_t *node_end_emit, navigator_except_node_end_t *leftmost_descendent_of_root, node_end_t *node_end, navigator_except_node_end_t *rightmost_descendent_of_root) -> std::tuple<int, int> //
                                 {
                                     assert(empty(node_end_emit));
 
@@ -9449,7 +9370,7 @@ namespace augmented_containers
                                     navigator_except_node_end_t *key_right_child_left = std::get<2>(bnode_to_be_splitted.keys).value()->child_left(),
                                                                 *key_right_child_left_child_right = key_right_child_left->child_right(),
                                                                 *key_right_child_left_child_left = key_right_child_left->child_left();
-                                    if(key_right_child_left_child_right == nullptr && key_right_child_left_child_left != nullptr)
+                                    if (key_right_child_left_child_right == nullptr && key_right_child_left_child_left != nullptr)
                                     {
                                         navigator_except_node_end_t *node_right = key_right_child_left;
                                         navigator_except_node_end_t *node_left = key_right_child_left_child_left;
@@ -9469,7 +9390,7 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(key_right_child_left_child_right == nullptr && key_right_child_left_child_left == nullptr)
+                                        if (key_right_child_left_child_right == nullptr && key_right_child_left_child_left == nullptr)
                                             key_right_child_left->role() = rb2p_node_role_e::child_right_rightmost_descendent_of_non_root;
                                         else
                                             key_right_child_left->role() = rb2p_node_role_e::child_right_not_a_rightmost_descendent;
@@ -9503,7 +9424,7 @@ namespace augmented_containers
                                     bool height_changed = concat_with_middle_key<false, true>(schedules, static_cast<node_end_t *>(loop_end_left.end), std::get<2>(bnode_to_be_splitted.keys).value(), &node_end_middle, -(std::get<0>(height_changed_s) - 1));
                                     return std::make_tuple((!height_changed ? 0 : 1), std::get<1>(height_changed_s) - 1);
                                 };
-                                if(bnode_to_be_splitted.center_key_parent_info.is_end())
+                                if (bnode_to_be_splitted.center_key_parent_info.is_end())
                                     split_when_all_information_are_ready(node_end_emit, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_right_all())), node_end, static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->child_left_all())));
                                 else
                                 {
@@ -9514,14 +9435,13 @@ namespace augmented_containers
                             else std::unreachable();
                         };
                         bnode_erase_t bnode_to_be_splitted = bnode_erase_t::erasing_get_bnode(static_cast<navigator_except_node_end_t *>(node));
-                        split_impl(split_impl, static_cast<bnode_t>(bnode_to_be_splitted), bnode_to_be_splitted.key_to_be_erased_index, [](node_end_t *, navigator_except_node_end_t *, node_end_t *, navigator_except_node_end_t *) -> std::tuple<int, int>
-                            { return {}; });
-                        if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+                        split_impl(split_impl, static_cast<bnode_t>(bnode_to_be_splitted), bnode_to_be_splitted.key_to_be_erased_index, [](node_end_t *, navigator_except_node_end_t *, node_end_t *, navigator_except_node_end_t *) -> std::tuple<int, int> { return {}; });
+                        if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                         {
                             std::size_t size_emitted = std::ranges::distance(std::ranges::next(rb2p_iterator_t<false, false, config_t>(node_end_emit)), rb2p_iterator_t<false, false, config_t>(node_end_emit));
                             std::tie(node_end_emit->node_count, node_end->node_count) = std::make_tuple(size_emitted, size_sum - size_emitted);
                         }
-                        if constexpr(!emit_left_or_right)
+                        if constexpr (!emit_left_or_right)
                             ;
                         else
                             swap_root(node_end_emit, node_end);
@@ -9530,7 +9450,7 @@ namespace augmented_containers
 
                 static accumulated_storage_t read_range_impl(allocator_element_t const &allocator_element, node_end_t *node_end, navigator_except_node_end_t *node_front, navigator_except_node_end_t *node_back)
                 {
-                    if(node_front == node_back)
+                    if (node_front == node_back)
                         return node_end->accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*static_cast<node_t *>(node_front)->p_element())));
 
                     struct path_vertex_t
@@ -9550,13 +9470,13 @@ namespace augmented_containers
                             .node = node_back,
                         },
                         *path_back = &path_vertex_back;
-                    auto build_path = [&accumulator = std::as_const(node_end->accumulator), &allocator_element](auto &this_, path_vertex_t *path_front, path_vertex_t *path_back) -> accumulated_storage_t
+                    auto build_path = [&accumulator = std::as_const(node_end->accumulator), &allocator_element](auto &this_, path_vertex_t *path_front, path_vertex_t *path_back) -> accumulated_storage_t //
                     {
                         typename navigator_t::template parent_info_t<is_reversed> parent_info_front(path_front->node), parent_info_back(path_back->node);
-                        if(!parent_info_front.is_end() || !parent_info_back.is_end())
+                        if (!parent_info_front.is_end() || !parent_info_back.is_end())
                         {
                             path_vertex_t path_vertex_front, path_vertex_back;
-                            if(!parent_info_front.is_end())
+                            if (!parent_info_front.is_end())
                             {
                                 path_vertex_front = {
                                     .next = path_front,
@@ -9565,7 +9485,7 @@ namespace augmented_containers
                                 };
                                 path_front = &path_vertex_front;
                             }
-                            if(!parent_info_back.is_end())
+                            if (!parent_info_back.is_end())
                             {
                                 path_vertex_back = {
                                     .next = path_back,
@@ -9579,26 +9499,26 @@ namespace augmented_containers
                         else
                         {
                             assert(path_front->node == path_back->node);
-                            while(path_front->next != nullptr && path_back->next != nullptr && path_front->next->node == path_back->next->node)
+                            while (path_front->next != nullptr && path_back->next != nullptr && path_front->next->node == path_back->next->node)
                             {
                                 path_front = path_front->next;
                                 path_back = path_back->next;
                             }
-                            auto accumulate_left = [&accumulator, &allocator_element](auto &this_, path_vertex_t *path_vertex_front) -> accumulated_storage_t
+                            auto accumulate_left = [&accumulator, &allocator_element](auto &this_, path_vertex_t *path_vertex_front) -> accumulated_storage_t //
                             {
-                                if(path_vertex_front->next == nullptr)
+                                if (path_vertex_front->next == nullptr)
                                 {
-                                    if(path_vertex_front->node->child_right() == nullptr)
+                                    if (path_vertex_front->node->child_right() == nullptr)
                                         return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*static_cast<node_t *>(path_vertex_front->node)->p_element())));
                                     else
                                         return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*static_cast<node_t *>(path_vertex_front->node)->p_element()), std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(path_vertex_front->node->child_right()))->p_accumulated_storage())));
                                 }
                                 else
                                 {
-                                    if(path_vertex_front->child_left_or_child_right == false)
+                                    if (path_vertex_front->child_left_or_child_right == false)
                                     {
                                         accumulated_storage_t intermediate_accumulated_storage_left(this_(this_, path_vertex_front->next));
-                                        if(path_vertex_front->node->child_right() == nullptr)
+                                        if (path_vertex_front->node->child_right() == nullptr)
                                             return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(intermediate_accumulated_storage_left), std::cref(*static_cast<node_t *>(path_vertex_front->node)->p_element())));
                                         else
                                             return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(intermediate_accumulated_storage_left), std::cref(*static_cast<node_t *>(path_vertex_front->node)->p_element()), std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(path_vertex_front->node->child_right()))->p_accumulated_storage())));
@@ -9607,21 +9527,21 @@ namespace augmented_containers
                                         return this_(this_, path_vertex_front->next);
                                 }
                             };
-                            auto accumulate_right = [&accumulator, &allocator_element](auto &this_, path_vertex_t *path_vertex_back) -> accumulated_storage_t
+                            auto accumulate_right = [&accumulator, &allocator_element](auto &this_, path_vertex_t *path_vertex_back) -> accumulated_storage_t //
                             {
-                                if(path_vertex_back->next == nullptr)
+                                if (path_vertex_back->next == nullptr)
                                 {
-                                    if(path_vertex_back->node->child_left() == nullptr)
+                                    if (path_vertex_back->node->child_left() == nullptr)
                                         return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*static_cast<node_t *>(path_vertex_back->node)->p_element())));
                                     else
                                         return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(path_vertex_back->node->child_left()))->p_accumulated_storage()), std::cref(*static_cast<node_t *>(path_vertex_back->node)->p_element())));
                                 }
                                 else
                                 {
-                                    if(path_vertex_back->child_left_or_child_right == true)
+                                    if (path_vertex_back->child_left_or_child_right == true)
                                     {
                                         accumulated_storage_t intermediate_accumulated_storage_right(this_(this_, path_vertex_back->next));
-                                        if(path_vertex_back->node->child_left() == nullptr)
+                                        if (path_vertex_back->node->child_left() == nullptr)
                                             return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::cref(*static_cast<node_t *>(path_vertex_back->node)->p_element()), std::ref(intermediate_accumulated_storage_right)));
                                         else
                                             return accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(path_vertex_back->node->child_left()))->p_accumulated_storage()), std::cref(*static_cast<node_t *>(path_vertex_back->node)->p_element()), std::ref(intermediate_accumulated_storage_right)));
@@ -9631,10 +9551,10 @@ namespace augmented_containers
                                 }
                             };
 
-                            auto get_left_operand = [&](auto return_accumulated_tuple)
-                            { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t
+                            auto get_left_operand = [&](auto return_accumulated_tuple) //
+                            { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t //
                               {
-                                  if(path_front->next == nullptr)
+                                  if (path_front->next == nullptr)
                                       return return_accumulated_tuple(accumulated_tuple_so_far);
                                   else
                                   {
@@ -9642,15 +9562,11 @@ namespace augmented_containers
                                       return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(intermediate_accumulated_storage_left))));
                                   }
                               }; };
-                            auto get_middle_operand = [&](auto return_accumulated_tuple)
-                            { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t
+                            auto get_middle_operand = [&](auto return_accumulated_tuple) { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t { return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*static_cast<node_t *>(path_front->node)->p_element())))); }; };
+                            auto get_right_operand = [&](auto return_accumulated_tuple) //
+                            { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t //
                               {
-                                  return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::cref(*static_cast<node_t *>(path_front->node)->p_element()))));
-                              }; };
-                            auto get_right_operand = [&](auto return_accumulated_tuple)
-                            { return [&, return_accumulated_tuple](auto accumulated_tuple_so_far) -> accumulated_storage_t
-                              {
-                                  if(path_back->next == nullptr)
+                                  if (path_back->next == nullptr)
                                       return return_accumulated_tuple(accumulated_tuple_so_far);
                                   else
                                   {
@@ -9658,10 +9574,7 @@ namespace augmented_containers
                                       return return_accumulated_tuple(std::tuple_cat(accumulated_tuple_so_far, std::make_tuple(std::ref(intermediate_accumulated_storage_right))));
                                   }
                               }; };
-                            auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far) -> accumulated_storage_t
-                            {
-                                return accumulator.construct_accumulated_storage(allocator_element, accumulated_tuple_so_far);
-                            };
+                            auto return_accumulated_tuple = [&](auto accumulated_tuple_so_far) -> accumulated_storage_t { return accumulator.construct_accumulated_storage(allocator_element, accumulated_tuple_so_far); };
                             return get_left_operand(get_middle_operand(get_right_operand(return_accumulated_tuple)))(std::make_tuple());
                         }
                     };
@@ -9671,37 +9584,37 @@ namespace augmented_containers
                 static void update_range_impl(node_end_t *node_end, navigator_except_node_end_t *node_front, navigator_except_node_end_t *node_back)
                 {
                     accumulator_t const &accumulator = node_end->accumulator;
-                    auto refresh_tree_and_find_back = [&accumulator, &node_back](auto &this_, navigator_except_node_end_t *root) -> bool
+                    auto refresh_tree_and_find_back = [&accumulator, &node_back](auto &this_, navigator_except_node_end_t *root) -> bool //
                     {
                         bool found = false;
-                        if(root->child_left() != nullptr)
+                        if (root->child_left() != nullptr)
                             found = found || this_(this_, root->child_left());
                         found = found || root == node_back;
-                        if(!found && root->child_right() != nullptr)
+                        if (!found && root->child_right() != nullptr)
                             found = found || this_(this_, root->child_right());
                         refresh_accumulated_storage(accumulator, root);
                         return found;
                     };
-                    if(node_front == node_back)
+                    if (node_front == node_back)
                         refresh_accumulated_storage_and_above(accumulator, node_front);
-                    else if(node_front->child_right() != nullptr && refresh_tree_and_find_back(refresh_tree_and_find_back, node_front->child_right()))
+                    else if (node_front->child_right() != nullptr && refresh_tree_and_find_back(refresh_tree_and_find_back, node_front->child_right()))
                         refresh_accumulated_storage_and_above(accumulator, node_front);
                     else
                     {
                         refresh_accumulated_storage(accumulator, node_front);
-                        while(true)
+                        while (true)
                         {
                             typename navigator_t::template parent_info_t<is_reversed> parent_info(node_front);
                             assert(!parent_info.is_end());
                             node_front = static_cast<navigator_except_node_end_t *>(parent_info.parent);
-                            if(!parent_info.is_left_or_right_child_of_parent)
+                            if (!parent_info.is_left_or_right_child_of_parent)
                             {
-                                if(node_front == node_back)
+                                if (node_front == node_back)
                                 {
                                     refresh_accumulated_storage_and_above(accumulator, node_front);
                                     break;
                                 }
-                                else if(node_front->child_right() != nullptr && refresh_tree_and_find_back(refresh_tree_and_find_back, node_front->child_right()))
+                                else if (node_front->child_right() != nullptr && refresh_tree_and_find_back(refresh_tree_and_find_back, node_front->child_right()))
                                 {
                                     refresh_accumulated_storage_and_above(accumulator, node_front);
                                     break;
@@ -9719,19 +9632,19 @@ namespace augmented_containers
                 template<detail::concepts::invocable_r<bool, accumulated_storage_t const &> monotonic_predicate_t>
                 static navigator_t *find_by_monotonic_predicate(allocator_element_t const &allocator_element, node_end_t *node_end, monotonic_predicate_t const &monotonic_predicate)
                 {
-                    if(empty(node_end))
+                    if (empty(node_end))
                         return node_end;
                     navigator_except_node_end_t *root = static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->parent_all()));
-                    if(!monotonic_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
+                    if (!monotonic_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
                         return node_end;
 
                     accumulator_t const &accumulator = node_end->accumulator;
-                    auto search_tree = [&accumulator, &allocator_element, &monotonic_predicate](auto &this_, auto accumulated_storage_tuple_so_far, navigator_except_node_end_t *node) -> navigator_except_node_end_t *
+                    auto search_tree = [&accumulator, &allocator_element, &monotonic_predicate](auto &this_, auto accumulated_storage_tuple_so_far, navigator_except_node_end_t *node) -> navigator_except_node_end_t * //
                     {
-                        if(node->child_left() == nullptr)
+                        if (node->child_left() == nullptr)
                         {
                             accumulated_storage_t intermediate_accumulated_storage(accumulator.construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_storage_tuple_so_far, std::make_tuple(std::cref(*static_cast<node_t *>(node)->p_element())))));
-                            if(monotonic_predicate(intermediate_accumulated_storage))
+                            if (monotonic_predicate(intermediate_accumulated_storage))
                                 return node;
                             else
                             {
@@ -9742,12 +9655,12 @@ namespace augmented_containers
                         else
                         {
                             accumulated_storage_t intermediate_accumulated_storage_left(accumulator.construct_accumulated_storage(allocator_element, std::tuple_cat(accumulated_storage_tuple_so_far, std::make_tuple(std::ref(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage())))));
-                            if(monotonic_predicate(intermediate_accumulated_storage_left))
+                            if (monotonic_predicate(intermediate_accumulated_storage_left))
                                 return this_(this_, accumulated_storage_tuple_so_far, node->child_left());
                             else
                             {
                                 accumulated_storage_t intermediate_accumulated_storage_right(accumulator.construct_accumulated_storage(allocator_element, std::make_tuple(std::ref(intermediate_accumulated_storage_left), std::cref(*static_cast<node_t *>(node)->p_element()))));
-                                if(monotonic_predicate(intermediate_accumulated_storage_right))
+                                if (monotonic_predicate(intermediate_accumulated_storage_right))
                                     return node;
                                 else
                                 {
@@ -9760,55 +9673,53 @@ namespace augmented_containers
                     return search_tree(search_tree, std::make_tuple(), root);
                 }
 
-                template</*std::output_iterator<navigator_except_node_end_t*>*/ typename iterator_output_pointer_node_t, typename heap_predicate_t>
-                    requires(invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, element_t const &>)
+                template</*std::output_iterator<navigator_except_node_end_t*>*/ typename iterator_output_pointer_node_t, typename heap_predicate_t> requires (invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, element_t const &>)
                 static void find_by_heap_predicate(node_end_t *node_end, iterator_output_pointer_node_t iterator_output_pointer_node, heap_predicate_t const &heap_predicate)
                 {
-                    if(empty(node_end))
+                    if (empty(node_end))
                         return;
                     navigator_except_node_end_t *root = static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->parent_all()));
-                    auto search_tree = [&heap_predicate, &iterator_output_pointer_node](auto &this_, navigator_except_node_end_t *node) -> void
+                    auto search_tree = [&heap_predicate, &iterator_output_pointer_node](auto &this_, navigator_except_node_end_t *node) -> void //
                     {
-                        if(node->child_left() != nullptr)
+                        if (node->child_left() != nullptr)
                         {
-                            if(heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage()))
+                            if (heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage()))
                                 this_(this_, node->child_left());
                         }
-                        if(heap_predicate(std::as_const(*static_cast<node_t *>(node)->p_element())))
+                        if (heap_predicate(std::as_const(*static_cast<node_t *>(node)->p_element())))
                             *iterator_output_pointer_node++ = node;
-                        if(node->child_right() != nullptr)
+                        if (node->child_right() != nullptr)
                         {
-                            if(heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->p_accumulated_storage()))
+                            if (heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->p_accumulated_storage()))
                                 this_(this_, node->child_right());
                         }
                     };
-                    if(heap_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
+                    if (heap_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
                         search_tree(search_tree, root);
                 }
 
-                template<typename heap_predicate_t>
-                    requires(invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, element_t const &>)
+                template<typename heap_predicate_t> requires (invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && invocable_r<heap_predicate_t, bool, element_t const &>)
                 static generator_t<navigator_except_node_end_t *> find_by_heap_predicate_generator(node_end_t *node_end, heap_predicate_t const &heap_predicate)
                 {
-                    if(empty(node_end))
+                    if (empty(node_end))
                         co_return;
                     navigator_except_node_end_t *root = static_cast<navigator_except_node_end_t *>(tagged_ptr_bit0_unsetted(node_end->parent_all()));
-                    auto search_tree = [](heap_predicate_t const &heap_predicate, auto &this_, navigator_except_node_end_t *node) -> generator_t<navigator_except_node_end_t *>
+                    auto search_tree = [](heap_predicate_t const &heap_predicate, auto &this_, navigator_except_node_end_t *node) -> generator_t<navigator_except_node_end_t *> //
                     {
-                        if(node->child_left() != nullptr)
+                        if (node->child_left() != nullptr)
                         {
-                            if(heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage()))
+                            if (heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_left()))->p_accumulated_storage()))
                                 co_yield this_(heap_predicate, this_, node->child_left());
                         }
-                        if(heap_predicate(std::as_const(*static_cast<node_t *>(node)->p_element())))
+                        if (heap_predicate(std::as_const(*static_cast<node_t *>(node)->p_element())))
                             co_yield node;
-                        if(node->child_right() != nullptr)
+                        if (node->child_right() != nullptr)
                         {
-                            if(heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->p_accumulated_storage()))
+                            if (heap_predicate(*static_cast<node_t *>(static_cast<navigator_except_node_end_t *>(node->child_right()))->p_accumulated_storage()))
                                 co_yield this_(heap_predicate, this_, node->child_right());
                         }
                     };
-                    if(heap_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
+                    if (heap_predicate(*static_cast<node_t *>(root)->p_accumulated_storage()))
                         co_yield search_tree(heap_predicate, search_tree, root);
                 }
             };
@@ -9820,23 +9731,20 @@ namespace augmented_containers
     namespace augmented_sequence_helpers
     {
         template<typename accumulating_binary_functor_t>
-        struct extract_builtin_accumulated_storage_from_accumulating_binary_functor: std::type_identity<void>
-        {
-        };
-        template<typename accumulating_binary_functor_t>
-            requires requires { typename accumulating_binary_functor_t::accumulated_storage_t; }
-        struct extract_builtin_accumulated_storage_from_accumulating_binary_functor<accumulating_binary_functor_t>: std::type_identity<typename accumulating_binary_functor_t::accumulated_storage_t>
-        {
-        };
+        struct extract_builtin_accumulated_storage_from_accumulating_binary_functor : std::type_identity<void>
+        {};
+        template<typename accumulating_binary_functor_t> requires requires { typename accumulating_binary_functor_t::accumulated_storage_t; }
+        struct extract_builtin_accumulated_storage_from_accumulating_binary_functor<accumulating_binary_functor_t> : std::type_identity<typename accumulating_binary_functor_t::accumulated_storage_t>
+        {};
         template<typename accumulating_binary_functor_t>
         using extract_builtin_accumulated_storage_from_accumulating_binary_functor_t = typename extract_builtin_accumulated_storage_from_accumulating_binary_functor<accumulating_binary_functor_t>::type;
 
         template<std::size_t index, typename accumulating_binary_functor_t, typename Tuple>
         decltype(auto) tuple_fold(accumulating_binary_functor_t const &accumulate_binary_functor, Tuple const &t) // https://stackoverflow.com/questions/47216057/how-to-write-a-fold-sum-function-for-c-tuple
         {
-            if constexpr(index == 0)
+            if constexpr (index == 0)
             {
-                if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                if constexpr (requires { accumulate_binary_functor.identity_element(); })
                     return accumulate_binary_functor(detail::utility::unmove(accumulate_binary_functor.identity_element()), std::get<index>(t));
                 else
                     return std::get<index>(t);
@@ -9850,8 +9758,7 @@ namespace augmented_containers
         {
             using accumulated_storage_t = void; // void means to skip the accumulate operation
         };
-        template<typename accumulating_binary_functor_t_>
-            requires(!std::is_same_v<extract_builtin_accumulated_storage_from_accumulating_binary_functor_t<accumulating_binary_functor_t_>, void>)
+        template<typename accumulating_binary_functor_t_> requires (!std::is_same_v<extract_builtin_accumulated_storage_from_accumulating_binary_functor_t<accumulating_binary_functor_t_>, void>)
         struct accumulator_wrapping_accumulating_binary_functor_t<accumulating_binary_functor_t_>
         {
             using accumulated_storage_t = extract_builtin_accumulated_storage_from_accumulating_binary_functor_t<accumulating_binary_functor_t_>;
@@ -9860,9 +9767,9 @@ namespace augmented_containers
             template<typename allocator_element_t, typename... Args>
             accumulated_storage_t construct_accumulated_storage([[maybe_unused]] allocator_element_t const &allocator_element, std::tuple<Args &...> const &values) const
             {
-                if constexpr(sizeof...(Args) == 0)
+                if constexpr (sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                    if constexpr (requires { accumulate_binary_functor.identity_element(); })
                         return accumulated_storage_t(accumulate_binary_functor.identity_element());
                     else
                         return accumulated_storage_t();
@@ -9874,9 +9781,9 @@ namespace augmented_containers
             void construct_accumulated_storage(allocator_element_t const &allocator_element, typename std::pointer_traits<typename std::allocator_traits<allocator_element_t>::pointer>::template rebind<accumulated_storage_t> pointer_accumulated_storage, std::tuple<Args &...> const &values) const
             {
                 using allocator_accumulated_storage_t = typename std::allocator_traits<allocator_element_t>::template rebind_alloc<accumulated_storage_t>;
-                if constexpr(sizeof...(Args) == 0)
+                if constexpr (sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                    if constexpr (requires { accumulate_binary_functor.identity_element(); })
                         std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage), accumulate_binary_functor.identity_element());
                     else
                         std::allocator_traits<allocator_accumulated_storage_t>::construct(detail::utility::unmove(allocator_accumulated_storage_t(allocator_element)), std::to_address(pointer_accumulated_storage));
@@ -9895,11 +9802,11 @@ namespace augmented_containers
             template<typename... Args>
             bool update_accumulated_storage(accumulated_storage_t &value, std::tuple<Args &...> const &values) const
             {
-                auto compare_and_update = [&value](accumulated_storage_t const &value_new)
+                auto compare_and_update = [&value](accumulated_storage_t const &value_new) //
                 {
-                    if constexpr(requires { value == value_new; })
+                    if constexpr (requires { value == value_new; })
                     {
-                        if(value == value_new)
+                        if (value == value_new)
                             return false;
                         else
                         {
@@ -9913,9 +9820,9 @@ namespace augmented_containers
                         return true;
                     }
                 };
-                if constexpr(sizeof...(Args) == 0)
+                if constexpr (sizeof...(Args) == 0)
                 {
-                    if constexpr(requires { accumulate_binary_functor.identity_element(); })
+                    if constexpr (requires { accumulate_binary_functor.identity_element(); })
                         return compare_and_update(accumulated_storage_t(accumulate_binary_functor.identity_element()));
                     else
                         return compare_and_update(accumulated_storage_t());
@@ -9956,7 +9863,7 @@ namespace augmented_containers
         {
         };
         template<typename element_t_, typename homogeneous_binary_functor_t, typename identity_element_c = void>
-        struct accumulating_binary_functor_wrapping_homogeneous_binary_functor_t: homogeneous_binary_functor_t, add_identity_element_member<identity_element_c>
+        struct accumulating_binary_functor_wrapping_homogeneous_binary_functor_t : homogeneous_binary_functor_t, add_identity_element_member<identity_element_c>
         {
             using accumulated_storage_t = element_t_;
         };
@@ -10012,7 +9919,7 @@ namespace augmented_containers
         typename accumulator_t_,
         typename augmented_sequence_physical_representation_t_,
         typename augmented_sequence_size_management_t_>
-        requires(static_cast<augmented_sequence_physical_representation_e>(augmented_sequence_physical_representation_t_{}) == augmented_sequence_physical_representation_e::rb2p)
+    requires (static_cast<augmented_sequence_physical_representation_e>(augmented_sequence_physical_representation_t_{}) == augmented_sequence_physical_representation_e::rb2p)
     struct augmented_sequence_t<element_t_, allocator_element_t_, accumulator_t_, augmented_sequence_physical_representation_t_, augmented_sequence_size_management_t_>
     {
         using element_t = element_t_;
@@ -10100,128 +10007,109 @@ namespace augmented_containers
             std::ranges::swap(this->node_end, other.node_end);
         }
 
-        augmented_sequence_t() { create_end_node(); }
+        augmented_sequence_t() /* allocator is default initialized */ { create_end_node(); } // default constructor
         void clear() &
         {
-            auto erase_tree = [](auto &this_, navigator_except_node_end_t *node) -> void
+            auto erase_tree = [](auto &this_, navigator_except_node_end_t *node) -> void //
             {
                 navigator_except_node_end_t *child_left = node->child_left();
                 navigator_except_node_end_t *child_right = node->child_right();
-                if(child_left != nullptr)
+                if (child_left != nullptr)
                     this_(this_, child_left);
-                if(child_right != nullptr)
+                if (child_right != nullptr)
                     this_(this_, child_right);
                 static_cast<node_t *>(node)->p_element()->~element_t();
                 delete static_cast<node_t *>(node);
             };
-            if(!detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::empty(node_end))
+            if (!detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::empty(node_end))
                 erase_tree(erase_tree, static_cast<navigator_except_node_end_t *>(detail::language::tagged_ptr_bit0_unsetted(node_end->parent_all())));
             typename navigator_t::loop_end_t{.end = node_end}.link();
 
-            if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
+            if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::no_size)
                 ;
-            else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
+            else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end)
                 node_end->node_count = 0;
-            else if constexpr(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+            else if constexpr (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
                 ;
             else
                 std::unreachable();
         }
-        explicit augmented_sequence_t(allocator_element_t const &allocator_element) // default constructor with allocator
-            : allocator_element(allocator_element)
+        explicit augmented_sequence_t(allocator_element_t const &allocator_element) : allocator_element(allocator_element) // default constructor with allocator
         {
             create_end_node();
         }
-        explicit augmented_sequence_t(size_type count, allocator_element_t const &allocator_element = allocator_element_t()) // count default-inserted constructor (with allocator)?
-            : augmented_sequence_t(allocator_element)
+        explicit augmented_sequence_t(size_type count, allocator_element_t const &allocator_element = allocator_element_t()) : augmented_sequence_t(allocator_element) // count default-inserted constructor (with allocator)?
         {
-            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this]([[maybe_unused]] size_type index)
-                { this->emplace_back(); });
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this]([[maybe_unused]] size_type index) { this->emplace_back(); });
         }
-        explicit augmented_sequence_t(size_type count, element_t const &value, allocator_element_t const &allocator_element = allocator_element_t()) // count copy-inserted constructor (with allocator)?
-            : augmented_sequence_t(allocator_element)
+        explicit augmented_sequence_t(size_type count, element_t const &value, allocator_element_t const &allocator_element = allocator_element_t()) : augmented_sequence_t(allocator_element) // count copy-inserted constructor (with allocator)?
         {
-            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
-                { this->emplace_back(value); });
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index) { this->emplace_back(value); });
         }
         void assign(size_type count, element_t const &value) &
         {
             this->clear();
-            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index)
-                { this->emplace_back(value); });
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &value]([[maybe_unused]] size_type index) { this->emplace_back(value); });
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
-        augmented_sequence_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator_element = allocator_element_t()) // comparable range constructor (with allocator)?
-            : augmented_sequence_t(allocator_element)
+        augmented_sequence_t(iterator_t iterator, sentinel_t sentinel, allocator_element_t const &allocator_element = allocator_element_t()) : augmented_sequence_t(allocator_element) // comparable range constructor (with allocator)?
         {
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
-                { this->emplace_back(std::forward<other_element_t>(other_element)); });
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element) { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
         template<std::input_iterator iterator_t, std::sentinel_for<iterator_t> sentinel_t>
         void assign(iterator_t iterator, sentinel_t sentinel) &
         {
             this->clear();
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element)
-                { this->emplace_back(std::forward<other_element_t>(other_element)); });
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this]<typename other_element_t>(other_element_t &&other_element) { this->emplace_back(std::forward<other_element_t>(other_element)); });
         }
-        augmented_sequence_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator_element = allocator_element_t()) // std::initializer_list constructor (with allocator)?
-            : augmented_sequence_t(allocator_element)
+        augmented_sequence_t(std::initializer_list<element_t> initializer_list, allocator_element_t const &allocator_element = allocator_element_t()) : augmented_sequence_t(allocator_element) // std::initializer_list constructor (with allocator)?
         {
-            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
-                { this->emplace_back(other_element); });
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element) { this->emplace_back(other_element); });
         }
         augmented_sequence_t &operator=(std::initializer_list<element_t> initializer_list) & // std::initializer_list assignment operator
         {
             this->clear();
-            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
-                { this->emplace_back(other_element); });
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element) { this->emplace_back(other_element); });
             return *this;
         }
         void assign(std::initializer_list<element_t> initializer_list) &
         {
             this->clear();
-            std::ranges::for_each(initializer_list, [this](element_t const &other_element)
-                { this->emplace_back(other_element); });
+            std::ranges::for_each(initializer_list, [this](element_t const &other_element) { this->emplace_back(other_element); });
         }
-        augmented_sequence_t(augmented_sequence_t const &other, std::type_identity_t<allocator_element_t> const &allocator_element) // copy constructor with allocator
-            : augmented_sequence_t(allocator_element)
+        augmented_sequence_t(augmented_sequence_t const &other, std::type_identity_t<allocator_element_t> const &allocator_element) : augmented_sequence_t(allocator_element) // copy constructor with allocator
         {
-            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element)
-                { this->emplace_back(other_element); });
+            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element) { this->emplace_back(other_element); });
         }
-        augmented_sequence_t(augmented_sequence_t const &other) // copy constructor
-            : augmented_sequence_t(other, std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.allocator_element))
-        {}
+        augmented_sequence_t(augmented_sequence_t const &other) : augmented_sequence_t(other, std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.allocator_element)) {} // copy constructor
         augmented_sequence_t &operator=(augmented_sequence_t const &other) & // copy assignment operator
         {
-            if(this == &other)
+            if (this == &other)
                 return *this;
             this->clear();
-            if(this->allocator_element != other.allocator_element)
+            if (this->allocator_element != other.allocator_element)
             {
-                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value)
+                if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value)
                 {
                     destroy_end_node();
                     this->allocator_element = other.allocator_element;
                     create_end_node();
                 }
             }
-            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element)
-                { this->emplace_back(other_element); });
+            std::ranges::for_each(std::ranges::subrange(other.cbegin(), other.cend()), [this](element_t const &other_element) { this->emplace_back(other_element); });
             return *this;
         }
 
         augmented_sequence_t(augmented_sequence_t &&other) // move constructor
-            : allocator_element(([&]()
-                  {
+            : allocator_element(([&]() //
+                                 {
                                      this->node_end=other.node_end;
                                      other.create_end_node(); }(),
-                  std::move(other.allocator_element)))
+                                 std::move(other.allocator_element)))
         {}
-        augmented_sequence_t(augmented_sequence_t &&other, std::type_identity_t<allocator_element_t> const &allocator_element) // move constructor with allocator
-            : allocator_element(allocator_element)
+        augmented_sequence_t(augmented_sequence_t &&other, std::type_identity_t<allocator_element_t> const &allocator_element) : allocator_element(allocator_element) // move constructor with allocator
         {
-            if(allocator_element == other.allocator_element)
+            if (allocator_element == other.allocator_element)
             {
                 this->node_end = other.node_end;
                 other.create_end_node();
@@ -10229,20 +10117,19 @@ namespace augmented_containers
             else
             {
                 create_end_node();
-                std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element)
-                    { this->emplace_back(std::move(other_element)); });
+                std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element) { this->emplace_back(std::move(other_element)); });
             }
         }
         augmented_sequence_t &operator=(augmented_sequence_t &&other) & // move assignment operator
         {
-            if(this == &other)
+            if (this == &other)
                 return *this;
             this->clear();
-            if(this->allocator_element == other.allocator_element)
+            if (this->allocator_element == other.allocator_element)
                 swap_end_node(other);
             else
             {
-                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value)
+                if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value)
                 {
                     destroy_end_node();
                     this->allocator_element = std::move(other.allocator_element);
@@ -10250,18 +10137,17 @@ namespace augmented_containers
                     swap_end_node(other);
                 }
                 else
-                    std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element)
-                        { this->emplace_back(std::move(other_element)); });
+                    std::ranges::for_each(std::ranges::subrange(other.begin(), other.end()), [this](element_t &other_element) { this->emplace_back(std::move(other_element)); });
             }
             return *this;
         }
         void swap(augmented_sequence_t &other)
         {
-            if(this->allocator_element == other.allocator_element)
+            if (this->allocator_element == other.allocator_element)
                 swap_end_node(other);
             else
             {
-                if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value)
+                if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap::value)
                 {
                     std::ranges::swap(this->allocator_element, other.allocator_element);
                     swap_end_node(other);
@@ -10285,8 +10171,7 @@ namespace augmented_containers
         {
             return detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::empty(node_end);
         }
-        size_type size() const
-            requires(static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end || static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
+        size_type size() const requires (static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_node_end || static_cast<augmented_sequence_size_management_e>(typename config_t::augmented_sequence_size_management_t{}) == augmented_sequence_size_management_e::at_each_node_except_node_end)
         {
             return detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::size(node_end);
         }
@@ -10301,8 +10186,8 @@ namespace augmented_containers
         {
             iterator_t result = std::ranges::prev(iterator_t(pos.current_node));
             node_t *node_new = new node_t();
-            new(node_new->p_element()) element_t(std::forward<args_t>(args)...);
-            if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+            new (node_new->p_element()) element_t(std::forward<args_t>(args)...);
+            if constexpr (!std::is_same_v<accumulated_storage_t, void>)
                 node_end->accumulator.construct_accumulated_storage(this->allocator_element, node_new->p_accumulated_storage(), std::make_tuple());
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::insert(schedules, node_end, pos.current_node, node_new);
@@ -10314,23 +10199,20 @@ namespace augmented_containers
         iterator_t insert(const_iterator_t pos, size_type count, element_t const &value)
         {
             iterator_t result = std::ranges::prev(iterator_t(pos.current_node));
-            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &pos, &value]([[maybe_unused]] size_type index)
-                { this->emplace(pos, value); });
+            std::ranges::for_each(std::views::iota(static_cast<size_type>(0), count), [this, &pos, &value]([[maybe_unused]] size_type index) { this->emplace(pos, value); });
             return std::ranges::next(result);
         }
         template<std::input_iterator iterator_t_, std::sentinel_for<iterator_t_> sentinel_t_>
         iterator_t insert(const_iterator_t pos, iterator_t_ iterator, sentinel_t_ sentinel)
         {
             iterator_t result = std::ranges::prev(iterator_t(pos.current_node));
-            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this, &pos]<typename other_element_t>(other_element_t &&other_element)
-                { this->emplace(pos, std::forward<other_element_t>(other_element)); });
+            std::ranges::for_each(std::ranges::subrange(iterator, sentinel), [this, &pos]<typename other_element_t>(other_element_t &&other_element) { this->emplace(pos, std::forward<other_element_t>(other_element)); });
             return std::ranges::next(result);
         }
         iterator_t insert(const_iterator_t pos, std::initializer_list<element_t> initializer_list)
         {
             iterator_t result = std::ranges::prev(iterator_t(pos.current_node));
-            std::ranges::for_each(initializer_list, [this, &pos](element_t const &element)
-                { this->emplace(pos, element); });
+            std::ranges::for_each(initializer_list, [this, &pos](element_t const &element) { this->emplace(pos, element); });
             return std::ranges::next(result);
         }
         iterator_t erase(const_iterator_t pos)
@@ -10339,7 +10221,7 @@ namespace augmented_containers
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::erase(schedules, node_end, pos.current_node);
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::run_schedules(schedules, node_end->accumulator);
-            if constexpr(!std::is_same_v<accumulated_storage_t, void>)
+            if constexpr (!std::is_same_v<accumulated_storage_t, void>)
                 node_end->accumulator.destroy_accumulated_storage(this->allocator_element, static_cast<node_t *>(pos.current_node)->p_accumulated_storage());
             static_cast<node_t *>(pos.current_node)->p_element()->~element_t();
             delete static_cast<node_t *>(pos.current_node);
@@ -10348,7 +10230,7 @@ namespace augmented_containers
         iterator_t erase(const_iterator_t pos_begin, const_iterator_t pos_end)
         {
             iterator_t result = std::ranges::prev(iterator_t(pos_begin.current_node));
-            for(; pos_begin != pos_end;)
+            for (; pos_begin != pos_end;)
             {
                 navigator_t *pos_begin_current_node = pos_begin.current_node;
                 ++pos_begin;
@@ -10371,7 +10253,6 @@ namespace augmented_containers
         void push_front(element_t const &element) { this->emplace_front(element); }
         void push_front(element_t &&element) { this->emplace_front(std::move(element)); }
 
-
         friend void swap(augmented_sequence_t &lhs, augmented_sequence_t &rhs) { lhs.swap(rhs); }
         friend bool operator==(augmented_sequence_t const &lhs, augmented_sequence_t const &rhs)
         {
@@ -10383,8 +10264,8 @@ namespace augmented_containers
             auto f1 = lhs.begin(), l1 = lhs.end(), f2 = rhs.begin(), l2 = rhs.end();
             bool exhaust1 = (f1 == l1);
             bool exhaust2 = (f2 == l2);
-            for(; !exhaust1 && !exhaust2; exhaust1 = (++f1 == l1), exhaust2 = (++f2 == l2))
-                if(auto c = comp(*f1, *f2); c != 0)
+            for (; !exhaust1 && !exhaust2; exhaust1 = (++f1 == l1), exhaust2 = (++f2 == l2))
+                if (auto c = comp(*f1, *f2); c != 0)
                     return c;
             return !exhaust1 ? std::strong_ordering::greater : !exhaust2 ? std::strong_ordering::less
                                                                          : std::strong_ordering::equal;
@@ -10393,10 +10274,9 @@ namespace augmented_containers
 #endif
         }
 
-
         friend augmented_sequence_t &operator<<(augmented_sequence_t &lhs, augmented_sequence_t &&rhs)
         {
-            if(&lhs == &rhs)
+            if (&lhs == &rhs)
                 return lhs;
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::template concat_without_middle_key<false>(schedules, lhs.node_end, rhs.node_end);
@@ -10405,7 +10285,7 @@ namespace augmented_containers
         }
         friend augmented_sequence_t &&operator<<(augmented_sequence_t &&lhs, augmented_sequence_t &&rhs)
         {
-            if(&lhs == &rhs)
+            if (&lhs == &rhs)
                 return std::move(lhs);
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::template concat_without_middle_key<false>(schedules, lhs.node_end, rhs.node_end);
@@ -10414,7 +10294,7 @@ namespace augmented_containers
         }
         friend augmented_sequence_t &operator>>(augmented_sequence_t &&lhs, augmented_sequence_t &rhs)
         {
-            if(&lhs == &rhs)
+            if (&lhs == &rhs)
                 return rhs;
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::template concat_without_middle_key<true>(schedules, lhs.node_end, rhs.node_end);
@@ -10423,7 +10303,7 @@ namespace augmented_containers
         }
         friend augmented_sequence_t &&operator>>(augmented_sequence_t &&lhs, augmented_sequence_t &&rhs)
         {
-            if(&lhs == &rhs)
+            if (&lhs == &rhs)
                 return std::move(rhs);
             typename detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::schedules_t schedules;
             detail::augmented_sequence_rb2p::rb2p_functor_t<false, config_t>::template concat_without_middle_key<true>(schedules, lhs.node_end, rhs.node_end);
@@ -10451,7 +10331,7 @@ namespace augmented_containers
         template<bool is_reversed = false, bool is_const_iterator_begin, bool is_const_iterator_end>
         accumulated_storage_t read_range(detail::augmented_sequence_rb2p::rb2p_iterator_t<is_const_iterator_begin, is_reversed, config_t> const &iterator_begin, detail::augmented_sequence_rb2p::rb2p_iterator_t<is_const_iterator_end, is_reversed, config_t> const &iterator_end) const
         {
-            if(iterator_begin == iterator_end)
+            if (iterator_begin == iterator_end)
                 return node_end->accumulator.construct_accumulated_storage(allocator_element, std::make_tuple());
 
             navigator_except_node_end_t *node_front = static_cast<navigator_except_node_end_t *>(iterator_begin.current_node);
@@ -10463,7 +10343,7 @@ namespace augmented_containers
         template<bool is_reversed = false, bool is_const_iterator_begin, bool is_const_iterator_end>
         void update_range(detail::augmented_sequence_rb2p::rb2p_iterator_t<is_const_iterator_begin, is_reversed, config_t> const &iterator_begin, detail::augmented_sequence_rb2p::rb2p_iterator_t<is_const_iterator_end, is_reversed, config_t> const &iterator_end)
         {
-            if(iterator_begin == iterator_end)
+            if (iterator_begin == iterator_end)
                 return;
 
             navigator_except_node_end_t *node_front = static_cast<navigator_except_node_end_t *>(iterator_begin.current_node);
@@ -10483,43 +10363,41 @@ namespace augmented_containers
             return {detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_monotonic_predicate(allocator_element, node_end, monotonic_predicate)};
         }
 
-        template<bool is_reversed = false, /*std::output_iterator<const_iterator_t>*/ typename iterator_output_const_iterator_t, typename heap_predicate_t>
-            requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
+        template<bool is_reversed = false, /*std::output_iterator<const_iterator_t>*/ typename iterator_output_const_iterator_t, typename heap_predicate_t> requires (detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
         void find_by_heap_predicate(iterator_output_const_iterator_t iterator_output_const_iterator, heap_predicate_t const &heap_predicate) const
         {
-            detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate(node_end,
+            detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate(
+                node_end,
                 detail::iterator::transform_output_iterator_t{
                     .wrapped_iterator = iterator_output_const_iterator,
-                    .transformer = [](navigator_t *value)
-                    { return const_iterator_t{value}; },
+                    .transformer = [](navigator_t *value) { return const_iterator_t{value}; },
                 },
-                heap_predicate);
+                heap_predicate
+            );
         }
-        template<bool is_reversed = false, /*std::output_iterator<iterator_t>*/ typename iterator_output_iterator_t, typename heap_predicate_t>
-            requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
+        template<bool is_reversed = false, /*std::output_iterator<iterator_t>*/ typename iterator_output_iterator_t, typename heap_predicate_t> requires (detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
         void find_by_heap_predicate(iterator_output_iterator_t iterator_output_iterator, heap_predicate_t const &heap_predicate)
         {
-            detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate(node_end,
+            detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate(
+                node_end,
                 detail::iterator::transform_output_iterator_t{
                     .wrapped_iterator = iterator_output_iterator,
-                    .transformer = [](navigator_t *value)
-                    { return iterator_t{value}; },
+                    .transformer = [](navigator_t *value) { return iterator_t{value}; },
                 },
-                heap_predicate);
+                heap_predicate
+            );
         }
 
-        template<bool is_reversed = false, typename heap_predicate_t>
-            requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
+        template<bool is_reversed = false, typename heap_predicate_t> requires (detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
         detail::coroutine::generator_t<const_iterator_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate) const
         {
-            for(navigator_t *value : detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate_generator(node_end, heap_predicate))
+            for (navigator_t *value : detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate_generator(node_end, heap_predicate))
                 co_yield const_iterator_t{value};
         }
-        template<bool is_reversed = false, typename heap_predicate_t>
-            requires(detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
+        template<bool is_reversed = false, typename heap_predicate_t> requires (detail::concepts::invocable_r<heap_predicate_t, bool, accumulated_storage_t &> && detail::concepts::invocable_r<heap_predicate_t, bool, element_t const &>)
         detail::coroutine::generator_t<iterator_t> find_by_heap_predicate_generator(heap_predicate_t const &heap_predicate)
         {
-            for(navigator_t *value : detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate_generator(node_end, heap_predicate))
+            for (navigator_t *value : detail::augmented_sequence_rb2p::rb2p_functor_t<is_reversed, config_t>::find_by_heap_predicate_generator(node_end, heap_predicate))
                 co_yield iterator_t{value};
         }
     };

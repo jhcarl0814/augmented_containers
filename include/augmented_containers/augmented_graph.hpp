@@ -1,20 +1,19 @@
 ﻿#ifndef AUGMENTED_GRAPH_HPP
 #define AUGMENTED_GRAPH_HPP
 
-#include <tuple>
-#include <functional>
-#include <cassert>
-#include <ranges>
-#include <iterator>
 #include <algorithm>
-#include <cstddef>
-#include <memory>
+#include <cassert>
 #include <concepts>
 #include <coroutine>
-#include <utility>
-
-#include <set>
+#include <cstddef>
+#include <functional>
+#include <iterator>
 #include <map>
+#include <memory>
+#include <ranges>
+#include <set>
+#include <tuple>
+#include <utility>
 
 namespace augmented_containers
 {
@@ -45,25 +44,16 @@ namespace augmented_containers
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_POINTER_TRAITS_CAST
     #define AUGMENTED_CONTAINERS_LANGUAGE_POINTER_TRAITS_CAST
             template<typename target_pointer_t, typename source_pointer_t>
-            target_pointer_t pointer_traits_static_cast(source_pointer_t source_pointer)
-            {
-                return std::pointer_traits<target_pointer_t>::pointer_to(*static_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer)));
-            }
+            target_pointer_t pointer_traits_static_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*static_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
 
             template<typename target_pointer_t, typename source_pointer_t>
-            target_pointer_t pointer_traits_reinterpret_cast(source_pointer_t source_pointer)
-            {
-                return std::pointer_traits<target_pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer)));
-            }
+            target_pointer_t pointer_traits_reinterpret_cast(source_pointer_t source_pointer) { return std::pointer_traits<target_pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<target_pointer_t>::element_type *>(std::to_address(source_pointer))); }
 #endif // AUGMENTED_CONTAINERS_LANGUAGE_POINTER_TRAITS_CAST
 
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT0
     #define AUGMENTED_CONTAINERS_LANGUAGE_TAGGED_PTR_BIT0
             template<typename pointer_t>
-            bool tagged_ptr_bit0_is_setted(pointer_t p)
-            {
-                return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b1) != 0;
-            };
+            bool tagged_ptr_bit0_is_setted(pointer_t p) { return (reinterpret_cast<uintptr_t>(std::to_address(p)) & 0b1) != 0; }
             template<typename pointer_t>
             pointer_t tagged_ptr_bit0_unsetted_relaxed(pointer_t p) { return std::pointer_traits<pointer_t>::pointer_to(*reinterpret_cast<typename std::pointer_traits<pointer_t>::element_type *>(reinterpret_cast<uintptr_t>(std::to_address(p)) & ~0b1)); }
             template<typename pointer_t>
@@ -76,10 +66,7 @@ namespace augmented_containers
 
 #ifndef AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
     #define AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
-            constexpr std::size_t zu(std::size_t v)
-            {
-                return v;
-            }
+            constexpr std::size_t zu(std::size_t v) { return v; }
             constexpr std::ptrdiff_t z(std::ptrdiff_t v) { return v; }
 #endif // AUGMENTED_CONTAINERS_LANGUAGE_LITERALS
         } // namespace language
@@ -89,10 +76,10 @@ namespace augmented_containers
         namespace concepts
         {
             template<typename F, typename Ret, typename... Args>
-            concept invocable_r = std::invocable<F, Args...> && (std::same_as<Ret, void> || std::convertible_to<std::invoke_result_t<F, Args...>, Ret>)/*&& !
+            concept invocable_r = std::invocable<F, Args...> && (std::same_as<Ret, void> || std::convertible_to<std::invoke_result_t<F, Args...>, Ret>) /*&& !
             reference_converts_from_temporary_v<Ret, std::invoke_result_t<F, Args...>>*/
                 ; // https://stackoverflow.com/questions/61932900/c-template-function-specify-argument-type-of-callback-functor-lambda-while-st#comment109544863_61933163
-        }
+        } // namespace concepts
 #endif // AUGMENTED_CONTAINERS_CONCEPTS
 
 #ifndef AUGMENTED_CONTAINERS_UTILITY
@@ -108,7 +95,7 @@ namespace std
 {
     template<typename T>
     initializer_list(initializer_list<T>) -> initializer_list<T>;
-}
+} // namespace std
 
 namespace augmented_containers
 {
@@ -118,15 +105,11 @@ namespace augmented_containers
         {
     #else
     #endif
-
             template<typename T>
-            constexpr T &unmove(T &&t)
-            {
-                return static_cast<T &>(t);
-            } //https://stackoverflow.com/a/67059296/8343353
+            constexpr T &unmove(T &&t) { return static_cast<T &>(t); } //https://stackoverflow.com/a/67059296/8343353
 
             template<bool is_const = true, typename T = void>
-            using conditional_const_t = std::conditional_t<is_const, const T, T>;
+            using conditional_const_t = std::conditional_t<is_const, T const, T>;
 
             template<bool is_const = true, typename T = void>
             constexpr conditional_const_t<is_const, T> &conditional_as_const(T &_Val) noexcept { return _Val; }
@@ -137,13 +120,11 @@ namespace augmented_containers
             struct list_find_first_index
             {
                 template<std::size_t I>
-                struct iteration: std::conditional_t<std::is_same_v<typename std::tuple_element_t<I, list_t>, element_t>, std::type_identity<std::integral_constant<std::size_t, I>>, iteration<I + 1>>::type
-                {
-                };
+                struct iteration : std::conditional_t<std::is_same_v<typename std::tuple_element_t<I, list_t>, element_t>, std::type_identity<std::integral_constant<std::size_t, I>>, iteration<I + 1>>::type
+                {};
                 template<>
-                struct iteration<std::tuple_size_v<list_t>>: std::integral_constant<std::size_t, std::tuple_size_v<list_t>>
-                {
-                };
+                struct iteration<std::tuple_size_v<list_t>> : std::integral_constant<std::size_t, std::tuple_size_v<list_t>>
+                {};
                 using type = typename iteration<0>::type;
             };
             template<typename list_t, typename element_t>
@@ -155,9 +136,8 @@ namespace augmented_containers
                 template<typename list_t_>
                 struct iterations;
                 template<typename... elements_t>
-                struct iterations<std::tuple<elements_t...>>: std::type_identity<std::tuple<typename transformer_t<elements_t>::type...>>
-                {
-                };
+                struct iterations<std::tuple<elements_t...>> : std::type_identity<std::tuple<typename transformer_t<elements_t>::type...>>
+                {};
                 using type = typename iterations<list_t>::type;
             };
             template<typename list_t, template<typename element_t> typename transformer_t>
@@ -174,7 +154,7 @@ namespace augmented_containers
                 template<typename index_sequence_t>
                 struct impl;
                 template<std::size_t... I>
-                struct impl<std::index_sequence<I...>>: std::type_identity<std::tuple<std::tuple_element_t<1 + I, list_t>...>>
+                struct impl<std::index_sequence<I...>> : std::type_identity<std::tuple<std::tuple_element_t<1 + I, list_t>...>>
                 {};
                 using type = typename impl<std::make_index_sequence<std::tuple_size_v<list_t> - 1>>::type;
             };
@@ -187,9 +167,8 @@ namespace augmented_containers
                 template<typename map_t_, typename index_sequence_t>
                 struct iterations;
                 template<typename... elements_t, std::size_t... I>
-                struct iterations<std::tuple<elements_t...>, std::index_sequence<I...>>: std::type_identity<std::tuple<typename transformer_t<I, elements_t>::type...>>
-                {
-                };
+                struct iterations<std::tuple<elements_t...>, std::index_sequence<I...>> : std::type_identity<std::tuple<typename transformer_t<I, elements_t>::type...>>
+                {};
                 using type = typename iterations<map_t, std::make_index_sequence<std::tuple_size_v<map_t>>>::type;
             };
             template<typename map_t, template<std::size_t index, typename item_t> typename transformer_t>
@@ -326,9 +305,7 @@ namespace augmented_containers
                     std::coroutine_handle<promise_t> root_or_current;
                     std::exception_ptr *exception = nullptr;
 
-                    promise_t()
-                        : root_or_current(std::coroutine_handle<promise_t>::from_promise(*this))
-                    {}
+                    promise_t() : root_or_current(std::coroutine_handle<promise_t>::from_promise(*this)) {}
                     generator_t get_return_object() { return {std::coroutine_handle<promise_t>::from_promise(*this)}; }
                     std::suspend_never initial_suspend() { return {}; }
                     auto final_suspend() noexcept
@@ -338,7 +315,7 @@ namespace augmented_containers
                             bool await_ready() noexcept { return false; }
                             std::coroutine_handle<> await_suspend(std::coroutine_handle<promise_t> continuation) noexcept
                             {
-                                if(continuation.promise().continuation)
+                                if (continuation.promise().continuation)
                                 {
                                     continuation.promise().root_or_current.promise().root_or_current = continuation.promise().continuation;
                                     return continuation.promise().continuation;
@@ -352,7 +329,7 @@ namespace augmented_containers
                     void return_void() {}
                     void unhandled_exception()
                     {
-                        if(exception == nullptr) throw;
+                        if (exception == nullptr) throw;
                         else *exception = std::current_exception();
                     }
 
@@ -378,14 +355,14 @@ namespace augmented_containers
                                 generator.handle.promise().continuation = continuation;
                                 std::coroutine_handle<promise_t> root = continuation.promise().continuation == nullptr ? continuation : continuation.promise().root_or_current;
                                 root.promise().root_or_current = generator.handle.promise().root_or_current;
-                                for(std::coroutine_handle<promise_t> state = generator.handle.promise().root_or_current; state != continuation; state = state.promise().continuation)
+                                for (std::coroutine_handle<promise_t> state = generator.handle.promise().root_or_current; state != continuation; state = state.promise().continuation)
                                     state.promise().root_or_current = root;
                                 generator.handle.promise().exception = &exception;
                                 return std::noop_coroutine();
                             }
                             void await_resume() noexcept
                             {
-                                if(exception)
+                                if (exception)
                                     std::rethrow_exception(std::move(exception));
                             }
     #ifdef __clang__
@@ -401,26 +378,20 @@ namespace augmented_containers
                 };
                 using promise_type = promise_t;
                 std::coroutine_handle<promise_t> handle;
-                generator_t()
-                    : handle(nullptr)
-                {}
-                generator_t(std::coroutine_handle<promise_t> handle)
-                    : handle(handle)
-                {}
-                generator_t(generator_t &&other)
-                    : handle(std::exchange(other.handle, nullptr))
-                {}
+                generator_t() : handle(nullptr) {}
+                generator_t(std::coroutine_handle<promise_t> handle) : handle(handle) {}
+                generator_t(generator_t &&other) : handle(std::exchange(other.handle, nullptr)) {}
                 generator_t &operator=(generator_t &&other) &
                 {
-                    if(this == &other)
+                    if (this == &other)
                         return;
-                    if(handle) handle.destroy();
+                    if (handle) handle.destroy();
                     handle = std::exchange(other.handle, nullptr);
                     return *this;
                 }
                 ~generator_t()
                 {
-                    if(handle)
+                    if (handle)
                     {
                         //            if(handle.promise().continuation != nullptr)
                         //                handle.promise().root_or_current.promise().root_or_current = handle.promise().continuation;
@@ -483,11 +454,10 @@ namespace augmented_containers
 
 namespace std
 {
-    template<class R, class F, class... Args>
-        requires std::is_invocable_r_v<R, F, Args...>
+    template<class R, class F, class... Args> requires std::is_invocable_r_v<R, F, Args...>
     constexpr R invoke_r(F &&f, Args &&...args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>)
     {
-        if constexpr(std::is_void_v<R>)
+        if constexpr (std::is_void_v<R>)
             std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
         else
             return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
@@ -501,7 +471,6 @@ namespace augmented_containers
         namespace functional
         {
     #endif
-
             template<typename Sig, bool is_no_except = false> // https://www.reddit.com/r/cpp/comments/7svbj7/is_stdfunction_really_the_best_we_can_do_lukas/
             class function_view;
             template<typename R, typename... Args, bool is_no_except>
@@ -511,32 +480,24 @@ namespace augmented_containers
                 R(*f)
                 (void *, Args &&...) noexcept(is_no_except);
                 void *d;
-
               public:
                 function_view() noexcept = default;
-                function_view(std::nullptr_t) noexcept
-                    : f(nullptr),
-                      d(nullptr)
-                {}
-                function_view &operator=(std::nullptr_t) &noexcept
+                function_view(std::nullptr_t) noexcept : f(nullptr), d(nullptr) {}
+                function_view &operator=(std::nullptr_t) & noexcept
                 {
                     f = nullptr;
                     d = nullptr;
                     return *this;
-                };
+                }
                 function_view(function_view const &) noexcept = default;
-                function_view &operator=(function_view const &) &noexcept = default;
+                function_view &operator=(function_view const &) & noexcept = default;
 
-                template<typename T>
-                    requires(!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
+                template<typename T> requires (!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
                 function_view(T &&t) noexcept
-                    : f([](void *d, Args &&...args) noexcept(is_no_except) -> R
-                          { return std::invoke_r<R>(std::forward<T>(*static_cast<std::remove_reference_t<T> *>(d)), std::forward<Args>(args)...); }),
-                      d(std::addressof(t))
-                {}
-                template<typename T>
-                    requires(!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
-                function_view &operator=(T &&t) &noexcept
+                    : f([](void *d, Args &&...args) noexcept(is_no_except) -> R { return std::invoke_r<R>(std::forward<T>(*static_cast<std::remove_reference_t<T> *>(d)), std::forward<Args>(args)...); }),
+                      d(std::addressof(t)) {}
+                template<typename T> requires (!std::same_as<std::decay_t<T>, function_view> && ((!is_no_except && std::is_invocable_r_v<R, T, Args...>) || (is_no_except && std::is_nothrow_invocable_r_v<R, T, Args...>)) && std::is_object_v<std::remove_reference_t<T>>)
+                function_view &operator=(T &&t) & noexcept
                 {
                     *this = function_view(std::forward<T>(t));
                     return *this;
@@ -544,9 +505,8 @@ namespace augmented_containers
 
                 function_view(R (&t)(Args...) noexcept(is_no_except)) noexcept
                     : f(reinterpret_cast<R (*)(void *, Args...) noexcept(is_no_except)>(&t)),
-                      d(nullptr)
-                {}
-                function_view &operator=(R (&t)(Args...) noexcept(is_no_except)) &noexcept
+                      d(nullptr) {}
+                function_view &operator=(R (&t)(Args...) noexcept(is_no_except)) & noexcept
                 {
                     *this = function_view(t);
                     return *this;
@@ -556,7 +516,7 @@ namespace augmented_containers
                 R operator()(Args... args) const noexcept(is_no_except)
                 {
                     assert(f != nullptr);
-                    if(d != nullptr)
+                    if (d != nullptr)
                         return f(d, std::forward<Args>(args)...);
                     else
                         return (*reinterpret_cast<R (*)(Args...) noexcept(is_no_except)>(f))(std::forward<Args>(args)...);
@@ -681,7 +641,7 @@ namespace augmented_containers
                 using cluster_t = cluster_t_;
                 void create([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    new(cluster) cluster_t();
+                    new (cluster) cluster_t();
                 }
                 void destroy([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2) const
                 {
@@ -689,7 +649,7 @@ namespace augmented_containers
                 }
                 void join([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
                 {
-                    new(cluster_parent) cluster_t();
+                    new (cluster_parent) cluster_t();
                 }
                 void split([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
                 {
@@ -697,8 +657,7 @@ namespace augmented_containers
                 }
             };
         };
-        template<typename cluster_t_>
-            requires(std::is_same_v<cluster_t_, void>)
+        template<typename cluster_t_> requires (std::is_same_v<cluster_t_, void>)
         struct get_top_tree_internal_operations_empty_t<cluster_t_>
         {
             template<typename graph_t>
@@ -718,7 +677,7 @@ namespace augmented_containers
                 homogeneous_binary_functor_t homogeneous_binary_functor;
                 void create([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    new(cluster) cluster_t(std::as_const(it_edge_it_vertexes->first));
+                    new (cluster) cluster_t(std::as_const(it_edge_it_vertexes->first));
                 }
                 void destroy([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2) const
                 {
@@ -726,12 +685,12 @@ namespace augmented_containers
                 }
                 void join([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, int dummy_or_rake_or_compress) const
                 {
-                    if(dummy_or_rake_or_compress == 0)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_left));
-                    else if(dummy_or_rake_or_compress == 1)
-                        new(cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
-                    else if(dummy_or_rake_or_compress == 2)
-                        new(cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
+                    if (dummy_or_rake_or_compress == 0)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_left));
+                    else if (dummy_or_rake_or_compress == 1)
+                        new (cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
+                    else if (dummy_or_rake_or_compress == 2)
+                        new (cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
                     else std::unreachable();
                 }
                 void split([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
@@ -751,7 +710,7 @@ namespace augmented_containers
                 homogeneous_binary_functor_t homogeneous_binary_functor;
                 void create([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    new(cluster) cluster_t(std::as_const(it_edge_it_vertexes->first));
+                    new (cluster) cluster_t(std::as_const(it_edge_it_vertexes->first));
                 }
                 void destroy([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2) const
                 {
@@ -759,12 +718,12 @@ namespace augmented_containers
                 }
                 void join([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, int dummy_or_rake_or_compress) const
                 {
-                    if(dummy_or_rake_or_compress == 0)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_left));
-                    else if(dummy_or_rake_or_compress == 1)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_right));
-                    else if(dummy_or_rake_or_compress == 2)
-                        new(cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
+                    if (dummy_or_rake_or_compress == 0)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_left));
+                    else if (dummy_or_rake_or_compress == 1)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_right));
+                    else if (dummy_or_rake_or_compress == 2)
+                        new (cluster_parent) cluster_t(homogeneous_binary_functor(std::as_const(*cluster_child_left), std::as_const(*cluster_child_right)));
                     else std::unreachable();
                 }
                 void split([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
@@ -784,7 +743,7 @@ namespace augmented_containers
                 comparator_edge_t comparator_edge;
                 void create([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    new(cluster) cluster_t(it_edge_it_vertexes);
+                    new (cluster) cluster_t(it_edge_it_vertexes);
                 }
                 void destroy([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2) const
                 {
@@ -792,12 +751,12 @@ namespace augmented_containers
                 }
                 void join([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, int dummy_or_rake_or_compress) const
                 {
-                    if(dummy_or_rake_or_compress == 0)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_left));
-                    else if(dummy_or_rake_or_compress == 1)
-                        new(cluster_parent) cluster_t(!comparator_edge(std::as_const(*cluster_child_right), std::as_const(*cluster_child_left)) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
-                    else if(dummy_or_rake_or_compress == 2)
-                        new(cluster_parent) cluster_t(!comparator_edge(std::as_const(*cluster_child_right), std::as_const(*cluster_child_left)) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
+                    if (dummy_or_rake_or_compress == 0)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_left));
+                    else if (dummy_or_rake_or_compress == 1)
+                        new (cluster_parent) cluster_t(!comparator_edge(std::as_const(*cluster_child_right), std::as_const(*cluster_child_left)) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
+                    else if (dummy_or_rake_or_compress == 2)
+                        new (cluster_parent) cluster_t(!comparator_edge(std::as_const(*cluster_child_right), std::as_const(*cluster_child_left)) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
                     else std::unreachable();
                 }
                 void split([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
@@ -819,9 +778,9 @@ namespace augmented_containers
                     comparator_edge_t comparator_edge;
                     bool operator()(typename graph_t::it_edge_it_vertexes_t const &lhs, typename graph_t::it_edge_it_vertexes_t const &rhs) const
                     {
-                        if(comparator_edge(lhs->first, rhs->first))
+                        if (comparator_edge(lhs->first, rhs->first))
                             return true;
-                        else if(comparator_edge(rhs->first, lhs->first))
+                        else if (comparator_edge(rhs->first, lhs->first))
                             return false;
                         else
                             return std::as_const(detail::utility::unmove(std::less<typename graph_t::edges_it_vertexes_t::key_type const *>{}))(&lhs->first, &rhs->first);
@@ -829,7 +788,7 @@ namespace augmented_containers
                 } comparator_it_edge_it_vertexes;
                 void create([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    new(cluster) cluster_t(it_edge_it_vertexes);
+                    new (cluster) cluster_t(it_edge_it_vertexes);
                 }
                 void destroy([[maybe_unused]] graph_t *graph, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster, [[maybe_unused]] graph_t::it_vertex_t it_vertex2) const
                 {
@@ -837,12 +796,12 @@ namespace augmented_containers
                 }
                 void join([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, int dummy_or_rake_or_compress) const
                 {
-                    if(dummy_or_rake_or_compress == 0)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_left));
-                    else if(dummy_or_rake_or_compress == 1)
-                        new(cluster_parent) cluster_t(std::as_const(*cluster_child_right));
-                    else if(dummy_or_rake_or_compress == 2)
-                        new(cluster_parent) cluster_t(!comparator_it_edge_it_vertexes(*cluster_child_right, *cluster_child_left) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
+                    if (dummy_or_rake_or_compress == 0)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_left));
+                    else if (dummy_or_rake_or_compress == 1)
+                        new (cluster_parent) cluster_t(std::as_const(*cluster_child_right));
+                    else if (dummy_or_rake_or_compress == 2)
+                        new (cluster_parent) cluster_t(!comparator_it_edge_it_vertexes(*cluster_child_right, *cluster_child_left) ? std::as_const(*cluster_child_right) : std::as_const(*cluster_child_left));
                     else std::unreachable();
                 }
                 void split([[maybe_unused]] graph_t *graph, cluster_t *cluster_parent, [[maybe_unused]] graph_t::it_vertex_t it_vertex1, [[maybe_unused]] cluster_t *cluster_child_left, [[maybe_unused]] graph_t::it_vertex_t it_vertex2, [[maybe_unused]] cluster_t *cluster_child_right, [[maybe_unused]] graph_t::it_vertex_t it_vertex3, [[maybe_unused]] int dummy_or_rake_or_compress) const
@@ -851,7 +810,7 @@ namespace augmented_containers
                 }
                 std::optional<typename graph_t::it_edge_it_vertexes_t> edge_to_be_replaced([[maybe_unused]] graph_t *graph, cluster_t const &cluster, graph_t::it_edge_it_vertexes_t it_edge_it_vertexes) const
                 {
-                    if(comparator_it_edge_it_vertexes(it_edge_it_vertexes, cluster))
+                    if (comparator_it_edge_it_vertexes(it_edge_it_vertexes, cluster))
                         return std::make_optional(cluster);
                     else
                         return std::nullopt;
@@ -875,9 +834,8 @@ namespace augmented_containers
             template<typename graph_t, std::size_t index, typename part_data_structure_t, typename part_parameters_t>
             struct augmented_graph_part_t;
 
-            template<typename graph_t, std::size_t index, typename part_data_structure_t, typename part_parameters_t>
-                requires(static_cast<augmented_graph_part_data_structure_e>(part_data_structure_t{}) == augmented_graph_part_data_structure_e::top_tree)
-            struct augmented_graph_part_t<graph_t, index, part_data_structure_t, part_parameters_t>: public augmented_graph_part_base
+            template<typename graph_t, std::size_t index, typename part_data_structure_t, typename part_parameters_t> requires (static_cast<augmented_graph_part_data_structure_e>(part_data_structure_t{}) == augmented_graph_part_data_structure_e::top_tree)
+            struct augmented_graph_part_t<graph_t, index, part_data_structure_t, part_parameters_t> : public augmented_graph_part_base
             {
                 graph_t *graph() { return reinterpret_cast<graph_t *>(reinterpret_cast<std::byte *>(this) - graph_t::template part_offset<index>()); }
                 graph_t const *graph() const { return reinterpret_cast<graph_t const *>(reinterpret_cast<std::byte const *>(this) - graph_t::template part_offset<index>()); }
@@ -905,8 +863,7 @@ namespace augmented_containers
                 };
                 template<typename pointer_element_t>
                 struct add_cluster_member_t<pointer_element_t, void>
-                {
-                };
+                {};
 
                 template<typename internal_operations_t>
                 struct add_internal_operations_member_t
@@ -915,8 +872,7 @@ namespace augmented_containers
                 };
                 template<>
                 struct add_internal_operations_member_t<void>
-                {
-                };
+                {};
 
                 struct cluster_tree_node_t;
                 struct arc_t
@@ -954,7 +910,7 @@ namespace augmented_containers
 
                     cluster_tree_node_t *cluster_tree_node()
                     {
-                        if(!tagged_ptr_bit0_is_setted(this->prev_))
+                        if (!tagged_ptr_bit0_is_setted(this->prev_))
 #ifdef __clang__
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Winvalid-offsetof"
@@ -975,39 +931,36 @@ namespace augmented_containers
                     }
                     arc_t *twin()
                     {
-                        if(!tagged_ptr_bit0_is_setted(this->prev_))
+                        if (!tagged_ptr_bit0_is_setted(this->prev_))
                             return &this->cluster_tree_node()->arc_forward;
                         else
                             return &this->cluster_tree_node()->arc_backward;
                     }
                 };
-                struct cluster_tree_node_t: public add_cluster_member_t<typename std::allocator_traits<allocator_vertex_t>::pointer, cluster_t>
+                struct cluster_tree_node_t : public add_cluster_member_t<typename std::allocator_traits<allocator_vertex_t>::pointer, cluster_t>
                 {
                     cluster_tree_node_t *parent = nullptr, *child_left_ = nullptr, *child_right_ = nullptr;
                     arc_t arc_backward, arc_forward;
 
-                    cluster_tree_node_t(std::nullptr_t) // not initialized
-                    {}
-
+                    cluster_tree_node_t(std::nullptr_t) {} // not initialized
                     cluster_tree_node_t(it_vertex_t it_vertex1, it_vertex_t it_vertex2)
                         : arc_backward{.prev_ = nullptr, .next_ = nullptr, .head = it_vertex1},
-                          arc_forward{.prev_ = tagged_ptr_bit0_setted(static_cast<arc_t *>(nullptr)), .next_ = nullptr, .head = it_vertex2}
-                    {}
+                          arc_forward{.prev_ = tagged_ptr_bit0_setted(static_cast<arc_t *>(nullptr)), .next_ = nullptr, .head = it_vertex2} {}
 
                     arc_t *arc_with_head(it_vertex_t head)
                     {
-                        if(arc_backward.head == head)
+                        if (arc_backward.head == head)
                             return &arc_backward;
-                        else if(arc_forward.head == head)
+                        else if (arc_forward.head == head)
                             return &arc_forward;
                         else
                             std::unreachable();
                     }
                     arc_t *arc_with_tail(it_vertex_t tail)
                     {
-                        if(arc_backward.head == tail)
+                        if (arc_backward.head == tail)
                             return &arc_forward;
-                        else if(arc_forward.head == tail)
+                        else if (arc_forward.head == tail)
                             return &arc_backward;
                         else
                             std::unreachable();
@@ -1023,9 +976,7 @@ namespace augmented_containers
                             this_->child_left_ = tagged_ptr_bit0_is_setted(this_->child_left_) ? tagged_ptr_bit0_setted(other) : other;
                             return *this;
                         }
-                        proxy_child_left_t(cluster_tree_node_t *this_)
-                            : this_(this_)
-                        {}
+                        proxy_child_left_t(cluster_tree_node_t *this_) : this_(this_) {}
                         proxy_child_left_t(proxy_child_left_t const &other) = default;
                         proxy_child_left_t &operator=(proxy_child_left_t const &other) { return this->operator=(other.operator cluster_tree_node_t *()); }
                     };
@@ -1053,9 +1004,7 @@ namespace augmented_containers
                             this_->child_right_ = tagged_ptr_bit0_is_setted(this_->child_right_) ? tagged_ptr_bit0_setted(other) : other;
                             return *this;
                         }
-                        proxy_child_right_t(cluster_tree_node_t *this_)
-                            : this_(this_)
-                        {}
+                        proxy_child_right_t(cluster_tree_node_t *this_) : this_(this_) {}
                         proxy_child_right_t(proxy_child_right_t const &other) = default;
                         proxy_child_right_t &operator=(proxy_child_right_t const &other) { return this->operator=(other.operator cluster_tree_node_t *()); }
                     };
@@ -1075,11 +1024,11 @@ namespace augmented_containers
 
                     int dummy_or_rake_or_compress()
                     {
-                        if(this->child_left() != nullptr && this->child_right() == nullptr)
+                        if (this->child_left() != nullptr && this->child_right() == nullptr)
                             return 0;
-                        else if(this->child_left() != nullptr && this->child_right() != nullptr)
+                        else if (this->child_left() != nullptr && this->child_right() != nullptr)
                         {
-                            if(!this->contraction_type())
+                            if (!this->contraction_type())
                                 return 1;
                             else
                                 return 2;
@@ -1098,14 +1047,14 @@ namespace augmented_containers
                         assert(this->child_right() != nullptr);
                         assert(this->contraction_type() == false);
                         it_vertex_t it_vertex1, it_vertex2, it_vertex3;
-                        if(this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_backward.head == this->arc_forward.head)
+                        if (this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_backward.head == this->arc_forward.head)
                             std::tie(it_vertex1, it_vertex2) = std::make_tuple(this->child_left()->arc_forward.head, this->child_left()->arc_backward.head);
-                        else if(this->child_left()->arc_forward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
+                        else if (this->child_left()->arc_forward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
                             std::tie(it_vertex1, it_vertex2) = std::make_tuple(this->child_left()->arc_backward.head, this->child_left()->arc_forward.head);
                         else std::unreachable();
-                        if(this->arc_backward.head == this->child_left()->arc_backward.head || this->arc_backward.head == this->child_left()->arc_forward.head)
+                        if (this->arc_backward.head == this->child_left()->arc_backward.head || this->arc_backward.head == this->child_left()->arc_forward.head)
                             it_vertex3 = this->arc_forward.head;
-                        else if(this->arc_forward.head == this->child_left()->arc_backward.head || this->arc_forward.head == this->child_left()->arc_forward.head)
+                        else if (this->arc_forward.head == this->child_left()->arc_backward.head || this->arc_forward.head == this->child_left()->arc_forward.head)
                             it_vertex3 = this->arc_backward.head;
                         else std::unreachable();
                         return std::make_tuple(it_vertex1, it_vertex2, it_vertex3);
@@ -1116,14 +1065,14 @@ namespace augmented_containers
                         assert(this->child_right() != nullptr);
                         assert(this->contraction_type() == false);
                         arc_t *arc_in, *arc_out;
-                        if(this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_backward.head == this->arc_forward.head)
+                        if (this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_backward.head == this->arc_forward.head)
                             arc_in = &this->child_left()->arc_backward;
-                        else if(this->child_left()->arc_forward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
+                        else if (this->child_left()->arc_forward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
                             arc_in = &this->child_left()->arc_forward;
                         else std::unreachable();
-                        if(this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_backward.head)
+                        if (this->child_left()->arc_backward.head == this->arc_backward.head || this->child_left()->arc_forward.head == this->arc_backward.head)
                             arc_out = &this->child_right()->arc_forward;
-                        else if(this->child_left()->arc_backward.head == this->arc_forward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
+                        else if (this->child_left()->arc_backward.head == this->arc_forward.head || this->child_left()->arc_forward.head == this->arc_forward.head)
                             arc_out = &this->child_right()->arc_backward;
                         else std::unreachable();
                         return std::make_tuple(arc_in, arc_out);
@@ -1134,14 +1083,14 @@ namespace augmented_containers
                         assert(this->child_right() != nullptr);
                         assert(this->contraction_type() == true);
                         it_vertex_t it_vertex1, it_vertex2, it_vertex3;
-                        if(this->child_left()->arc_backward.head == this->arc_backward.head)
+                        if (this->child_left()->arc_backward.head == this->arc_backward.head)
                             std::tie(it_vertex1, it_vertex2) = std::make_tuple(this->child_left()->arc_backward.head, this->child_left()->arc_forward.head);
-                        else if(this->child_left()->arc_forward.head == this->arc_backward.head)
+                        else if (this->child_left()->arc_forward.head == this->arc_backward.head)
                             std::tie(it_vertex1, it_vertex2) = std::make_tuple(this->child_left()->arc_forward.head, this->child_left()->arc_backward.head);
                         else std::unreachable();
-                        if(this->child_right()->arc_forward.head == this->arc_forward.head)
+                        if (this->child_right()->arc_forward.head == this->arc_forward.head)
                             it_vertex3 = this->child_right()->arc_forward.head;
-                        else if(this->child_right()->arc_backward.head == this->arc_forward.head)
+                        else if (this->child_right()->arc_backward.head == this->arc_forward.head)
                             it_vertex3 = this->child_right()->arc_backward.head;
                         else std::unreachable();
                         return std::make_tuple(it_vertex1, it_vertex2, it_vertex3);
@@ -1152,14 +1101,14 @@ namespace augmented_containers
                         assert(this->child_right() != nullptr);
                         assert(this->contraction_type() == true);
                         arc_t *arc_in_from_vertex1, *arc_in_from_vertex2;
-                        if(this->child_left()->arc_backward.head == this->arc_backward.head)
+                        if (this->child_left()->arc_backward.head == this->arc_backward.head)
                             arc_in_from_vertex1 = &this->child_left()->arc_forward;
-                        else if(this->child_left()->arc_forward.head == this->arc_backward.head)
+                        else if (this->child_left()->arc_forward.head == this->arc_backward.head)
                             arc_in_from_vertex1 = &this->child_left()->arc_backward;
                         else std::unreachable();
-                        if(this->child_right()->arc_forward.head == this->arc_forward.head)
+                        if (this->child_right()->arc_forward.head == this->arc_forward.head)
                             arc_in_from_vertex2 = &this->child_right()->arc_backward;
-                        else if(this->child_right()->arc_backward.head == this->arc_forward.head)
+                        else if (this->child_right()->arc_backward.head == this->arc_forward.head)
                             arc_in_from_vertex2 = &this->child_right()->arc_forward;
                         else std::unreachable();
                         return std::make_tuple(arc_in_from_vertex1, arc_in_from_vertex2);
@@ -1169,23 +1118,17 @@ namespace augmented_containers
                 struct cluster_list_node_navigator_t
                 {
                     cluster_list_node_navigator_t *prev, *next;
-                    cluster_list_node_navigator_t() // initialize to node_end
-                        : prev(tagged_ptr_bit0_setted(this)),
-                          next(tagged_ptr_bit0_setted(this))
-                    {}
-                    cluster_list_node_navigator_t(std::nullptr_t) // not initialized
-                        : prev(nullptr),
-                          next(nullptr)
-                    {}
+                    cluster_list_node_navigator_t() : prev(tagged_ptr_bit0_setted(this)), next(tagged_ptr_bit0_setted(this)) {} // initialize to node_end
+                    cluster_list_node_navigator_t(std::nullptr_t) : prev(nullptr), next(nullptr) {} // not initialized
 
                     static void push_impl(cluster_list_node_navigator_t *tagged_end, cluster_list_node_navigator_t *node_new)
                     {
-                        if(tagged_ptr_bit0_unsetted(tagged_end)->prev == tagged_end && tagged_ptr_bit0_unsetted(tagged_end)->next == tagged_end)
+                        if (tagged_ptr_bit0_unsetted(tagged_end)->prev == tagged_end && tagged_ptr_bit0_unsetted(tagged_end)->next == tagged_end)
                         {
                             node_new->prev = node_new->next = tagged_end;
                             tagged_ptr_bit0_unsetted(tagged_end)->prev = tagged_ptr_bit0_unsetted(tagged_end)->next = tagged_ptr_bit0_setted(node_new);
                         }
-                        else if(tagged_ptr_bit0_unsetted(tagged_end)->prev != tagged_end && tagged_ptr_bit0_unsetted(tagged_end)->next != tagged_end)
+                        else if (tagged_ptr_bit0_unsetted(tagged_end)->prev != tagged_end && tagged_ptr_bit0_unsetted(tagged_end)->next != tagged_end)
                         {
                             node_new->prev = tagged_ptr_bit0_unsetted(tagged_ptr_bit0_unsetted(tagged_end)->prev);
                             node_new->prev->next = node_new;
@@ -1197,11 +1140,11 @@ namespace augmented_containers
 
                     static void extract_impl(cluster_list_node_navigator_t *node)
                     {
-                        if(tagged_ptr_bit0_is_setted(node->prev))
+                        if (tagged_ptr_bit0_is_setted(node->prev))
                             tagged_ptr_bit0_unsetted(node->prev)->next = tagged_ptr_bit0_setted_relaxed(node->next);
                         else
                             node->prev->next = node->next;
-                        if(tagged_ptr_bit0_is_setted(node->next))
+                        if (tagged_ptr_bit0_is_setted(node->next))
                             tagged_ptr_bit0_unsetted(node->next)->prev = tagged_ptr_bit0_setted_relaxed(node->prev);
                         else
                             node->next->prev = node->prev;
@@ -1209,7 +1152,7 @@ namespace augmented_containers
 
                     static cluster_list_node_navigator_t *untagged_prev_or_tagged_end(cluster_list_node_navigator_t *tagged_end)
                     {
-                        if(cluster_list_node_navigator_t *prev = tagged_ptr_bit0_unsetted(tagged_end)->prev; prev == tagged_end)
+                        if (cluster_list_node_navigator_t *prev = tagged_ptr_bit0_unsetted(tagged_end)->prev; prev == tagged_end)
                             return prev;
                         else
                             return tagged_ptr_bit0_unsetted(prev);
@@ -1217,17 +1160,17 @@ namespace augmented_containers
 
                     static cluster_list_node_navigator_t *untagged_next_or_tagged_end(cluster_list_node_navigator_t *tagged_end)
                     {
-                        if(cluster_list_node_navigator_t *next = tagged_ptr_bit0_unsetted(tagged_end)->next; next == tagged_end)
+                        if (cluster_list_node_navigator_t *next = tagged_ptr_bit0_unsetted(tagged_end)->next; next == tagged_end)
                             return next;
                         else
                             return tagged_ptr_bit0_unsetted(next);
                     }
                 };
-                struct cluster_list_node_t: public cluster_list_node_navigator_t
+                struct cluster_list_node_t : public cluster_list_node_navigator_t
                 {
                     cluster_tree_node_t *tree_root;
                 };
-                struct cluster_list_node_end_t: public cluster_list_node_navigator_t, public add_internal_operations_member_t<internal_operations_t>
+                struct cluster_list_node_end_t : public cluster_list_node_navigator_t, public add_internal_operations_member_t<internal_operations_t>
                 {
                     std::size_t node_count = 0;
                 };
@@ -1263,11 +1206,10 @@ namespace augmented_containers
                     it_vertexes_trivial_component;
 
                 template<typename internal_operations_t>
-                struct extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t_t: std::type_identity<void>
+                struct extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t_t : std::type_identity<void>
                 {};
-                template<typename internal_operations_t>
-                    requires(std::strict_weak_order<typename internal_operations_t::comparator_it_edge_it_vertexes_t, it_edge_it_vertexes_t, it_edge_it_vertexes_t>)
-                struct extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t_t<internal_operations_t>: std::type_identity<typename internal_operations_t::comparator_it_edge_it_vertexes_t>
+                template<typename internal_operations_t> requires (std::strict_weak_order<typename internal_operations_t::comparator_it_edge_it_vertexes_t, it_edge_it_vertexes_t, it_edge_it_vertexes_t>)
+                struct extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t_t<internal_operations_t> : std::type_identity<typename internal_operations_t::comparator_it_edge_it_vertexes_t>
                 {};
                 template<typename internal_operations_t>
                 using extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t = extract_comparator_it_edge_it_vertexes_t_from_internal_operations_t_t<internal_operations_t>::type;
@@ -1285,27 +1227,27 @@ namespace augmented_containers
 
                 bool belongs_to_same_component(it_vertex_t it_vertex1, it_vertex_t it_vertex2) const
                 {
-                    if(it_vertex1 == it_vertex2)
+                    if (it_vertex1 == it_vertex2)
                         return true;
                     else
                     {
-                        if(it_vertexes_trivial_component.find(it_vertex1) != it_vertexes_trivial_component.end())
+                        if (it_vertexes_trivial_component.find(it_vertex1) != it_vertexes_trivial_component.end())
                             return false;
-                        else if(it_vertexes_trivial_component.find(it_vertex2) != it_vertexes_trivial_component.end())
+                        else if (it_vertexes_trivial_component.find(it_vertex2) != it_vertexes_trivial_component.end())
                             return false;
                         else
                         {
                             cluster_tree_node_t *tree_node1 = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_vertex1).begin()).second.first->cluster_tree_node();
                             cluster_tree_node_t *tree_node2 = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_vertex2).begin()).second.first->cluster_tree_node();
-                            while(true)
+                            while (true)
                             {
-                                if(tree_node1 == tree_node2)
+                                if (tree_node1 == tree_node2)
                                     return true;
                                 else
                                 {
-                                    if(tagged_ptr_bit0_is_setted(tree_node1->parent))
+                                    if (tagged_ptr_bit0_is_setted(tree_node1->parent))
                                         return false;
-                                    else if(tagged_ptr_bit0_is_setted(tree_node2->parent))
+                                    else if (tagged_ptr_bit0_is_setted(tree_node2->parent))
                                         return false;
                                     else
                                     {
@@ -1320,16 +1262,16 @@ namespace augmented_containers
 
                 void update(std::size_t current_level, std::vector<cluster_tree_node_t *> clusters_to_be_erased, std::vector<cluster_tree_node_t *> clusters_affected, std::vector<cluster_tree_node_t *> clusters_to_be_inserted, std::vector<it_edge_it_vertexes_t> it_edges_to_be_inserted, function_view<void()> split_clusters_to_be_erased_and_join_clusters_to_be_inserted)
                 {
-                    auto connect_arc = [](arc_t *predecessor, arc_t *successor)
+                    auto connect_arc = [](arc_t *predecessor, arc_t *successor) //
                     {
                         predecessor->next() = successor;
                         successor->prev() = predecessor;
                     };
 
-                    auto if_not_marked_then_mark_and_add_to_clusters_affected = [&clusters_affected](cluster_tree_node_t *cluster_tree_node)
+                    auto if_not_marked_then_mark_and_add_to_clusters_affected = [&clusters_affected](cluster_tree_node_t *cluster_tree_node) //
                     {
                         assert(cluster_tree_node != nullptr);
-                        if(!cluster_tree_node->is_marked())
+                        if (!cluster_tree_node->is_marked())
                         {
                             cluster_tree_node->is_marked() = true;
                             clusters_affected.push_back(cluster_tree_node);
@@ -1337,17 +1279,17 @@ namespace augmented_containers
                     };
 
                     std::vector<cluster_tree_node_t *> clusters_to_be_erased_new;
-                    auto if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new = [&clusters_to_be_erased_new](cluster_tree_node_t *cluster_tree_node)
+                    auto if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new = [&clusters_to_be_erased_new](cluster_tree_node_t *cluster_tree_node) //
                     {
-                        if(cluster_tree_node != nullptr && !tagged_ptr_bit0_is_setted(cluster_tree_node) && !cluster_tree_node->is_marked())
+                        if (cluster_tree_node != nullptr && !tagged_ptr_bit0_is_setted(cluster_tree_node) && !cluster_tree_node->is_marked())
                         {
                             cluster_tree_node->is_marked() = true;
                             clusters_to_be_erased_new.push_back(cluster_tree_node);
                         }
                     };
-                    auto if_not_null_and_list_node_delete_list_node = [this](cluster_tree_node_t *cluster_tree_node)
+                    auto if_not_null_and_list_node_delete_list_node = [this](cluster_tree_node_t *cluster_tree_node) //
                     {
-                        if(cluster_tree_node != nullptr && tagged_ptr_bit0_is_setted(cluster_tree_node))
+                        if (cluster_tree_node != nullptr && tagged_ptr_bit0_is_setted(cluster_tree_node))
                         {
                             cluster_list_node_t *cluster_list_node = reinterpret_cast<cluster_list_node_t *>(tagged_ptr_bit0_unsetted(cluster_tree_node));
                             cluster_list_node_navigator_t::extract_impl(cluster_list_node);
@@ -1359,7 +1301,7 @@ namespace augmented_containers
                     std::vector<cluster_tree_node_t *> clusters_to_be_inserted_new;
 
                     // removal
-                    for(cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
+                    for (cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
                     {
                         assert(cluster_to_be_erased->is_marked());
 
@@ -1374,14 +1316,14 @@ namespace augmented_containers
                         if_not_marked_then_mark_and_add_to_clusters_affected(cluster_to_be_erased->arc_forward.prev()->cluster_tree_node());
                         if_not_marked_then_mark_and_add_to_clusters_affected(cluster_to_be_erased->arc_forward.next()->cluster_tree_node());
 
-                        if(current_level == 0)
+                        if (current_level == 0)
                         {
                             auto it_vertex1_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.find(cluster_to_be_erased->arc_backward.head);
                             assert(it_vertex1_vertexes_arc_base_level != it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end());
                             auto it_vertex1_vertex2_arc_base_level = it_vertex1_vertexes_arc_base_level->second.find(cluster_to_be_erased->arc_forward.head);
                             assert(it_vertex1_vertex2_arc_base_level != it_vertex1_vertexes_arc_base_level->second.end());
                             it_vertex1_vertexes_arc_base_level->second.erase(it_vertex1_vertex2_arc_base_level);
-                            if(it_vertex1_vertexes_arc_base_level->second.empty())
+                            if (it_vertex1_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex1_vertexes_arc_base_level);
                                 [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_backward.head).second;
@@ -1393,7 +1335,7 @@ namespace augmented_containers
                             auto it_vertex2_vertex1_arc_base_level = it_vertex2_vertexes_arc_base_level->second.find(cluster_to_be_erased->arc_backward.head);
                             assert(it_vertex2_vertex1_arc_base_level != it_vertex2_vertexes_arc_base_level->second.end());
                             it_vertex2_vertexes_arc_base_level->second.erase(it_vertex2_vertex1_arc_base_level);
-                            if(it_vertex2_vertexes_arc_base_level->second.empty())
+                            if (it_vertex2_vertexes_arc_base_level->second.empty())
                             {
                                 it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.erase(it_vertex2_vertexes_arc_base_level);
                                 [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.insert(cluster_to_be_erased->arc_forward.head).second;
@@ -1403,24 +1345,24 @@ namespace augmented_containers
                     }
 
                     // insertion
-                    if(current_level == 0)
+                    if (current_level == 0)
                     {
                         assert(clusters_to_be_inserted.size() == it_edges_to_be_inserted.size());
 
                         std::size_t cluster_to_be_inserted_index = 0;
-                        for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                        for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                         {
                             assert(!cluster_to_be_inserted->is_marked());
                             cluster_to_be_inserted->is_marked() = true;
 
                             auto it_vertex1_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.find(cluster_to_be_inserted->arc_backward.head);
-                            if(it_vertex1_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
+                            if (it_vertex1_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex1_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_backward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
                                 [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1;
                                 assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_backward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
-                            if(it_vertex1_vertexes_arc_base_level->second.empty())
+                            if (it_vertex1_vertexes_arc_base_level->second.empty())
                                 connect_arc(&cluster_to_be_inserted->arc_backward, &cluster_to_be_inserted->arc_forward);
                             else
                             {
@@ -1438,13 +1380,13 @@ namespace augmented_containers
                             it_vertex1_vertexes_arc_base_level->second.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_forward.head), std::forward_as_tuple(std::piecewise_construct, std::forward_as_tuple(&cluster_to_be_inserted->arc_forward), std::forward_as_tuple(it_edges_to_be_inserted[cluster_to_be_inserted_index])));
 
                             auto it_vertex2_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.find(cluster_to_be_inserted->arc_forward.head);
-                            if(it_vertex2_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
+                            if (it_vertex2_vertexes_arc_base_level == it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.end())
                             {
                                 it_vertex2_vertexes_arc_base_level = it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.emplace(std::piecewise_construct, std::forward_as_tuple(cluster_to_be_inserted->arc_forward.head), std::forward_as_tuple(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator()))).first;
                                 [[maybe_unused]] bool assert_result_of_expression_with_side_effect = it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1;
                                 assert((static_cast<void>("it_vertexes_trivial_component.erase(cluster_to_be_inserted->arc_forward.head) == 1"), assert_result_of_expression_with_side_effect));
                             }
-                            if(it_vertex2_vertexes_arc_base_level->second.empty())
+                            if (it_vertex2_vertexes_arc_base_level->second.empty())
                                 connect_arc(&cluster_to_be_inserted->arc_forward, &cluster_to_be_inserted->arc_backward);
                             else
                             {
@@ -1466,7 +1408,7 @@ namespace augmented_containers
                     }
                     else
                     {
-                        for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                        for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                         {
                             assert(cluster_to_be_inserted->arc_backward.prev() == nullptr);
                             assert(cluster_to_be_inserted->arc_backward.next() == nullptr);
@@ -1476,23 +1418,23 @@ namespace augmented_containers
                             assert(!cluster_to_be_inserted->is_marked());
                             cluster_to_be_inserted->is_marked() = true;
                         }
-                        for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                        for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                         {
                             cluster_tree_node_t *child_cluster_vertex1, *child_cluster_vertex2;
-                            if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() == nullptr) // dummy
+                            if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() == nullptr) // dummy
                                 child_cluster_vertex1 = child_cluster_vertex2 = cluster_to_be_inserted->child_left();
-                            else if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr)
+                            else if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr)
                             {
-                                if(!cluster_to_be_inserted->contraction_type()) // rake
+                                if (!cluster_to_be_inserted->contraction_type()) // rake
                                     child_cluster_vertex1 = child_cluster_vertex2 = cluster_to_be_inserted->child_right();
                                 else // compress
                                     std::tie(child_cluster_vertex1, child_cluster_vertex2) = std::make_tuple(cluster_to_be_inserted->child_left(), cluster_to_be_inserted->child_right());
                             }
                             else std::unreachable();
-                            if(cluster_to_be_inserted->arc_forward.prev() == nullptr)
+                            if (cluster_to_be_inserted->arc_forward.prev() == nullptr)
                             {
                                 arc_t *child_arc_vertex1_as_tail = child_cluster_vertex1->arc_with_tail(cluster_to_be_inserted->arc_backward.head);
-                                if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr && !cluster_to_be_inserted->contraction_type() &&
+                                if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr && !cluster_to_be_inserted->contraction_type() &&
                                     child_arc_vertex1_as_tail->prev()->cluster_tree_node() == cluster_to_be_inserted->child_left())
                                     child_arc_vertex1_as_tail = child_arc_vertex1_as_tail->prev()->twin();
                                 cluster_tree_node_t *neighboor_cluster_vertex1_as_head = child_arc_vertex1_as_tail->prev()->cluster_tree_node()->parent;
@@ -1500,7 +1442,7 @@ namespace augmented_containers
                                 connect_arc(neighboor_cluster_vertex1_as_head->arc_with_head(cluster_to_be_inserted->arc_backward.head), &cluster_to_be_inserted->arc_forward);
                                 if_not_marked_then_mark_and_add_to_clusters_affected(neighboor_cluster_vertex1_as_head);
                             }
-                            if(cluster_to_be_inserted->arc_backward.next() == nullptr)
+                            if (cluster_to_be_inserted->arc_backward.next() == nullptr)
                             {
                                 arc_t *child_arc_vertex1_as_head = child_cluster_vertex1->arc_with_head(cluster_to_be_inserted->arc_backward.head);
                                 cluster_tree_node_t *neighboor_cluster_vertex1_as_tail = child_arc_vertex1_as_head->next()->cluster_tree_node()->parent;
@@ -1508,10 +1450,10 @@ namespace augmented_containers
                                 connect_arc(&cluster_to_be_inserted->arc_backward, neighboor_cluster_vertex1_as_tail->arc_with_tail(cluster_to_be_inserted->arc_backward.head));
                                 if_not_marked_then_mark_and_add_to_clusters_affected(neighboor_cluster_vertex1_as_tail);
                             }
-                            if(cluster_to_be_inserted->arc_backward.prev() == nullptr)
+                            if (cluster_to_be_inserted->arc_backward.prev() == nullptr)
                             {
                                 arc_t *child_arc_vertex2_as_tail = child_cluster_vertex2->arc_with_tail(cluster_to_be_inserted->arc_forward.head);
-                                if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr && !cluster_to_be_inserted->contraction_type() &&
+                                if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr && !cluster_to_be_inserted->contraction_type() &&
                                     child_arc_vertex2_as_tail->prev()->cluster_tree_node() == cluster_to_be_inserted->child_left())
                                     child_arc_vertex2_as_tail = child_arc_vertex2_as_tail->prev()->twin();
                                 cluster_tree_node_t *neighboor_cluster_vertex2_as_head = child_arc_vertex2_as_tail->prev()->cluster_tree_node()->parent;
@@ -1519,7 +1461,7 @@ namespace augmented_containers
                                 connect_arc(neighboor_cluster_vertex2_as_head->arc_with_head(cluster_to_be_inserted->arc_forward.head), &cluster_to_be_inserted->arc_backward);
                                 if_not_marked_then_mark_and_add_to_clusters_affected(neighboor_cluster_vertex2_as_head);
                             }
-                            if(cluster_to_be_inserted->arc_forward.next() == nullptr)
+                            if (cluster_to_be_inserted->arc_forward.next() == nullptr)
                             {
                                 arc_t *child_arc_vertex2_as_head = child_cluster_vertex2->arc_with_head(cluster_to_be_inserted->arc_forward.head);
                                 cluster_tree_node_t *neighboor_cluster_vertex2_as_tail = child_arc_vertex2_as_head->next()->cluster_tree_node()->parent;
@@ -1532,33 +1474,33 @@ namespace augmented_containers
 
                     // detecting invalid moves
                     decltype(clusters_affected) clusters_affected_extra; // rake targets only
-                    auto if_not_marked_then_mark_and_add_to_clusters_affected_extra = [&clusters_affected_extra](cluster_tree_node_t *cluster_tree_node)
+                    auto if_not_marked_then_mark_and_add_to_clusters_affected_extra = [&clusters_affected_extra](cluster_tree_node_t *cluster_tree_node) //
                     {
-                        if(!cluster_tree_node->is_marked())
+                        if (!cluster_tree_node->is_marked())
                         {
                             cluster_tree_node->is_marked() = true;
                             clusters_affected_extra.push_back(cluster_tree_node);
                         }
                     };
-                    for(cluster_tree_node_t *cluster_affected : clusters_affected)
+                    for (cluster_tree_node_t *cluster_affected : clusters_affected)
                     {
                         cluster_tree_node_t *cluster_affected_parent = cluster_affected->parent;
                         assert(cluster_affected_parent != nullptr);
 
-                        if(tagged_ptr_bit0_is_setted(cluster_affected_parent)) // root, i.e. not participating in any move
+                        if (tagged_ptr_bit0_is_setted(cluster_affected_parent)) // root, i.e. not participating in any move
                             ;
-                        else if(cluster_affected_parent->child_left() != nullptr && cluster_affected_parent->child_right() == nullptr) // dummy
+                        else if (cluster_affected_parent->child_left() != nullptr && cluster_affected_parent->child_right() == nullptr) // dummy
                             ;
-                        else if(cluster_affected_parent->child_left() != nullptr && cluster_affected_parent->child_right() != nullptr)
+                        else if (cluster_affected_parent->child_left() != nullptr && cluster_affected_parent->child_right() != nullptr)
                         {
-                            if(!cluster_affected_parent->contraction_type()) // rake
+                            if (!cluster_affected_parent->contraction_type()) // rake
                             {
-                                if(!cluster_affected_parent->is_marked())
+                                if (!cluster_affected_parent->is_marked())
                                 {
                                     auto [arc_in, arc_out] = cluster_affected_parent->rake_arc_in_arc_out();
-                                    if(!(arc_in->twin() == arc_in->prev() && arc_in->next() == arc_out &&
-                                           it_vertex_exposed1 != arc_in->twin()->head &&
-                                           it_vertex_exposed2 != arc_in->twin()->head))
+                                    if (!(arc_in->twin() == arc_in->prev() && arc_in->next() == arc_out &&
+                                          it_vertex_exposed1 != arc_in->twin()->head &&
+                                          it_vertex_exposed2 != arc_in->twin()->head))
                                     {
                                         if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new(cluster_affected_parent);
                                         assert(cluster_affected_parent->child_left()->is_marked());
@@ -1568,12 +1510,12 @@ namespace augmented_containers
                             }
                             else // compress
                             {
-                                if(!cluster_affected_parent->is_marked())
+                                if (!cluster_affected_parent->is_marked())
                                 {
                                     auto [arc_in_from_vertex1, arc_in_from_vertex2] = cluster_affected_parent->compress_arc_in_from_vertex1_arc_in_from_vertex2();
-                                    if(!(arc_in_from_vertex1->twin() == arc_in_from_vertex2->next() && arc_in_from_vertex2->twin() == arc_in_from_vertex1->next() &&
-                                           it_vertex_exposed1 != arc_in_from_vertex1->head &&
-                                           it_vertex_exposed2 != arc_in_from_vertex1->head))
+                                    if (!(arc_in_from_vertex1->twin() == arc_in_from_vertex2->next() && arc_in_from_vertex2->twin() == arc_in_from_vertex1->next() &&
+                                          it_vertex_exposed1 != arc_in_from_vertex1->head &&
+                                          it_vertex_exposed2 != arc_in_from_vertex1->head))
                                     {
                                         if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new(cluster_affected_parent);
                                         assert(cluster_affected_parent->child_left()->is_marked());
@@ -1592,21 +1534,21 @@ namespace augmented_containers
 #endif
 
                     // new moves
-                    auto cluster_is_free = [](cluster_tree_node_t *cluster_tree_node)
+                    auto cluster_is_free = [](cluster_tree_node_t *cluster_tree_node) //
                     {
                         return cluster_tree_node->parent == nullptr ||
                             tagged_ptr_bit0_is_setted(cluster_tree_node->parent) ||
                             cluster_tree_node->parent->is_marked() ||
                             (cluster_tree_node->parent->child_left() != nullptr && cluster_tree_node->parent->child_right() == nullptr);
                     };
-                    auto new_move = [this, &cluster_is_free, &clusters_to_be_inserted_new, &if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new, &if_not_null_and_list_node_delete_list_node](cluster_tree_node_t *cluster_to_be_inserted_or_cluster_affected)
+                    auto new_move = [this, &cluster_is_free, &clusters_to_be_inserted_new, &if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new, &if_not_null_and_list_node_delete_list_node](cluster_tree_node_t *cluster_to_be_inserted_or_cluster_affected) //
                     {
-                        if(cluster_to_be_inserted_or_cluster_affected->is_marked())
+                        if (cluster_to_be_inserted_or_cluster_affected->is_marked())
                         {
                             cluster_to_be_inserted_or_cluster_affected->is_marked() = false;
-                            if(cluster_is_free(cluster_to_be_inserted_or_cluster_affected))
+                            if (cluster_is_free(cluster_to_be_inserted_or_cluster_affected))
                             {
-                                if(cluster_tree_node_t *cluster_rake_source1 = cluster_to_be_inserted_or_cluster_affected->arc_forward.prev()->cluster_tree_node();
+                                if (cluster_tree_node_t *cluster_rake_source1 = cluster_to_be_inserted_or_cluster_affected->arc_forward.prev()->cluster_tree_node();
                                     cluster_rake_source1 != cluster_to_be_inserted_or_cluster_affected &&
                                     cluster_to_be_inserted_or_cluster_affected->arc_forward.prev()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_forward.prev()->prev() &&
                                     cluster_is_free(cluster_rake_source1) &&
@@ -1629,12 +1571,12 @@ namespace augmented_containers
                                     cluster_to_be_inserted_or_cluster_affected->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_tree_node_t *cluster_rake_source2 = cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->cluster_tree_node();
-                                        cluster_rake_source2 != cluster_to_be_inserted_or_cluster_affected &&
-                                        cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->prev() &&
-                                        cluster_is_free(cluster_rake_source2) &&
-                                        it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin()->head &&
-                                        it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin()->head) // rake target
+                                else if (cluster_tree_node_t *cluster_rake_source2 = cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->cluster_tree_node();
+                                         cluster_rake_source2 != cluster_to_be_inserted_or_cluster_affected &&
+                                         cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->prev() &&
+                                         cluster_is_free(cluster_rake_source2) &&
+                                         it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin()->head &&
+                                         it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.prev()->twin()->head) // rake target
                                 {
                                     cluster_rake_source2->is_marked() = false;
 
@@ -1652,12 +1594,12 @@ namespace augmented_containers
                                     cluster_to_be_inserted_or_cluster_affected->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_tree_node_t *cluster_rake_target1 = cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->cluster_tree_node();
-                                        cluster_rake_target1 != cluster_to_be_inserted_or_cluster_affected &&
-                                        cluster_to_be_inserted_or_cluster_affected->arc_backward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_forward &&
-                                        cluster_is_free(cluster_rake_target1) &&
-                                        it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head &&
-                                        it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head) // rake source
+                                else if (cluster_tree_node_t *cluster_rake_target1 = cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->cluster_tree_node();
+                                         cluster_rake_target1 != cluster_to_be_inserted_or_cluster_affected &&
+                                         cluster_to_be_inserted_or_cluster_affected->arc_backward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_forward &&
+                                         cluster_is_free(cluster_rake_target1) &&
+                                         it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head &&
+                                         it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head) // rake source
                                 {
                                     cluster_rake_target1->is_marked() = false;
 
@@ -1675,12 +1617,12 @@ namespace augmented_containers
                                     cluster_rake_target1->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_tree_node_t *cluster_rake_target2 = cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->cluster_tree_node();
-                                        cluster_rake_target2 != cluster_to_be_inserted_or_cluster_affected &&
-                                        cluster_to_be_inserted_or_cluster_affected->arc_forward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_backward &&
-                                        cluster_is_free(cluster_rake_target2) &&
-                                        it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head &&
-                                        it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head) // rake source
+                                else if (cluster_tree_node_t *cluster_rake_target2 = cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->cluster_tree_node();
+                                         cluster_rake_target2 != cluster_to_be_inserted_or_cluster_affected &&
+                                         cluster_to_be_inserted_or_cluster_affected->arc_forward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_backward &&
+                                         cluster_is_free(cluster_rake_target2) &&
+                                         it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head &&
+                                         it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head) // rake source
                                 {
                                     cluster_rake_target2->is_marked() = false;
 
@@ -1698,12 +1640,12 @@ namespace augmented_containers
                                     cluster_rake_target2->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_tree_node_t *cluster_other1 = cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->cluster_tree_node();
-                                        cluster_other1 != cluster_to_be_inserted_or_cluster_affected &&
-                                        cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_forward.prev() &&
-                                        cluster_is_free(cluster_other1) &&
-                                        it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head &&
-                                        it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head) // compress
+                                else if (cluster_tree_node_t *cluster_other1 = cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->cluster_tree_node();
+                                         cluster_other1 != cluster_to_be_inserted_or_cluster_affected &&
+                                         cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_forward.prev() &&
+                                         cluster_is_free(cluster_other1) &&
+                                         it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head &&
+                                         it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_backward.head) // compress
                                 {
                                     cluster_other1->is_marked() = false;
 
@@ -1716,12 +1658,12 @@ namespace augmented_containers
                                     it_vertex_t it_vertex_other = cluster_to_be_inserted_or_cluster_affected->arc_backward.next()->head;
                                     it_vertex_t it_vertex1, it_vertex2;
                                     cluster_tree_node_t *cluster_vertex1, *cluster_vertex2;
-                                    if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_this, it_vertex_other))
+                                    if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_this, it_vertex_other))
                                     {
                                         std::tie(it_vertex1, it_vertex2) = std::make_tuple(it_vertex_this, it_vertex_other);
                                         std::tie(cluster_vertex1, cluster_vertex2) = std::make_tuple(cluster_to_be_inserted_or_cluster_affected, cluster_other1);
                                     }
-                                    else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_other, it_vertex_this))
+                                    else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_other, it_vertex_this))
                                     {
                                         std::tie(it_vertex1, it_vertex2) = std::make_tuple(it_vertex_other, it_vertex_this);
                                         std::tie(cluster_vertex1, cluster_vertex2) = std::make_tuple(cluster_other1, cluster_to_be_inserted_or_cluster_affected);
@@ -1736,12 +1678,12 @@ namespace augmented_containers
                                     cluster_vertex2->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_tree_node_t *cluster_other2 = cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->cluster_tree_node();
-                                        cluster_other2 != cluster_to_be_inserted_or_cluster_affected &&
-                                        cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_backward.prev() &&
-                                        cluster_is_free(cluster_other2) &&
-                                        it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head &&
-                                        it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head) // compress
+                                else if (cluster_tree_node_t *cluster_other2 = cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->cluster_tree_node();
+                                         cluster_other2 != cluster_to_be_inserted_or_cluster_affected &&
+                                         cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->twin() == cluster_to_be_inserted_or_cluster_affected->arc_backward.prev() &&
+                                         cluster_is_free(cluster_other2) &&
+                                         it_vertex_exposed1 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head &&
+                                         it_vertex_exposed2 != cluster_to_be_inserted_or_cluster_affected->arc_forward.head) // compress
                                 {
                                     cluster_other2->is_marked() = false;
 
@@ -1754,12 +1696,12 @@ namespace augmented_containers
                                     it_vertex_t it_vertex_other = cluster_to_be_inserted_or_cluster_affected->arc_forward.next()->head;
                                     it_vertex_t it_vertex1, it_vertex2;
                                     cluster_tree_node_t *cluster_vertex1, *cluster_vertex2;
-                                    if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_this, it_vertex_other))
+                                    if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_this, it_vertex_other))
                                     {
                                         std::tie(it_vertex1, it_vertex2) = std::make_tuple(it_vertex_this, it_vertex_other);
                                         std::tie(cluster_vertex1, cluster_vertex2) = std::make_tuple(cluster_to_be_inserted_or_cluster_affected, cluster_other2);
                                     }
-                                    else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_other, it_vertex_this))
+                                    else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_other, it_vertex_this))
                                     {
                                         std::tie(it_vertex1, it_vertex2) = std::make_tuple(it_vertex_other, it_vertex_this);
                                         std::tie(cluster_vertex1, cluster_vertex2) = std::make_tuple(cluster_other2, cluster_to_be_inserted_or_cluster_affected);
@@ -1774,8 +1716,8 @@ namespace augmented_containers
                                     cluster_vertex2->parent = parent;
                                     clusters_to_be_inserted_new.push_back(parent);
                                 }
-                                else if(cluster_to_be_inserted_or_cluster_affected->arc_backward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_forward &&
-                                    cluster_to_be_inserted_or_cluster_affected->arc_forward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_backward) // no match, is root
+                                else if (cluster_to_be_inserted_or_cluster_affected->arc_backward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_forward && //
+                                         cluster_to_be_inserted_or_cluster_affected->arc_forward.next() == &cluster_to_be_inserted_or_cluster_affected->arc_backward) // no match, is root
                                 {
                                     if_not_null_and_not_list_node_and_not_marked_then_mark_and_add_to_clusters_to_be_erased_new(cluster_to_be_inserted_or_cluster_affected->parent);
                                     if_not_null_and_list_node_delete_list_node(cluster_to_be_inserted_or_cluster_affected->parent);
@@ -1802,34 +1744,34 @@ namespace augmented_containers
                             }
                         }
                     };
-                    for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                    for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                         new_move(cluster_to_be_inserted);
-                    for(cluster_tree_node_t *cluster_affected : clusters_affected)
+                    for (cluster_tree_node_t *cluster_affected : clusters_affected)
                         new_move(cluster_affected);
 
-                    auto split_clusters_to_be_erased_and_join_clusters_to_be_inserted_current_level = [&]()
+                    auto split_clusters_to_be_erased_and_join_clusters_to_be_inserted_current_level = [&]() //
                     {
-                        if(current_level == 0)
+                        if (current_level == 0)
                         {
-                            for(cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
+                            for (cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
                             {
-                                if constexpr(!std::is_same_v<cluster_t, void>)
+                                if constexpr (!std::is_same_v<cluster_t, void>)
                                     std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).destroy(graph(), cluster_to_be_erased->arc_backward.head, cluster_to_be_erased->p_cluster(), cluster_to_be_erased->arc_forward.head);
                                 delete cluster_to_be_erased;
                             }
                         }
                         else
                         {
-                            for(cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
+                            for (cluster_tree_node_t *cluster_to_be_erased : clusters_to_be_erased)
                             {
-                                if constexpr(!std::is_same_v<cluster_t, void>)
+                                if constexpr (!std::is_same_v<cluster_t, void>)
                                 {
                                     it_vertex_t it_vertex1, it_vertex2, it_vertex3;
-                                    if(cluster_to_be_erased->child_left() != nullptr && cluster_to_be_erased->child_right() == nullptr)
+                                    if (cluster_to_be_erased->child_left() != nullptr && cluster_to_be_erased->child_right() == nullptr)
                                         std::tie(it_vertex1, it_vertex2) = cluster_to_be_erased->dummy_it_vertexes();
-                                    else if(cluster_to_be_erased->child_left() != nullptr && cluster_to_be_erased->child_right() != nullptr)
+                                    else if (cluster_to_be_erased->child_left() != nullptr && cluster_to_be_erased->child_right() != nullptr)
                                     {
-                                        if(!cluster_to_be_erased->contraction_type())
+                                        if (!cluster_to_be_erased->contraction_type())
                                             std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_to_be_erased->rake_it_vertexes();
                                         else
                                             std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_to_be_erased->compress_it_vertexes();
@@ -1843,28 +1785,28 @@ namespace augmented_containers
 
                         split_clusters_to_be_erased_and_join_clusters_to_be_inserted();
 
-                        if(current_level == 0)
+                        if (current_level == 0)
                         {
                             std::size_t cluster_to_be_inserted_index = 0;
-                            for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                            for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                             {
-                                if constexpr(!std::is_same_v<cluster_t, void>)
+                                if constexpr (!std::is_same_v<cluster_t, void>)
                                     std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).create(graph(), cluster_to_be_inserted->arc_backward.head, cluster_to_be_inserted->p_cluster(), cluster_to_be_inserted->arc_forward.head, it_edges_to_be_inserted[cluster_to_be_inserted_index]);
                                 ++cluster_to_be_inserted_index;
                             }
                         }
                         else
                         {
-                            for(cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
+                            for (cluster_tree_node_t *cluster_to_be_inserted : clusters_to_be_inserted)
                             {
-                                if constexpr(!std::is_same_v<cluster_t, void>)
+                                if constexpr (!std::is_same_v<cluster_t, void>)
                                 {
                                     it_vertex_t it_vertex1, it_vertex2, it_vertex3;
-                                    if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() == nullptr)
+                                    if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() == nullptr)
                                         std::tie(it_vertex1, it_vertex2) = cluster_to_be_inserted->dummy_it_vertexes();
-                                    else if(cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr)
+                                    else if (cluster_to_be_inserted->child_left() != nullptr && cluster_to_be_inserted->child_right() != nullptr)
                                     {
-                                        if(!cluster_to_be_inserted->contraction_type())
+                                        if (!cluster_to_be_inserted->contraction_type())
                                             std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_to_be_inserted->rake_it_vertexes();
                                         else
                                             std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_to_be_inserted->compress_it_vertexes();
@@ -1876,18 +1818,18 @@ namespace augmented_containers
                         }
                     };
 
-                    if(!(clusters_to_be_erased_new.empty() && clusters_to_be_inserted_new.empty()))
+                    if (!(clusters_to_be_erased_new.empty() && clusters_to_be_inserted_new.empty()))
                         update(current_level + 1, clusters_to_be_erased_new, {}, clusters_to_be_inserted_new, {}, split_clusters_to_be_erased_and_join_clusters_to_be_inserted_current_level);
                     else
                         split_clusters_to_be_erased_and_join_clusters_to_be_inserted_current_level();
                 }
                 void unexpose_impl(it_vertex_t it_vertex)
                 {
-                    if(it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
+                    if (it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
                         ;
                     else
                     {
-                        auto cluster_is_free = [](cluster_tree_node_t *cluster_tree_node)
+                        auto cluster_is_free = [](cluster_tree_node_t *cluster_tree_node) //
                         {
                             assert(cluster_tree_node->parent != nullptr);
                             assert(!tagged_ptr_bit0_is_setted(cluster_tree_node->parent));
@@ -1896,15 +1838,15 @@ namespace augmented_containers
                         };
                         cluster_tree_node_t *cluster_tree_node = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_vertex).begin()).second.first->cluster_tree_node();
                         std::size_t current_level = 0;
-                        while(true)
+                        while (true)
                         {
-                            if(tagged_ptr_bit0_is_setted(cluster_tree_node->parent))
+                            if (tagged_ptr_bit0_is_setted(cluster_tree_node->parent))
                                 break;
                             else
                             {
-                                if(cluster_is_free(cluster_tree_node))
+                                if (cluster_is_free(cluster_tree_node))
                                 {
-                                    if(cluster_tree_node_t *cluster_rake_source = cluster_tree_node->arc_forward.prev()->cluster_tree_node();
+                                    if (cluster_tree_node_t *cluster_rake_source = cluster_tree_node->arc_forward.prev()->cluster_tree_node();
                                         cluster_rake_source != cluster_tree_node &&
                                         cluster_tree_node->arc_forward.prev()->twin() == cluster_tree_node->arc_forward.prev()->prev() &&
                                         cluster_is_free(cluster_rake_source) &&
@@ -1915,56 +1857,56 @@ namespace augmented_containers
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_rake_source2 = cluster_tree_node->arc_backward.prev()->cluster_tree_node();
-                                            cluster_rake_source2 != cluster_tree_node &&
-                                            cluster_tree_node->arc_backward.prev()->twin() == cluster_tree_node->arc_backward.prev()->prev() &&
-                                            cluster_is_free(cluster_rake_source2) &&
-                                            it_vertex_exposed1 != cluster_tree_node->arc_backward.prev()->twin()->head &&
-                                            it_vertex_exposed2 != cluster_tree_node->arc_backward.prev()->twin()->head) // rake target
+                                    else if (cluster_tree_node_t *cluster_rake_source2 = cluster_tree_node->arc_backward.prev()->cluster_tree_node();
+                                             cluster_rake_source2 != cluster_tree_node &&
+                                             cluster_tree_node->arc_backward.prev()->twin() == cluster_tree_node->arc_backward.prev()->prev() &&
+                                             cluster_is_free(cluster_rake_source2) &&
+                                             it_vertex_exposed1 != cluster_tree_node->arc_backward.prev()->twin()->head &&
+                                             it_vertex_exposed2 != cluster_tree_node->arc_backward.prev()->twin()->head) // rake target
                                     {
                                         cluster_tree_node->is_marked() = true;
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_rake_target = cluster_tree_node->arc_forward.next()->cluster_tree_node();
-                                            cluster_rake_target != cluster_tree_node &&
-                                            cluster_tree_node->arc_backward.next() == &cluster_tree_node->arc_forward &&
-                                            cluster_is_free(cluster_rake_target) &&
-                                            it_vertex_exposed1 != cluster_tree_node->arc_backward.head &&
-                                            it_vertex_exposed2 != cluster_tree_node->arc_backward.head) // rake source
+                                    else if (cluster_tree_node_t *cluster_rake_target = cluster_tree_node->arc_forward.next()->cluster_tree_node();
+                                             cluster_rake_target != cluster_tree_node &&
+                                             cluster_tree_node->arc_backward.next() == &cluster_tree_node->arc_forward &&
+                                             cluster_is_free(cluster_rake_target) &&
+                                             it_vertex_exposed1 != cluster_tree_node->arc_backward.head &&
+                                             it_vertex_exposed2 != cluster_tree_node->arc_backward.head) // rake source
                                     {
                                         cluster_tree_node->is_marked() = true;
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_rake_target2 = cluster_tree_node->arc_backward.next()->cluster_tree_node();
-                                            cluster_rake_target2 != cluster_tree_node &&
-                                            cluster_tree_node->arc_forward.next() == &cluster_tree_node->arc_backward &&
-                                            cluster_is_free(cluster_rake_target2) &&
-                                            it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
-                                            it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // rake source
+                                    else if (cluster_tree_node_t *cluster_rake_target2 = cluster_tree_node->arc_backward.next()->cluster_tree_node();
+                                             cluster_rake_target2 != cluster_tree_node &&
+                                             cluster_tree_node->arc_forward.next() == &cluster_tree_node->arc_backward &&
+                                             cluster_is_free(cluster_rake_target2) &&
+                                             it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
+                                             it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // rake source
                                     {
                                         cluster_tree_node->is_marked() = true;
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_other = cluster_tree_node->arc_backward.next()->cluster_tree_node();
-                                            cluster_other != cluster_tree_node &&
-                                            cluster_tree_node->arc_backward.next()->twin() == cluster_tree_node->arc_forward.prev() &&
-                                            cluster_is_free(cluster_other) &&
-                                            it_vertex_exposed1 != cluster_tree_node->arc_backward.head &&
-                                            it_vertex_exposed2 != cluster_tree_node->arc_backward.head) // compress
+                                    else if (cluster_tree_node_t *cluster_other = cluster_tree_node->arc_backward.next()->cluster_tree_node();
+                                             cluster_other != cluster_tree_node &&
+                                             cluster_tree_node->arc_backward.next()->twin() == cluster_tree_node->arc_forward.prev() &&
+                                             cluster_is_free(cluster_other) &&
+                                             it_vertex_exposed1 != cluster_tree_node->arc_backward.head &&
+                                             it_vertex_exposed2 != cluster_tree_node->arc_backward.head) // compress
                                     {
                                         cluster_tree_node->is_marked() = true;
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
                                         break;
                                     }
-                                    else if(cluster_tree_node_t *cluster_other2 = cluster_tree_node->arc_forward.next()->cluster_tree_node();
-                                            cluster_other2 != cluster_tree_node &&
-                                            cluster_tree_node->arc_forward.next()->twin() == cluster_tree_node->arc_backward.prev() &&
-                                            cluster_is_free(cluster_other2) &&
-                                            it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
-                                            it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // compress
+                                    else if (cluster_tree_node_t *cluster_other2 = cluster_tree_node->arc_forward.next()->cluster_tree_node();
+                                             cluster_other2 != cluster_tree_node &&
+                                             cluster_tree_node->arc_forward.next()->twin() == cluster_tree_node->arc_backward.prev() &&
+                                             cluster_is_free(cluster_other2) &&
+                                             it_vertex_exposed1 != cluster_tree_node->arc_forward.head &&
+                                             it_vertex_exposed2 != cluster_tree_node->arc_forward.head) // compress
                                     {
                                         cluster_tree_node->is_marked() = true;
                                         update(current_level, {}, {cluster_tree_node}, {}, {}, []() {});
@@ -1989,15 +1931,15 @@ namespace augmented_containers
                 {
                     assert(it_vertex != graph()->vertexes.end());
 
-                    if(it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
+                    if (it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
                         ;
                     else
                     {
                         cluster_tree_node_t *cluster_tree_node = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_vertex).begin()).second.first->cluster_tree_node();
                         std::size_t current_level = 0;
-                        while(true)
+                        while (true)
                         {
-                            if(cluster_tree_node->arc_backward.head != it_vertex && cluster_tree_node->arc_forward.head != it_vertex)
+                            if (cluster_tree_node->arc_backward.head != it_vertex && cluster_tree_node->arc_forward.head != it_vertex)
                             {
                                 assert(cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() != nullptr);
                                 cluster_tree_node->child_left()->is_marked() = true;
@@ -2007,7 +1949,7 @@ namespace augmented_containers
                             }
                             else
                             {
-                                if(tagged_ptr_bit0_is_setted(cluster_tree_node->parent))
+                                if (tagged_ptr_bit0_is_setted(cluster_tree_node->parent))
                                     break;
                                 else
                                 {
@@ -2021,13 +1963,13 @@ namespace augmented_containers
 
                 void unexpose()
                 {
-                    if(it_vertex_exposed1.has_value())
+                    if (it_vertex_exposed1.has_value())
                     {
                         it_vertex_t it_vertex_exposed1_value = it_vertex_exposed1.value();
                         it_vertex_exposed1.reset();
                         unexpose_impl(it_vertex_exposed1_value);
                     }
-                    if(it_vertex_exposed2.has_value())
+                    if (it_vertex_exposed2.has_value())
                     {
                         it_vertex_t it_vertex_exposed2_value = it_vertex_exposed2.value();
                         it_vertex_exposed2.reset();
@@ -2036,13 +1978,13 @@ namespace augmented_containers
                 }
                 void unexpose(it_vertex_t it_vertex)
                 {
-                    if(it_vertex_exposed1 == it_vertex)
+                    if (it_vertex_exposed1 == it_vertex)
                     {
                         it_vertex_t it_vertex_exposed1_value = it_vertex_exposed1.value();
                         it_vertex_exposed1.reset();
                         unexpose_impl(it_vertex_exposed1_value);
                     }
-                    else if(it_vertex_exposed2 == it_vertex)
+                    else if (it_vertex_exposed2 == it_vertex)
                     {
                         it_vertex_t it_vertex_exposed2_value = it_vertex_exposed2.value();
                         it_vertex_exposed2.reset();
@@ -2052,13 +1994,13 @@ namespace augmented_containers
                 }
                 void unexpose_relaxed(it_vertex_t it_vertex)
                 {
-                    if(it_vertex_exposed1 == it_vertex)
+                    if (it_vertex_exposed1 == it_vertex)
                     {
                         it_vertex_t it_vertex_exposed1_value = it_vertex_exposed1.value();
                         it_vertex_exposed1.reset();
                         unexpose_impl(it_vertex_exposed1_value);
                     }
-                    else if(it_vertex_exposed2 == it_vertex)
+                    else if (it_vertex_exposed2 == it_vertex)
                     {
                         it_vertex_t it_vertex_exposed2_value = it_vertex_exposed2.value();
                         it_vertex_exposed2.reset();
@@ -2067,13 +2009,13 @@ namespace augmented_containers
                 }
                 void expose(it_vertex_t it_vertex1)
                 {
-                    if(it_vertex_exposed1 == it_vertex1)
+                    if (it_vertex_exposed1 == it_vertex1)
                         return;
-                    if(it_vertex_exposed2 == it_vertex1)
+                    if (it_vertex_exposed2 == it_vertex1)
                         return;
-                    if(!it_vertex_exposed1.has_value())
+                    if (!it_vertex_exposed1.has_value())
                         it_vertex_exposed1.emplace(it_vertex1);
-                    else if(!it_vertex_exposed2.has_value())
+                    else if (!it_vertex_exposed2.has_value())
                         it_vertex_exposed2.emplace(it_vertex1);
                     else std::unreachable();
                     expose_impl(it_vertex1);
@@ -2085,13 +2027,13 @@ namespace augmented_containers
                 }
                 void expose_replace(it_vertex_t it_vertex1)
                 {
-                    if(it_vertex_exposed1.has_value() && it_vertex_exposed1.value() != it_vertex1)
+                    if (it_vertex_exposed1.has_value() && it_vertex_exposed1.value() != it_vertex1)
                     {
                         it_vertex_t it_vertex_exposed1_value = it_vertex_exposed1.value();
                         it_vertex_exposed1.reset();
                         unexpose_impl(it_vertex_exposed1_value);
                     }
-                    if(it_vertex_exposed2.has_value() && it_vertex_exposed2.value() != it_vertex1)
+                    if (it_vertex_exposed2.has_value() && it_vertex_exposed2.value() != it_vertex1)
                     {
                         it_vertex_t it_vertex_exposed2_value = it_vertex_exposed2.value();
                         it_vertex_exposed2.reset();
@@ -2101,13 +2043,13 @@ namespace augmented_containers
                 }
                 void expose_replace(it_vertex_t it_vertex1, it_vertex_t it_vertex2)
                 {
-                    if(it_vertex_exposed1.has_value() && it_vertex_exposed1.value() != it_vertex1 && it_vertex_exposed1.value() != it_vertex2)
+                    if (it_vertex_exposed1.has_value() && it_vertex_exposed1.value() != it_vertex1 && it_vertex_exposed1.value() != it_vertex2)
                     {
                         it_vertex_t it_vertex_exposed1_value = it_vertex_exposed1.value();
                         it_vertex_exposed1.reset();
                         unexpose_impl(it_vertex_exposed1_value);
                     }
-                    if(it_vertex_exposed2.has_value() && it_vertex_exposed2.value() != it_vertex1 && it_vertex_exposed2.value() != it_vertex2)
+                    if (it_vertex_exposed2.has_value() && it_vertex_exposed2.value() != it_vertex1 && it_vertex_exposed2.value() != it_vertex2)
                     {
                         it_vertex_t it_vertex_exposed2_value = it_vertex_exposed2.value();
                         it_vertex_exposed2.reset();
@@ -2118,7 +2060,7 @@ namespace augmented_containers
 
                 void link(it_edge_it_vertexes_t it_edge)
                 {
-                    auto link_impl = [&]()
+                    auto link_impl = [&]() //
                     {
                         cluster_tree_node_t *parent = new cluster_tree_node_t(it_edge->second.first, it_edge->second.second);
                         parent->is_marked() = false;
@@ -2127,24 +2069,24 @@ namespace augmented_containers
                         parent->child_right() = nullptr;
                         update(0, {}, {}, {parent}, {it_edge}, []() {});
                     };
-                    if(it_edge->second.first == it_edge->second.second)
+                    if (it_edge->second.first == it_edge->second.second)
                         it_edges_fundamental.insert(it_edge);
-                    else if(belongs_to_same_component(it_edge->second.first, it_edge->second.second))
+                    else if (belongs_to_same_component(it_edge->second.first, it_edge->second.second))
                     {
-                        if constexpr(std::is_same_v<cluster_t, void>)
+                        if constexpr (std::is_same_v<cluster_t, void>)
                             it_edges_fundamental.insert(it_edge); // no cluster_t to be compared
                         else
                         {
-                            if constexpr(!requires(cluster_tree_node_t * root) { std::optional<it_edge_it_vertexes_t>(std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).edge_to_be_replaced(graph(), std::as_const(*root->p_cluster()), it_edge)); })
+                            if constexpr (!requires(cluster_tree_node_t *root) { std::optional<it_edge_it_vertexes_t>(std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).edge_to_be_replaced(graph(), std::as_const(*root->p_cluster()), it_edge)); })
                                 it_edges_fundamental.insert(it_edge); // internal_operations_t does not have ability to compare cluster_t
                             else
                             {
                                 expose_replace(it_edge->second.first, it_edge->second.second);
                                 cluster_tree_node_t *root_cluster = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_edge->second.first).begin()).second.first->cluster_tree_node();
-                                while(!tagged_ptr_bit0_is_setted(root_cluster->parent))
+                                while (!tagged_ptr_bit0_is_setted(root_cluster->parent))
                                     root_cluster = root_cluster->parent;
                                 std::optional<it_edge_it_vertexes_t> edge_to_be_replaced(std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).edge_to_be_replaced(graph(), std::as_const(*root_cluster->p_cluster()), it_edge));
-                                if(!edge_to_be_replaced.has_value())
+                                if (!edge_to_be_replaced.has_value())
                                     it_edges_fundamental.insert(it_edge);
                                 else
                                 {
@@ -2165,7 +2107,7 @@ namespace augmented_containers
                 void cut(it_edge_it_vertexes_t it_edge)
                 {
                     auto it_edge_not_in_forest = it_edges_fundamental.find(it_edge);
-                    if(it_edge_not_in_forest != it_edges_fundamental.end())
+                    if (it_edge_not_in_forest != it_edges_fundamental.end())
                         it_edges_fundamental.erase(it_edge_not_in_forest);
                     else
                     {
@@ -2173,8 +2115,7 @@ namespace augmented_containers
                         cluster_tree_node->is_marked() = true;
                         update(0, {cluster_tree_node}, {}, {}, {}, []() {});
 
-                        if(auto it_it_edge_fundamental = std::ranges::find_if(it_edges_fundamental, [&](it_edge_it_vertexes_t const &it_edge_fundamental)
-                               { return !belongs_to_same_component(it_edge_fundamental->second.first, it_edge_fundamental->second.second); });
+                        if (auto it_it_edge_fundamental = std::ranges::find_if(it_edges_fundamental, [&](it_edge_it_vertexes_t const &it_edge_fundamental) { return !belongs_to_same_component(it_edge_fundamental->second.first, it_edge_fundamental->second.second); });
                             it_it_edge_fundamental != it_edges_fundamental.end())
                         {
                             it_edge_it_vertexes_t it_edge_fundamental = *it_it_edge_fundamental;
@@ -2192,12 +2133,12 @@ namespace augmented_containers
 
                 std::optional<cluster_tree_node_t *> root_cluster_tree_node(it_vertex_t it_vertex)
                 {
-                    if(it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
+                    if (it_vertexes_trivial_component.find(it_vertex) != it_vertexes_trivial_component.end())
                         return std::nullopt;
                     else
                     {
                         cluster_tree_node_t *root_cluster_tree_node = (*it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(it_vertex).begin()).second.first->cluster_tree_node();
-                        while(!tagged_ptr_bit0_is_setted(root_cluster_tree_node->parent))
+                        while (!tagged_ptr_bit0_is_setted(root_cluster_tree_node->parent))
                             root_cluster_tree_node = root_cluster_tree_node->parent;
                         return root_cluster_tree_node;
                     }
@@ -2206,24 +2147,24 @@ namespace augmented_containers
                 std::optional<it_edge_it_vertexes_t> search(selector_t selector, cluster_tree_node_t *root_cluster_tree_node)
                 {
                     assert(root_cluster_tree_node != nullptr);
-                    auto non_local_search_impl = [this, &selector](auto &this_, cluster_tree_node_t *cluster_tree_node) -> std::optional<it_edge_it_vertexes_t>
+                    auto non_local_search_impl = [this, &selector](auto &this_, cluster_tree_node_t *cluster_tree_node) -> std::optional<it_edge_it_vertexes_t> //
                     {
-                        if(cluster_tree_node->child_left() == nullptr && cluster_tree_node->child_right() == nullptr) // leaf
+                        if (cluster_tree_node->child_left() == nullptr && cluster_tree_node->child_right() == nullptr) // leaf
                             return it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(cluster_tree_node->arc_backward.head).at(cluster_tree_node->arc_forward.head).second;
-                        else if(cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() == nullptr) // dummy
+                        else if (cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() == nullptr) // dummy
                             return this_(this_, cluster_tree_node->child_left());
-                        else if(cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() != nullptr)
+                        else if (cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() != nullptr)
                         {
-                            if(!cluster_tree_node->contraction_type()) // rake
+                            if (!cluster_tree_node->contraction_type()) // rake
                             {
                                 it_vertex_t it_vertex1, it_vertex2, it_vertex3;
                                 std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_tree_node->rake_it_vertexes();
                                 std::optional<bool> selector_result(selector(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 1));
-                                if(!selector_result.has_value())
+                                if (!selector_result.has_value())
                                     return std::nullopt;
                                 else
                                 {
-                                    if(!selector_result.value())
+                                    if (!selector_result.value())
                                         return this_(this_, cluster_tree_node->child_left());
                                     else
                                         return this_(this_, cluster_tree_node->child_right());
@@ -2234,11 +2175,11 @@ namespace augmented_containers
                                 it_vertex_t it_vertex1, it_vertex2, it_vertex3;
                                 std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_tree_node->compress_it_vertexes();
                                 std::optional<bool> selector_result(selector(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 2));
-                                if(!selector_result.has_value())
+                                if (!selector_result.has_value())
                                     return std::nullopt;
                                 else
                                 {
-                                    if(!selector_result.value())
+                                    if (!selector_result.value())
                                         return this_(this_, cluster_tree_node->child_left());
                                     else
                                         return this_(this_, cluster_tree_node->child_right());
@@ -2253,11 +2194,11 @@ namespace augmented_containers
                 std::optional<it_edge_it_vertexes_t> non_local_search(selector_t selector, cluster_tree_node_t *root_cluster_tree_node)
                 {
                     assert(root_cluster_tree_node != nullptr);
-                    auto non_local_search_impl = [this, &selector](auto &this_, cluster_tree_node_t *cluster_tree_node_external1, cluster_tree_node_t *cluster_tree_node, cluster_tree_node_t *cluster_tree_node_external2) -> std::optional<it_edge_it_vertexes_t>
+                    auto non_local_search_impl = [this, &selector](auto &this_, cluster_tree_node_t *cluster_tree_node_external1, cluster_tree_node_t *cluster_tree_node, cluster_tree_node_t *cluster_tree_node_external2) -> std::optional<it_edge_it_vertexes_t> //
                     {
-                        if(cluster_tree_node->child_left() == nullptr && cluster_tree_node->child_right() == nullptr) // leaf
+                        if (cluster_tree_node->child_left() == nullptr && cluster_tree_node->child_right() == nullptr) // leaf
                             return it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level.at(cluster_tree_node->arc_backward.head).at(cluster_tree_node->arc_forward.head).second;
-                        else if(cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() == nullptr) // dummy
+                        else if (cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() == nullptr) // dummy
                         {
                             it_vertex_t it_vertex1, it_vertex2, it_vertex3;
                             std::tie(it_vertex1, it_vertex2) = cluster_tree_node->dummy_it_vertexes();
@@ -2266,9 +2207,9 @@ namespace augmented_containers
                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).join(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, nullptr, it_vertex3, 0);
                             return result;
                         }
-                        else if(cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() != nullptr)
+                        else if (cluster_tree_node->child_left() != nullptr && cluster_tree_node->child_right() != nullptr)
                         {
-                            if(!cluster_tree_node->contraction_type()) // rake
+                            if (!cluster_tree_node->contraction_type()) // rake
                             {
                                 it_vertex_t it_vertex1, it_vertex2, it_vertex3;
                                 std::tie(it_vertex1, it_vertex2, it_vertex3) = cluster_tree_node->rake_it_vertexes();
@@ -2277,17 +2218,17 @@ namespace augmented_containers
                                 it_vertex_t it_vertex1_mixed_rake_target, it_vertex2_mixed_rake_target, it_vertex3_mixed_rake_target;
                                 it_vertex_t it_vertex1_fake_root, it_vertex2_fake_root, it_vertex3_fake_root;
                                 cluster_tree_node_t *cluster_tree_node_external_rake_center, *cluster_tree_node_external_rake_target;
-                                if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                     ;
-                                else std::tie(cluster_tree_node_external_rake_center, cluster_tree_node_external_rake_target) = [&]()
+                                else std::tie(cluster_tree_node_external_rake_center, cluster_tree_node_external_rake_target) = [&]() //
                                 {
-                                    if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
+                                    if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
                                         return std::make_tuple(cluster_tree_node_external1, cluster_tree_node_external2);
-                                    else if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                    else if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                         return std::make_tuple(cluster_tree_node_external2, cluster_tree_node_external1);
                                     else std::unreachable();
                                 }();
-                                if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                 {
                                     p_cluster_tree_node_fake_root = cluster_tree_node;
                                     std::tie(it_vertex1_fake_root, it_vertex2_fake_root, it_vertex3_fake_root) = std::make_tuple(it_vertex1, it_vertex2, it_vertex3);
@@ -2295,7 +2236,7 @@ namespace augmented_containers
                                 else
                                 {
                                     std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 1);
-                                    if(cluster_tree_node_external_rake_center == nullptr)
+                                    if (cluster_tree_node_external_rake_center == nullptr)
                                         p_cluster_tree_node_mixed_rake_center = cluster_tree_node->child_left();
                                     else
                                     {
@@ -2307,27 +2248,27 @@ namespace augmented_containers
                                         std::tie(it_vertex1_mixed_rake_center, it_vertex2_mixed_rake_center, it_vertex3_mixed_rake_center) = cluster_tree_node_mixed_rake_center.rake_it_vertexes();
                                         std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).join(graph(), cluster_tree_node_mixed_rake_center.p_cluster(), it_vertex1_mixed_rake_center, cluster_tree_node_mixed_rake_center.child_left()->p_cluster(), it_vertex2_mixed_rake_center, cluster_tree_node_mixed_rake_center.child_right()->p_cluster(), it_vertex3_mixed_rake_center, 1);
                                     }
-                                    if(cluster_tree_node_external_rake_target == nullptr)
+                                    if (cluster_tree_node_external_rake_target == nullptr)
                                         p_cluster_tree_node_mixed_rake_target = cluster_tree_node->child_right();
                                     else
                                     {
                                         p_cluster_tree_node_mixed_rake_target = &cluster_tree_node_mixed_rake_target;
-                                        it_vertex_t it_vertex_external_rake_target = [&]()
+                                        it_vertex_t it_vertex_external_rake_target = [&]() //
                                         {
-                                            if(it_vertex3 == cluster_tree_node_external_rake_target->arc_backward.head)
+                                            if (it_vertex3 == cluster_tree_node_external_rake_target->arc_backward.head)
                                                 return cluster_tree_node_external_rake_target->arc_forward.head;
-                                            else if(it_vertex3 == cluster_tree_node_external_rake_target->arc_forward.head)
+                                            else if (it_vertex3 == cluster_tree_node_external_rake_target->arc_forward.head)
                                                 return cluster_tree_node_external_rake_target->arc_backward.head;
                                             else std::unreachable();
                                         }();
-                                        if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external_rake_target))
+                                        if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external_rake_target))
                                         {
                                             std::tie(cluster_tree_node_mixed_rake_target.arc_backward.head, cluster_tree_node_mixed_rake_target.arc_forward.head) = std::make_tuple(it_vertex2, it_vertex_external_rake_target);
                                             cluster_tree_node_mixed_rake_target.contraction_type() = true;
                                             cluster_tree_node_mixed_rake_target.child_left() = cluster_tree_node->child_right();
                                             cluster_tree_node_mixed_rake_target.child_right() = cluster_tree_node_external_rake_target;
                                         }
-                                        else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external_rake_target, it_vertex2))
+                                        else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external_rake_target, it_vertex2))
                                         {
                                             std::tie(cluster_tree_node_mixed_rake_target.arc_backward.head, cluster_tree_node_mixed_rake_target.arc_forward.head) = std::make_tuple(it_vertex_external_rake_target, it_vertex2);
                                             cluster_tree_node_mixed_rake_target.contraction_type() = true;
@@ -2348,22 +2289,22 @@ namespace augmented_containers
                                 }
 
                                 std::optional<bool> selector_result(selector(graph(), p_cluster_tree_node_fake_root->p_cluster(), it_vertex1_fake_root, p_cluster_tree_node_fake_root->child_left()->p_cluster(), it_vertex2_fake_root, p_cluster_tree_node_fake_root->child_right()->p_cluster(), it_vertex3_fake_root, 1));
-                                if(!selector_result.has_value())
+                                if (!selector_result.has_value())
                                 {
-                                    if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                    if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                     else
                                     {
                                         assert(p_cluster_tree_node_fake_root == &cluster_tree_node_fake_root);
                                         std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 1);
-                                        if(cluster_tree_node_external_rake_center == nullptr)
+                                        if (cluster_tree_node_external_rake_center == nullptr)
                                             assert(p_cluster_tree_node_mixed_rake_center == cluster_tree_node->child_left());
                                         else
                                         {
                                             assert(p_cluster_tree_node_mixed_rake_center == &cluster_tree_node_mixed_rake_center);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_mixed_rake_center.p_cluster(), it_vertex1_mixed_rake_center, cluster_tree_node_mixed_rake_center.child_left()->p_cluster(), it_vertex2_mixed_rake_center, cluster_tree_node_mixed_rake_center.child_right()->p_cluster(), it_vertex3_mixed_rake_center, 1);
                                         }
-                                        if(cluster_tree_node_external_rake_target == nullptr)
+                                        if (cluster_tree_node_external_rake_target == nullptr)
                                             assert(p_cluster_tree_node_mixed_rake_target == cluster_tree_node->child_right());
                                         else
                                         {
@@ -2376,16 +2317,16 @@ namespace augmented_containers
                                 }
                                 else
                                 {
-                                    if(!selector_result.value())
+                                    if (!selector_result.value())
                                     {
-                                        if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                        if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         {
                                             assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 1);
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node->child_right(), nullptr);
-                                            else if(cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(nullptr, cluster_tree_node->child_right());
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_left(), cluster_tree_node_external2_next));
@@ -2398,7 +2339,7 @@ namespace augmented_containers
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 1);
                                             cluster_tree_node_t *p_cluster_tree_node_rake_center_next, cluster_tree_node_rake_center_next(nullptr);
                                             it_vertex_t it_vertex1_rake_center_next, it_vertex2_rake_center_next, it_vertex3_rake_center_next;
-                                            if(cluster_tree_node_external_rake_center == nullptr)
+                                            if (cluster_tree_node_external_rake_center == nullptr)
                                             {
                                                 assert(p_cluster_tree_node_mixed_rake_center == cluster_tree_node->child_left());
 
@@ -2418,20 +2359,20 @@ namespace augmented_containers
                                                 std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).join(graph(), cluster_tree_node_rake_center_next.p_cluster(), it_vertex1_rake_center_next, cluster_tree_node_rake_center_next.child_left()->p_cluster(), it_vertex2_rake_center_next, cluster_tree_node_rake_center_next.child_right()->p_cluster(), it_vertex3_rake_center_next, 1);
                                             }
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(p_cluster_tree_node_rake_center_next, nullptr);
-                                            else if(cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(nullptr, p_cluster_tree_node_rake_center_next);
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_left(), cluster_tree_node_external2_next));
-                                            if(cluster_tree_node_external_rake_center == nullptr)
+                                            if (cluster_tree_node_external_rake_center == nullptr)
                                                 assert(p_cluster_tree_node_rake_center_next == p_cluster_tree_node_mixed_rake_target);
                                             else
                                             {
                                                 assert(p_cluster_tree_node_rake_center_next == &cluster_tree_node_rake_center_next);
                                                 std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_rake_center_next.p_cluster(), it_vertex1_rake_center_next, cluster_tree_node_rake_center_next.child_left()->p_cluster(), it_vertex2_rake_center_next, cluster_tree_node_rake_center_next.child_right()->p_cluster(), it_vertex3_rake_center_next, 1);
                                             }
-                                            if(cluster_tree_node_external_rake_target == nullptr)
+                                            if (cluster_tree_node_external_rake_target == nullptr)
                                                 assert(p_cluster_tree_node_mixed_rake_target == cluster_tree_node->child_right());
                                             else
                                             {
@@ -2444,14 +2385,14 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                        if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         {
                                             assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 1);
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node->child_left(), nullptr);
-                                            else if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(nullptr, cluster_tree_node->child_left());
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_right(), cluster_tree_node_external2_next));
@@ -2462,7 +2403,7 @@ namespace augmented_containers
                                         {
                                             assert(p_cluster_tree_node_fake_root == &cluster_tree_node_fake_root);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 1);
-                                            if(cluster_tree_node_external_rake_target == nullptr)
+                                            if (cluster_tree_node_external_rake_target == nullptr)
                                                 assert(p_cluster_tree_node_mixed_rake_target == cluster_tree_node->child_right());
                                             else
                                             {
@@ -2470,13 +2411,13 @@ namespace augmented_containers
                                                 std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_mixed_rake_target.p_cluster(), it_vertex1_mixed_rake_target, cluster_tree_node_mixed_rake_target.child_left()->p_cluster(), it_vertex2_mixed_rake_target, cluster_tree_node_mixed_rake_target.child_right()->p_cluster(), it_vertex3_mixed_rake_target, 2);
                                             }
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(p_cluster_tree_node_mixed_rake_center, cluster_tree_node_external_rake_target);
-                                            else if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head || cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node_external_rake_target, p_cluster_tree_node_mixed_rake_center);
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_right(), cluster_tree_node_external2_next));
-                                            if(cluster_tree_node_external_rake_center == nullptr)
+                                            if (cluster_tree_node_external_rake_center == nullptr)
                                                 assert(p_cluster_tree_node_mixed_rake_center == cluster_tree_node->child_left());
                                             else
                                             {
@@ -2498,7 +2439,7 @@ namespace augmented_containers
                                 it_vertex_t it_vertex1_mixed2, it_vertex2_mixed2, it_vertex3_mixed2;
                                 it_vertex_t it_vertex1_fake_root, it_vertex2_fake_root, it_vertex3_fake_root;
                                 it_vertex_t it_vertex_external1, it_vertex_external2;
-                                if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                 {
                                     p_cluster_tree_node_fake_root = cluster_tree_node;
                                     std::tie(it_vertex1_fake_root, it_vertex2_fake_root, it_vertex3_fake_root) = std::make_tuple(it_vertex1, it_vertex2, it_vertex3);
@@ -2506,7 +2447,7 @@ namespace augmented_containers
                                 else
                                 {
                                     std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 2);
-                                    if(cluster_tree_node_external1 == nullptr)
+                                    if (cluster_tree_node_external1 == nullptr)
                                     {
                                         p_cluster_tree_node_mixed1 = cluster_tree_node->child_left();
                                         it_vertex_external1 = it_vertex1;
@@ -2514,22 +2455,22 @@ namespace augmented_containers
                                     else
                                     {
                                         p_cluster_tree_node_mixed1 = &cluster_tree_node_mixed1;
-                                        it_vertex_external1 = [&]()
+                                        it_vertex_external1 = [&]() //
                                         {
-                                            if(it_vertex1 == cluster_tree_node_external1->arc_backward.head)
+                                            if (it_vertex1 == cluster_tree_node_external1->arc_backward.head)
                                                 return cluster_tree_node_external1->arc_forward.head;
-                                            else if(it_vertex1 == cluster_tree_node_external1->arc_forward.head)
+                                            else if (it_vertex1 == cluster_tree_node_external1->arc_forward.head)
                                                 return cluster_tree_node_external1->arc_backward.head;
                                             else std::unreachable();
                                         }();
-                                        if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external1))
+                                        if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external1))
                                         {
                                             std::tie(cluster_tree_node_mixed1.arc_backward.head, cluster_tree_node_mixed1.arc_forward.head) = std::make_tuple(it_vertex2, it_vertex_external1);
                                             cluster_tree_node_mixed1.contraction_type() = true;
                                             cluster_tree_node_mixed1.child_left() = cluster_tree_node->child_left();
                                             cluster_tree_node_mixed1.child_right() = cluster_tree_node_external1;
                                         }
-                                        else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external1, it_vertex2))
+                                        else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external1, it_vertex2))
                                         {
                                             std::tie(cluster_tree_node_mixed1.arc_backward.head, cluster_tree_node_mixed1.arc_forward.head) = std::make_tuple(it_vertex_external1, it_vertex2);
                                             cluster_tree_node_mixed1.contraction_type() = true;
@@ -2540,7 +2481,7 @@ namespace augmented_containers
                                         std::tie(it_vertex1_mixed1, it_vertex2_mixed1, it_vertex3_mixed1) = cluster_tree_node_mixed1.compress_it_vertexes();
                                         std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).join(graph(), cluster_tree_node_mixed1.p_cluster(), it_vertex1_mixed1, cluster_tree_node_mixed1.child_left()->p_cluster(), it_vertex2_mixed1, cluster_tree_node_mixed1.child_right()->p_cluster(), it_vertex3_mixed1, 2);
                                     }
-                                    if(cluster_tree_node_external2 == nullptr)
+                                    if (cluster_tree_node_external2 == nullptr)
                                     {
                                         p_cluster_tree_node_mixed2 = cluster_tree_node->child_right();
                                         it_vertex_external2 = it_vertex3;
@@ -2548,22 +2489,22 @@ namespace augmented_containers
                                     else
                                     {
                                         p_cluster_tree_node_mixed2 = &cluster_tree_node_mixed2;
-                                        it_vertex_external2 = [&]()
+                                        it_vertex_external2 = [&]() //
                                         {
-                                            if(it_vertex3 == cluster_tree_node_external2->arc_backward.head)
+                                            if (it_vertex3 == cluster_tree_node_external2->arc_backward.head)
                                                 return cluster_tree_node_external2->arc_forward.head;
-                                            else if(it_vertex3 == cluster_tree_node_external2->arc_forward.head)
+                                            else if (it_vertex3 == cluster_tree_node_external2->arc_forward.head)
                                                 return cluster_tree_node_external2->arc_backward.head;
                                             else std::unreachable();
                                         }();
-                                        if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external2))
+                                        if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex2, it_vertex_external2))
                                         {
                                             std::tie(cluster_tree_node_mixed2.arc_backward.head, cluster_tree_node_mixed2.arc_forward.head) = std::make_tuple(it_vertex2, it_vertex_external2);
                                             cluster_tree_node_mixed2.contraction_type() = true;
                                             cluster_tree_node_mixed2.child_left() = cluster_tree_node->child_right();
                                             cluster_tree_node_mixed2.child_right() = cluster_tree_node_external2;
                                         }
-                                        else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external2, it_vertex2))
+                                        else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external2, it_vertex2))
                                         {
                                             std::tie(cluster_tree_node_mixed2.arc_backward.head, cluster_tree_node_mixed2.arc_forward.head) = std::make_tuple(it_vertex_external2, it_vertex2);
                                             cluster_tree_node_mixed2.contraction_type() = true;
@@ -2575,14 +2516,14 @@ namespace augmented_containers
                                         std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).join(graph(), cluster_tree_node_mixed2.p_cluster(), it_vertex1_mixed2, cluster_tree_node_mixed2.child_left()->p_cluster(), it_vertex2_mixed2, cluster_tree_node_mixed2.child_right()->p_cluster(), it_vertex3_mixed2, 2);
                                     }
                                     p_cluster_tree_node_fake_root = &cluster_tree_node_fake_root;
-                                    if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external1, it_vertex_external2))
+                                    if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external1, it_vertex_external2))
                                     {
                                         std::tie(cluster_tree_node_fake_root.arc_backward.head, cluster_tree_node_fake_root.arc_forward.head) = std::make_tuple(it_vertex_external1, it_vertex_external2);
                                         cluster_tree_node_fake_root.contraction_type() = true;
                                         cluster_tree_node_fake_root.child_left() = p_cluster_tree_node_mixed1;
                                         cluster_tree_node_fake_root.child_right() = p_cluster_tree_node_mixed2;
                                     }
-                                    else if(std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external2, it_vertex_external1))
+                                    else if (std::as_const(graph()->comparator_it_vertex_address)(it_vertex_external2, it_vertex_external1))
                                     {
                                         std::tie(cluster_tree_node_fake_root.arc_backward.head, cluster_tree_node_fake_root.arc_forward.head) = std::make_tuple(it_vertex_external2, it_vertex_external1);
                                         cluster_tree_node_fake_root.contraction_type() = true;
@@ -2595,22 +2536,22 @@ namespace augmented_containers
                                 }
 
                                 std::optional<bool> selector_result(selector(graph(), p_cluster_tree_node_fake_root->p_cluster(), it_vertex1_fake_root, p_cluster_tree_node_fake_root->child_left()->p_cluster(), it_vertex2_fake_root, p_cluster_tree_node_fake_root->child_right()->p_cluster(), it_vertex3_fake_root, 2));
-                                if(!selector_result.has_value())
+                                if (!selector_result.has_value())
                                 {
-                                    if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                    if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                     else
                                     {
                                         assert(p_cluster_tree_node_fake_root == &cluster_tree_node_fake_root);
                                         std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 2);
-                                        if(cluster_tree_node_external1 == nullptr)
+                                        if (cluster_tree_node_external1 == nullptr)
                                             assert(p_cluster_tree_node_mixed1 == cluster_tree_node->child_left());
                                         else
                                         {
                                             assert(p_cluster_tree_node_mixed1 == &cluster_tree_node_mixed1);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_mixed1.p_cluster(), it_vertex1_mixed1, cluster_tree_node_mixed1.child_left()->p_cluster(), it_vertex2_mixed1, cluster_tree_node_mixed1.child_right()->p_cluster(), it_vertex3_mixed1, 2);
                                         }
-                                        if(cluster_tree_node_external2 == nullptr)
+                                        if (cluster_tree_node_external2 == nullptr)
                                             assert(p_cluster_tree_node_mixed2 == cluster_tree_node->child_right());
                                         else
                                         {
@@ -2623,16 +2564,16 @@ namespace augmented_containers
                                 }
                                 else
                                 {
-                                    if(!selector_result.value())
+                                    if (!selector_result.value())
                                     {
-                                        if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                        if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         {
                                             assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 2);
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(nullptr, cluster_tree_node->child_right());
-                                            else if(cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
+                                            else if (cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node->child_right(), nullptr);
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_left(), cluster_tree_node_external2_next));
@@ -2643,7 +2584,7 @@ namespace augmented_containers
                                         {
                                             assert(p_cluster_tree_node_fake_root == &cluster_tree_node_fake_root);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 2);
-                                            if(cluster_tree_node_external1 == nullptr)
+                                            if (cluster_tree_node_external1 == nullptr)
                                                 assert(p_cluster_tree_node_mixed1 == cluster_tree_node->child_left());
                                             else
                                             {
@@ -2651,13 +2592,13 @@ namespace augmented_containers
                                                 std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_mixed1.p_cluster(), it_vertex1_mixed1, cluster_tree_node_mixed1.child_left()->p_cluster(), it_vertex2_mixed1, cluster_tree_node_mixed1.child_right()->p_cluster(), it_vertex3_mixed1, 2);
                                             }
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head)
+                                            if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node_external1, p_cluster_tree_node_mixed2);
-                                            else if(cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
+                                            else if (cluster_tree_node->child_left()->arc_forward.head == cluster_tree_node->arc_backward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(p_cluster_tree_node_mixed2, cluster_tree_node_external1);
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_left(), cluster_tree_node_external2_next));
-                                            if(cluster_tree_node_external2 == nullptr)
+                                            if (cluster_tree_node_external2 == nullptr)
                                                 assert(p_cluster_tree_node_mixed2 == cluster_tree_node->child_right());
                                             else
                                             {
@@ -2670,14 +2611,14 @@ namespace augmented_containers
                                     }
                                     else
                                     {
-                                        if(cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
+                                        if (cluster_tree_node_external1 == nullptr && cluster_tree_node_external2 == nullptr)
                                         {
                                             assert(p_cluster_tree_node_fake_root == cluster_tree_node);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node->p_cluster(), it_vertex1, cluster_tree_node->child_left()->p_cluster(), it_vertex2, cluster_tree_node->child_right()->p_cluster(), it_vertex3, 2);
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_right()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            if (cluster_tree_node->child_right()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node->child_left(), nullptr);
-                                            else if(cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_left()->arc_backward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(nullptr, cluster_tree_node->child_left());
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_right(), cluster_tree_node_external2_next));
@@ -2688,7 +2629,7 @@ namespace augmented_containers
                                         {
                                             assert(p_cluster_tree_node_fake_root == &cluster_tree_node_fake_root);
                                             std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_fake_root.p_cluster(), it_vertex1_fake_root, cluster_tree_node_fake_root.child_left()->p_cluster(), it_vertex2_fake_root, cluster_tree_node_fake_root.child_right()->p_cluster(), it_vertex3_fake_root, 2);
-                                            if(cluster_tree_node_external2 == nullptr)
+                                            if (cluster_tree_node_external2 == nullptr)
                                                 assert(p_cluster_tree_node_mixed2 == cluster_tree_node->child_right());
                                             else
                                             {
@@ -2696,13 +2637,13 @@ namespace augmented_containers
                                                 std::as_const(tagged_ptr_bit0_unsetted(cluster_list_node_end)->internal_operations).split(graph(), cluster_tree_node_mixed2.p_cluster(), it_vertex1_mixed2, cluster_tree_node_mixed2.child_left()->p_cluster(), it_vertex2_mixed2, cluster_tree_node_mixed2.child_right()->p_cluster(), it_vertex3_mixed2, 2);
                                             }
                                             cluster_tree_node_t *cluster_tree_node_external1_next, *cluster_tree_node_external2_next;
-                                            if(cluster_tree_node->child_right()->arc_forward.head == cluster_tree_node->arc_forward.head)
+                                            if (cluster_tree_node->child_right()->arc_forward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(p_cluster_tree_node_mixed1, cluster_tree_node_external2);
-                                            else if(cluster_tree_node->child_right()->arc_backward.head == cluster_tree_node->arc_forward.head)
+                                            else if (cluster_tree_node->child_right()->arc_backward.head == cluster_tree_node->arc_forward.head)
                                                 std::tie(cluster_tree_node_external1_next, cluster_tree_node_external2_next) = std::make_tuple(cluster_tree_node_external2, p_cluster_tree_node_mixed1);
                                             else std::unreachable();
                                             std::optional<it_edge_it_vertexes_t> result(this_(this_, cluster_tree_node_external1_next, cluster_tree_node->child_right(), cluster_tree_node_external2_next));
-                                            if(cluster_tree_node_external1 == nullptr)
+                                            if (cluster_tree_node_external1 == nullptr)
                                                 assert(p_cluster_tree_node_mixed1 == cluster_tree_node->child_left());
                                             else
                                             {
@@ -2723,16 +2664,14 @@ namespace augmented_containers
 
                 cluster_list_node_end_t *create_node_end() { return tagged_ptr_bit0_setted(new cluster_list_node_end_t()); }
                 void destroy_node_end() { delete tagged_ptr_bit0_unsetted(cluster_list_node_end); }
-                augmented_graph_part_t()
-                    requires(std::is_same_v<comparator_it_edge_it_vertexes_internal_operations_t, void>)
+                augmented_graph_part_t() requires (std::is_same_v<comparator_it_edge_it_vertexes_internal_operations_t, void>)
                     : cluster_list_node_end(create_node_end()),
                       it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_it_vertexes_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator())),
                       it_vertexes_trivial_component(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_t(graph()->vertexes.get_allocator())),
                       it_edges_fundamental(std::cref(graph()->comparator_it_edge), allocator_it_edge_it_vertexes_t(graph()->vertexes.get_allocator()))
                 {
                 }
-                augmented_graph_part_t()
-                    requires(!std::is_same_v<comparator_it_edge_it_vertexes_internal_operations_t, void>)
+                augmented_graph_part_t() requires (!std::is_same_v<comparator_it_edge_it_vertexes_internal_operations_t, void>)
                     : cluster_list_node_end(create_node_end()),
                       it_vertexes_it_vertexes_arc_and_it_edge_it_vertexes_base_level(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_it_vertexes_arc_and_it_edge_it_vertexes_base_level_t(graph()->vertexes.get_allocator())),
                       it_vertexes_trivial_component(std::cref(graph()->comparator_it_vertex_address), allocator_it_vertex_t(graph()->vertexes.get_allocator())),
@@ -2788,9 +2727,9 @@ namespace augmented_containers
             comparator_vertex_t comparator_vertex;
             bool operator()(it_vertex_t const &lhs, it_vertex_t const &rhs) const
             {
-                if(comparator_vertex(*lhs, *rhs))
+                if (comparator_vertex(*lhs, *rhs))
                     return true;
-                else if(comparator_vertex(*rhs, *lhs))
+                else if (comparator_vertex(*rhs, *lhs))
                     return false;
                 else
                     return std::as_const(detail::utility::unmove(std::less<typename vertexes_t::value_type const *>{}))(&*lhs, &*rhs);
@@ -2812,9 +2751,9 @@ namespace augmented_containers
             comparator_edge_t comparator_edge;
             bool operator()(it_edge_it_vertexes_t const &lhs, it_edge_it_vertexes_t const &rhs) const
             {
-                if(comparator_edge(lhs->first, rhs->first))
+                if (comparator_edge(lhs->first, rhs->first))
                     return true;
-                else if(comparator_edge(rhs->first, lhs->first))
+                else if (comparator_edge(rhs->first, lhs->first))
                     return false;
                 else
                     return std::as_const(detail::utility::unmove(std::less<typename edges_it_vertexes_t::key_type const *>{}))(&lhs->first, &rhs->first);
@@ -2930,62 +2869,37 @@ namespace augmented_containers
               comparator_it_edge_address{},
               edges_it_vertexes(std::cref(comparator_it_edge.comparator_edge), allocator_edges_it_vertexes_t(allocator_vertexes)),
               it_vertexes_it_vertexes_it_edges(std::cref(comparator_it_vertex_address), allocator_it_vertex_it_vertexes_it_edges_it_vertexes_t(allocator_vertexes)),
-              it_vertexes_it_edges(std::cref(comparator_it_vertex_address), allocator_it_vertex_it_edges_it_vertexes_t(allocator_vertexes))
-        {}
-        augmented_graph_t(allocator_vertex_t const &allocator_vertexes)
-            : augmented_graph_t(comparator_vertex_t(), comparator_edge_t(), allocator_vertexes)
-        {}
-        augmented_graph_t()
-            : augmented_graph_t(allocator_vertex_t())
-        {}
+              it_vertexes_it_edges(std::cref(comparator_it_vertex_address), allocator_it_vertex_it_edges_it_vertexes_t(allocator_vertexes)) {}
+        augmented_graph_t(allocator_vertex_t const &allocator_vertexes) : augmented_graph_t(comparator_vertex_t(), comparator_edge_t(), allocator_vertexes) {}
+        augmented_graph_t() : augmented_graph_t(allocator_vertex_t()) {}
         ~augmented_graph_t()
         {
-            while(!vertexes.empty())
+            while (!vertexes.empty())
                 erase_vertex(vertexes.begin());
         }
 
         template<std::size_t index, typename part_data_structure_and_parameters_t>
-        struct part_data_structure_and_parameters_t_to_part_t: std::type_identity<detail::augmented_graph::augmented_graph_part_t<augmented_graph_t, index, typename part_data_structure_and_parameters_t::first_type, typename part_data_structure_and_parameters_t::second_type::template type<augmented_graph_t>>>
+        struct part_data_structure_and_parameters_t_to_part_t : std::type_identity<detail::augmented_graph::augmented_graph_part_t<augmented_graph_t, index, typename part_data_structure_and_parameters_t::first_type, typename part_data_structure_and_parameters_t::second_type::template type<augmented_graph_t>>>
         {};
         using parts_t = detail::utility::map_transform_t<parts_data_structure_and_parameters_t, part_data_structure_and_parameters_t_to_part_t>;
         static constexpr std::size_t parts_count = std::tuple_size_v<parts_t>;
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
         using part_t = std::tuple_element_t<I, parts_t>;
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
         static constexpr augmented_graph_part_data_structure_e part_data_structure = std::tuple_element_t<I, parts_data_structure_and_parameters_t>::first_type::value;
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
         using part_parameters = std::tuple_element_t<I, parts_data_structure_and_parameters_t>::second_type;
 
         parts_t parts;
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
-        part_t<I> const &part() const &
-        {
-            return std::get<I>(parts);
-        }
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
-        part_t<I> &part() &
-        {
-            return std::get<I>(parts);
-        }
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
-        part_t<I> const &&part() const &&
-        {
-            return std::get<I>(parts);
-        }
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
-        part_t<I> &&part() &&
-        {
-            return std::get<I>(parts);
-        }
-        template<std::size_t I>
-            requires(I >= 0 && I < parts_count)
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
+        part_t<I> const &part() const & { return std::get<I>(parts); }
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
+        part_t<I> &part() & { return std::get<I>(parts); }
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
+        part_t<I> const &&part() const && { return std::get<I>(parts); }
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
+        part_t<I> &&part() && { return std::get<I>(parts); }
+        template<std::size_t I> requires (I >= 0 && I < parts_count)
         static constexpr std::size_t part_offset()
         {
 #ifdef __clang__
@@ -3000,22 +2914,16 @@ namespace augmented_containers
 
         it_vertex_t insert_vertex(vertex_t vertex)
         {
-            [ this, &vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &vertex]
-                    { this->part<I>().vertex_inserting(vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &vertex] { this->part<I>().vertex_inserting(vertex); }());
+            }(std::make_index_sequence<parts_count>());
 
             it_vertex_t it_vertex = vertexes.insert(vertex);
             it_vertexes_it_edges.emplace(std::piecewise_construct, std::forward_as_tuple(it_vertex), std::forward_as_tuple(std::cref(comparator_it_edge_address)));
 
-            [ this, &it_vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_vertex]
-                    { this->part<I>().vertex_inserted(it_vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_vertex] { this->part<I>().vertex_inserted(it_vertex); }());
+            }(std::make_index_sequence<parts_count>());
 
             return it_vertex;
         }
@@ -3025,15 +2933,12 @@ namespace augmented_containers
 
             auto it_vertex_it_edges = it_vertexes_it_edges.find(it_vertex);
             assert(it_vertex_it_edges != it_vertexes_it_edges.end());
-            while(!it_vertex_it_edges->second.empty())
+            while (!it_vertex_it_edges->second.empty())
                 this->erase_edge(*it_vertex_it_edges->second.begin());
 
-            [ this, &it_vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_vertex]
-                    { this->part<I>().vertex_erasing(it_vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_vertex] { this->part<I>().vertex_erasing(it_vertex); }());
+            }(std::make_index_sequence<parts_count>());
 
             assert(it_vertex_it_edges->second.empty());
             it_vertexes_it_edges.erase(it_vertex_it_edges);
@@ -3041,12 +2946,9 @@ namespace augmented_containers
             it_vertex_t it_vertex_next = std::ranges::next(it_vertex);
             auto node_handle_vertex = vertexes.extract(it_vertex);
 
-            [ this, &node_handle_vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &node_handle_vertex]
-                    { this->part<I>().vertex_erased(node_handle_vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &node_handle_vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &node_handle_vertex] { this->part<I>().vertex_erased(node_handle_vertex); }());
+            }(std::make_index_sequence<parts_count>());
 
             return it_vertex_next;
         }
@@ -3055,40 +2957,31 @@ namespace augmented_containers
         {
             assert(it_vertex != vertexes.end());
 
-            [ this, &it_vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_vertex]
-                    { this->part<I>().vertex_updating(it_vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_vertex] { this->part<I>().vertex_updating(it_vertex); }());
+            }(std::make_index_sequence<parts_count>());
 
             auto node_handle_vertex = vertexes.extract(it_vertex);
             updater(node_handle_vertex.value());
             vertexes.insert(std::move(node_handle_vertex));
 
-            [ this, &it_vertex ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_vertex]
-                    { this->part<I>().vertex_updated(it_vertex); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_vertex]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_vertex] { this->part<I>().vertex_updated(it_vertex); }());
+            }(std::make_index_sequence<parts_count>());
         }
         it_edge_it_vertexes_t insert_edge(it_vertex_t it_vertex1, it_vertex_t it_vertex2, edge_t edge)
         {
             assert(it_vertex1 != vertexes.end() && it_vertex2 != vertexes.end());
 
-            if(std::as_const(comparator_it_vertex_address)(it_vertex2, it_vertex1))
+            if (std::as_const(comparator_it_vertex_address)(it_vertex2, it_vertex1))
                 std::ranges::swap(it_vertex1, it_vertex2);
 
-            [ this, &it_vertex1, &it_vertex2, &edge ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_vertex1, &it_vertex2, &edge]
-                    { this->part<I>().edge_inserting(it_vertex1, it_vertex2, edge); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_vertex1, &it_vertex2, &edge]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_vertex1, &it_vertex2, &edge] { this->part<I>().edge_inserting(it_vertex1, it_vertex2, edge); }());
+            }(std::make_index_sequence<parts_count>());
 
             it_edge_it_vertexes_t it_edge = edges_it_vertexes.emplace(std::piecewise_construct, std::forward_as_tuple(edge), std::forward_as_tuple(std::piecewise_construct, std::forward_as_tuple(it_vertex1), std::forward_as_tuple(it_vertex2)));
-            if(it_vertex1 == it_vertex2)
+            if (it_vertex1 == it_vertex2)
             {
                 it_vertexes_it_edges.at(it_vertex1).insert(it_edge);
 
@@ -3112,12 +3005,9 @@ namespace augmented_containers
                 }
             }
 
-            [ this, &it_edge ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_edge]
-                    { this->part<I>().edge_inserted(it_edge); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_edge]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_edge] { this->part<I>().edge_inserted(it_edge); }());
+            }(std::make_index_sequence<parts_count>());
 
             return it_edge;
         }
@@ -3125,22 +3015,19 @@ namespace augmented_containers
         {
             assert(it_edge != edges_it_vertexes.end());
 
-            [ this, &it_edge ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_edge]
-                    { this->part<I>().edge_erasing(it_edge); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_edge]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_edge] { this->part<I>().edge_erasing(it_edge); }());
+            }(std::make_index_sequence<parts_count>());
 
-            if(it_edge->second.first == it_edge->second.second)
+            if (it_edge->second.first == it_edge->second.second)
             {
                 it_vertexes_it_edges.at(it_edge->second.first).erase(it_edge);
 
                 it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).erase(it_edge);
-                if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).empty())
+                if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).empty())
                 {
                     it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).erase(it_edge->second.second);
-                    if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).empty())
+                    if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).empty())
                         it_vertexes_it_vertexes_it_edges.erase(it_edge->second.first);
                 }
             }
@@ -3150,17 +3037,17 @@ namespace augmented_containers
                 it_vertexes_it_edges.at(it_edge->second.second).erase(it_edge);
 
                 it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).erase(it_edge);
-                if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).empty())
+                if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).at(it_edge->second.second).empty())
                 {
                     it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).erase(it_edge->second.second);
-                    if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).empty())
+                    if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.first).empty())
                         it_vertexes_it_vertexes_it_edges.erase(it_edge->second.first);
                 }
                 it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).at(it_edge->second.first).erase(it_edge);
-                if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).at(it_edge->second.first).empty())
+                if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).at(it_edge->second.first).empty())
                 {
                     it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).erase(it_edge->second.first);
-                    if(it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).empty())
+                    if (it_vertexes_it_vertexes_it_edges.at(it_edge->second.second).empty())
                         it_vertexes_it_vertexes_it_edges.erase(it_edge->second.second);
                 }
             }
@@ -3168,12 +3055,9 @@ namespace augmented_containers
             it_edge_it_vertexes_t it_edge_next = std::ranges::next(it_edge);
             auto node_handle_edge = edges_it_vertexes.extract(it_edge);
 
-            [ this, &node_handle_edge ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &node_handle_edge]
-                    { this->part<I>().edge_erased(node_handle_edge); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &node_handle_edge]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &node_handle_edge] { this->part<I>().edge_erased(node_handle_edge); }());
+            }(std::make_index_sequence<parts_count>());
 
             return it_edge_next;
         }
@@ -3182,23 +3066,17 @@ namespace augmented_containers
         {
             assert(it_edge_it_vertexes != edges_it_vertexes.end());
 
-            [ this, &it_edge_it_vertexes ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_edge_it_vertexes]
-                    { this->part<I>().edge_updating(it_edge_it_vertexes); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_edge_it_vertexes]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_edge_it_vertexes] { this->part<I>().edge_updating(it_edge_it_vertexes); }());
+            }(std::make_index_sequence<parts_count>());
 
             auto node_handle_edge = edges_it_vertexes.extract(it_edge_it_vertexes);
             updater(node_handle_edge.key());
             edges_it_vertexes.insert(std::move(node_handle_edge));
 
-            [ this, &it_edge_it_vertexes ]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (..., [this, &it_edge_it_vertexes]
-                    { this->part<I>().edge_updated(it_edge_it_vertexes); }());
-            }
-            (std::make_index_sequence<parts_count>());
+            [this, &it_edge_it_vertexes]<std::size_t... I>(std::index_sequence<I...>) {
+                (..., [this, &it_edge_it_vertexes] { this->part<I>().edge_updated(it_edge_it_vertexes); }());
+            }(std::make_index_sequence<parts_count>());
         }
     };
 } // namespace augmented_containers
