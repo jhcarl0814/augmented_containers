@@ -6,6 +6,7 @@
 #include <concepts>
 #include <coroutine>
 #include <cstddef>
+#include <exception>
 #include <functional>
 #include <iterator>
 #include <memory>

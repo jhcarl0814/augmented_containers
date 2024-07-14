@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <coroutine>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <optional>

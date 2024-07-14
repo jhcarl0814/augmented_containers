@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <coroutine>
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <map>
