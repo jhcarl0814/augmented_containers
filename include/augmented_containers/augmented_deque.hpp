@@ -3709,7 +3709,7 @@ namespace augmented_containers
         augmented_deque_t(augmented_deque_t &&other) // move constructor
             : allocator_element(([&]() //
                                  {
-                                     stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
+                                     stride1_sequence.list_node_end = other.stride1_sequence.list_node_end, stride1_sequence.digit_node_end = other.stride1_sequence.digit_node_end;
                                      [&]<std::size_t... I>(std::index_sequence<I...>)
                                      {
                                          (..., (std::get<I>(other_stride_sequences).list_node_end = std::get<I>(other.other_stride_sequences).list_node_end, std::get<I>(other_stride_sequences).digit_node_end = std::get<I>(other.other_stride_sequences).digit_node_end));
@@ -3721,7 +3721,7 @@ namespace augmented_containers
         {
             if (allocator_element == other.allocator_element)
             {
-                stride1_sequence.list_node_end = other.list_node_end, stride1_sequence.digit_node_end = other.digit_node_end;
+                stride1_sequence.list_node_end = other.stride1_sequence.list_node_end, stride1_sequence.digit_node_end = other.stride1_sequence.digit_node_end;
                 [&]<std::size_t... I>(std::index_sequence<I...>) {
                     (..., (std::get<I>(other_stride_sequences).list_node_end = std::get<I>(other.other_stride_sequences).list_node_end, std::get<I>(other_stride_sequences).digit_node_end = std::get<I>(other.other_stride_sequences).digit_node_end));
                 }(std::make_index_sequence<std::tuple_size_v<other_strides_stride_to_projector_and_accumulator_map_t>>());

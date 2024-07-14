@@ -843,7 +843,7 @@ reached_root:;
                 friend std::ptrdiff_t operator-(non_const_iterator_t const &lhs, non_const_iterator_t const &rhs) { return lhs.to_const() - rhs.to_const(); }
                 friend std::ptrdiff_t operator-([[maybe_unused]] std::default_sentinel_t const &lhs, rb3p_iterator_t const &rhs) requires (support_random_access)
                 {
-                    assert(rhs.current_list_node != nullptr);
+                    assert(rhs.current_node != nullptr);
                     auto [index, size] = rhs.index_impl();
                     return static_cast<std::ptrdiff_t>(size) - static_cast<std::ptrdiff_t>(index);
                 }
