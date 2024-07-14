@@ -448,30 +448,6 @@ namespace augmented_containers
     #define AUGMENTED_CONTAINERS_FUNCTIONAL
         namespace functional
         {
-    #ifdef __EMSCRIPTEN__
-        }
-    }
-}
-
-namespace std
-{
-    template<class R, class F, class... Args> requires std::is_invocable_r_v<R, F, Args...>
-    constexpr R invoke_r(F &&f, Args &&...args) noexcept(std::is_nothrow_invocable_r_v<R, F, Args...>)
-    {
-        if constexpr (std::is_void_v<R>)
-            std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
-        else
-            return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
-    }
-} // namespace std
-
-namespace augmented_containers
-{
-    namespace detail
-    {
-        namespace functional
-        {
-    #endif
             template<typename Sig, bool is_no_except = false> // https://www.reddit.com/r/cpp/comments/7svbj7/is_stdfunction_really_the_best_we_can_do_lukas/
             class function_view;
             template<typename R, typename... Args, bool is_no_except>
