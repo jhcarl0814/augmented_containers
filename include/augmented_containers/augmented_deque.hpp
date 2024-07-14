@@ -634,6 +634,8 @@ namespace augmented_containers
 
                 struct demonstration_only_input_iterator_t
                 {
+                    void *current_list_node = nullptr;
+
                     // std::input_iterator / std::indirectly_readable
                     using value_type = typename sequence_config_t::actual_projected_storage_t;
                     using pointer = typename std::pointer_traits<typename sequence_config_t::pointer_element_t>::template rebind<conditional_const_t<is_const, value_type>>;
