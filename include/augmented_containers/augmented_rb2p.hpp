@@ -418,7 +418,14 @@ namespace augmented_containers
                 }
 
                 function_view(R (&t)(Args...) noexcept(is_no_except)) noexcept
+        #ifdef __clang__
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+        #endif
                     : f(reinterpret_cast<R (*)(void *, Args...) noexcept(is_no_except)>(&t)),
+        #ifdef __clang__
+            #pragma clang diagnostic pop
+        #endif
                       d(nullptr) {}
                 function_view &operator=(R (&t)(Args...) noexcept(is_no_except)) & noexcept
                 {
@@ -433,7 +440,14 @@ namespace augmented_containers
                     if (d != nullptr)
                         return f(d, std::forward<Args>(args)...);
                     else
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
                         return (*reinterpret_cast<R (*)(Args...) noexcept(is_no_except)>(f))(std::forward<Args>(args)...);
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
                 }
             };
             template<typename R, typename... Args>
